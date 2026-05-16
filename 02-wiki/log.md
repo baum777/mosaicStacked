@@ -103,3 +103,7 @@
 ## [2026-05-16] matrix-callback-url-config-hardening | replaced Matrix callback origin derivation from forwarded request headers with explicit backend callback URL configuration, updated env/docs, and added regression coverage [[../server/src/lib/matrix-env.ts]] [[../server/src/routes/integration-auth.ts]] [[../server/test/matrix-env.test.ts]] [[../server/test/integration-auth-routes.test.ts]] [[../server/test-support/helpers.ts]] [[../README.md]] [[../.env.example]] [[../docs/test-matrix.md]] [[../docs/integration-auth-rotation-live-smoke.md]]
 
 ## [2026-05-16] landing-first-run-console-gate | updated the landing page into an interface-first entry surface and added a one-time localStorage gate that accepts directly into `/console` on first use [[../web/src/App.tsx]] [[../web/src/ui-adaptation.css]] [[../web/test/mobile-redesign.test.ts]] [[../web/test/app-localization.test.ts]] [[../02-wiki/index.md]]
+
+## [2026-05-16] github-auth-local-installation-id-fix | corrected the local GitHub App installation ID and callback authority so the backend now reports `appReady: true` and a valid instance configuration for the login flow [[../.env]] [[../server/src/routes/integration-auth.ts]] [[../server/src/lib/github-env.ts]] [[../server/src/routes/integrations.ts]]
+
+## [2026-05-16] env-example-minimalization | reduced `.env.example` to the actually relevant core, feature, and optional Matrix/GitHub/OpenRouter blocks; removed legacy smoke and router noise [[../.env.example]]

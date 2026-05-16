@@ -33,6 +33,8 @@ Format: `[[link]] | summary | #tags | YYYY-MM-DD`
 [[../server/src/lib/default-free-model.ts]] | Backend-Resolver für Alias `default-free` mit Priorität user-credential -> env -> lokaler Dev-Fallback (fail-closed bei fehlendem Key/Modell) | #chat #routing #authority | 2026-05-16
 [[../server/src/lib/matrix-env.ts]] | Matrix-Backend-Config mit expliziter SSO-Callback-URL und fail-closed Readiness-Prüfung | #matrix #authority #derived | 2026-05-16
 [[../server/src/routes/integration-auth.ts]] | Backend-owned GitHub-/Matrix-Auth-Start- und Callback-Routen mit fester Matrix-Callback-Bindung sowie GitHub-OAuth-Scopes | #matrix #github #authority #derived | 2026-05-16
+[[../.env]] | Lokale GitHub-Auth-Konfiguration mit korrekter Callback-URL und numerischer App-Installation-ID fuer den Login-Flow | #env #github #derived | 2026-05-16
+[[../.env.example]] | Gekürzte Beispiel-Env mit Kernwerten und nur den wirklich genutzten Feature-Blöcken | #env #docs #derived | 2026-05-16
 [[../docs/model-routing.md]] | Routing-Contract inkl. `default-free` Alias, fail-closed Fehlercodes und serverseitiger Key/Model-Priorisierung | #docs #chat #authority | 2026-05-16
 [[../web/src/lib/shell-freshness.ts]] | Ableitung von `backend-fresh`, `local-restored` und `stale` für die persistente Truth Rail | #shell #truth #authority | 2026-05-16
 [[../web/src/lib/navigation-palette.ts]] | Typisierte Navigation-Palette-Einträge für Tabs und Session-Targets im Keyboard-Flow | #navigation #poweruser #contract | 2026-05-16
