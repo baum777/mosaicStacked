@@ -33,7 +33,7 @@ Format: `[[link]] | summary | #tags | YYYY-MM-DD`
 [[../web/src/lib/companion-context.ts]] | Redigierter Browser-Kontext-Snapshot für Companion-Antworten ohne Secrets, Provider-Ziele oder vollständige Inhalte | #chat #ux #authority | 2026-05-16
 [[../server/src/lib/default-free-model.ts]] | Backend-Resolver für Alias `default-free` mit Priorität user-credential -> env -> lokaler Dev-Fallback (fail-closed bei fehlendem Key/Modell) | #chat #routing #authority | 2026-05-16
 [[../server/src/lib/matrix-env.ts]] | Matrix-Backend-Config mit expliziter SSO-Callback-URL und fail-closed Readiness-Prüfung | #matrix #authority #derived | 2026-05-16
-[[../server/src/routes/integration-auth.ts]] | Backend-owned GitHub-/Matrix-Auth-Start- und Callback-Routen mit fester Matrix-Callback-Bindung sowie GitHub-OAuth-Scopes | #matrix #github #authority #derived | 2026-05-16
+[[../server/src/routes/integration-auth.ts]] | Backend-owned GitHub-/Matrix-Auth-Start-, Callback- und Status-Routen mit getrennter GitHub-App-/OAuth-Readiness-Diagnose | #matrix #github #authority #derived | 2026-05-17
 [[../.env]] | Lokale GitHub-Auth-Konfiguration mit korrekter Callback-URL und numerischer App-Installation-ID fuer den Login-Flow | #env #github #derived | 2026-05-16
 [[../.env.example]] | Gekürzte Beispiel-Env mit Kernwerten und nur den wirklich genutzten Feature-Blöcken | #env #docs #derived | 2026-05-16
 [[../docs/model-routing.md]] | Routing-Contract inkl. `default-free` Alias, fail-closed Fehlercodes und serverseitiger Key/Model-Priorisierung | #docs #chat #authority | 2026-05-16

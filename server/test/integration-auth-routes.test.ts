@@ -406,6 +406,51 @@ test("integrations status allows GitHub App connection before repository selecti
   assert.deepEqual(payload.github.requirements, []);
 });
 
+test("github auth status reports OAuth readiness separately from App readiness", async (t) => {
+  const app = createApp({
+    env: createTestEnv({
+      GITHUB_APP_ID: "github-client-id",
+      GITHUB_APP_PRIVATE_KEY: TEST_GITHUB_APP_PRIVATE_KEY,
+      GITHUB_APP_SLUG: TEST_GITHUB_APP_SLUG,
+      MOSAIC_STACK_SESSION_SECRET: "status-session-secret",
+      ...TEST_ENCRYPTION_KEY
+    }),
+    openRouter: createMockOpenRouterClient(),
+    logger: false
+  });
+
+  t.after(async () => {
+    await app.close();
+  });
+
+  const status = await app.inject({
+    method: "GET",
+    url: "/api/auth/github/status"
+  });
+
+  assert.equal(status.statusCode, 200);
+  const payload = JSON.parse(status.body) as {
+    ok: true;
+    status: string;
+    connected: boolean;
+    appReady: boolean;
+    oauthReady: boolean;
+    authReady: boolean;
+    requirements: string[];
+  };
+
+  assert.equal(payload.ok, true);
+  assert.equal(payload.status, "not_connected");
+  assert.equal(payload.connected, false);
+  assert.equal(payload.appReady, true);
+  assert.equal(payload.oauthReady, false);
+  assert.equal(payload.authReady, true);
+  assert.deepEqual(payload.requirements, [
+    "GITHUB_OAUTH_CLIENT_ID",
+    "GITHUB_OAUTH_CLIENT_SECRET"
+  ]);
+});
+
 test("github auth status endpoint only exposes safe metadata", async (t) => {
   const app = createApp({
     env: createTestEnv({
@@ -458,7 +503,10 @@ test("github auth status endpoint only exposes safe metadata", async (t) => {
     provider: string;
     status: string;
     connected: boolean;
+    appReady: boolean;
     oauthReady: boolean;
+    authReady: boolean;
+    requirements: string[];
     identity: string | null;
     credentialSource: string;
     lastVerifiedAt: string | null;
@@ -469,7 +517,10 @@ test("github auth status endpoint only exposes safe metadata", async (t) => {
   assert.equal(payload.provider, "github");
   assert.equal(payload.status, "connected");
   assert.equal(payload.connected, true);
-  assert.equal(payload.oauthReady, true);
+  assert.equal(payload.appReady, true);
+  assert.equal(payload.oauthReady, false);
+  assert.equal(payload.authReady, true);
+  assert.deepEqual(payload.requirements, []);
   assert.equal(payload.identity, `octocat (installation ${TEST_GITHUB_INSTALLATION_ID})`);
   assert.equal(payload.credentialSource, "user_connected");
   assert.ok(payload.lastVerifiedAt);

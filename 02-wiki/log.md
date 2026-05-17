@@ -113,3 +113,5 @@
 ## [2026-05-17] github-production-env-config-blocked | reproduced production GitHub repo endpoint failure and routed missing backend GitHub App runtime readiness to MSPR [[../03-mspr/packets/2026-05-17-github-production-env-config-blocked.yml]]
 
 ## [2026-05-17] github-existing-install-oauth-connect-fix | changed GitHub connect start to prefer OAuth authorize when available so existing App installations can return an auth code instead of stopping on GitHub's installation detail page [[../server/src/routes/integration-auth.ts]] [[../server/test/integration-auth-routes.test.ts]]
+
+## [2026-05-17] github-auth-status-oauth-readiness-fix | separated GitHub App readiness from OAuth readiness in the auth status endpoint so production diagnostics expose missing OAuth client config instead of reporting `oauthReady: true` from App-only readiness [[../server/src/routes/integration-auth.ts]] [[../server/test/integration-auth-routes.test.ts]]

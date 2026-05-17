@@ -1547,6 +1547,7 @@ function registerGitHubStatusRoute(
     const oauthConfig = resolveGitHubOAuthConfig(deps.env);
     const githubAuthReady = appConfig.enabled || oauthConfig.enabled;
     const requirements = oauthConfig.configured ? oauthConfig.requirements : appConfig.requirements;
+    const oauthRequirements = oauthConfig.enabled ? [] : oauthConfig.requirements;
     const connected = connection?.connected === true;
     const status = connected
       ? "connected"
@@ -1561,8 +1562,9 @@ function registerGitHubStatusRoute(
       status,
       connected,
       appReady: appConfig.enabled,
-      oauthReady: githubAuthReady,
-      requirements: connected || githubAuthReady ? [] : requirements,
+      oauthReady: oauthConfig.enabled,
+      authReady: githubAuthReady,
+      requirements: connected ? [] : oauthRequirements.length > 0 ? oauthRequirements : requirements,
       identity: connected ? (connection?.safeIdentityLabel ?? null) : null,
       credentialSource: connected ? connection?.source ?? "not_connected" : "not_connected",
       lastVerifiedAt: connected ? connection?.lastVerifiedAt ?? null : null,
