@@ -111,3 +111,5 @@
 ## [2026-05-17] vercel-diagnostics-rewrite-fix | routed production `/diagnostics` and `/journal/recent` through the Vercel backend adapter and covered the rewrite contract with config tests [[../vercel.json]] [[../server/test/vercel-config.test.ts]]
 
 ## [2026-05-17] github-production-env-config-blocked | reproduced production GitHub repo endpoint failure and routed missing backend GitHub App runtime readiness to MSPR [[../03-mspr/packets/2026-05-17-github-production-env-config-blocked.yml]]
+
+## [2026-05-17] github-existing-install-oauth-connect-fix | changed GitHub connect start to prefer OAuth authorize when available so existing App installations can return an auth code instead of stopping on GitHub's installation detail page [[../server/src/routes/integration-auth.ts]] [[../server/test/integration-auth-routes.test.ts]]

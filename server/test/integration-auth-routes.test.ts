@@ -755,7 +755,7 @@ test("real GitHub App callback stores a user-connected credential source", async
   assert.equal(payload.github.labels.identity, `octocat (installation ${TEST_GITHUB_INSTALLATION_ID})`);
 });
 
-test("GitHub App install and authorize callback resolves user installation from OAuth code", async (t) => {
+test("GitHub App OAuth connect starts with authorize flow for existing installations", async (t) => {
   const env = createTestEnv({
     ...TEST_GITHUB_APP_ENV,
     ...TEST_GITHUB_OAUTH_ENV,
@@ -786,7 +786,10 @@ test("GitHub App install and authorize callback resolves user installation from 
   const browserCookie = joinCookiesForRequest(readSetCookies(start));
   const state = startLocation.searchParams.get("state");
 
-  assert.equal(startLocation.origin + startLocation.pathname, `https://github.com/apps/${TEST_GITHUB_APP_SLUG}/installations/new`);
+  assert.equal(startLocation.origin + startLocation.pathname, "https://github.com/login/oauth/authorize");
+  assert.equal(startLocation.searchParams.get("client_id"), TEST_GITHUB_OAUTH_ENV.GITHUB_OAUTH_CLIENT_ID);
+  assert.equal(startLocation.searchParams.get("redirect_uri"), TEST_GITHUB_OAUTH_ENV.GITHUB_OAUTH_CALLBACK_URL);
+  assert.equal(startLocation.searchParams.get("scope"), TEST_GITHUB_OAUTH_ENV.GITHUB_OAUTH_SCOPES.join(" "));
   assert.ok(state);
   assert.ok(browserCookie);
 

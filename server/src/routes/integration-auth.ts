@@ -1211,7 +1211,7 @@ function registerProviderStartRoute(
         expiresAtMs: new Date(intent.expiresAt).getTime()
       });
 
-      if (!appConfig.enabled && oauthConfig.enabled) {
+      if (oauthConfig.enabled) {
         const url = new URL(oauthConfig.authorizeUrl);
         url.searchParams.set("client_id", oauthConfig.clientId);
         url.searchParams.set("redirect_uri", oauthConfig.callbackUrl);
