@@ -1,0 +1,47 @@
+id: MSPR-20260517-001
+date: 2026-05-17
+status: blocked
+trigger: production_validation_gap
+scope:
+  paths:
+    - vercel.json
+    - server/src/routes/github.ts
+    - server/src/routes/integrations.ts
+    - server/src/lib/github-env.ts
+authority:
+  observed:
+    - github_installation_settings_page_shows_mosaic-stack_installed
+    - github_installation_settings_page_shows_baum777_mosaicStacked_selected
+    - production_api_integrations_status_github_status_connect_available
+    - production_api_integrations_status_github_capabilities_blocked
+    - production_api_integrations_status_github_credential_source_not_connected
+    - production_api_github_repos_returns_503_github_not_configured
+    - production_auth_github_start_redirects_to_https_github_com_apps_mosaic-stack_installations_new
+    - production_auth_github_status_app_ready_true
+    - production_auth_github_status_oauth_ready_true
+    - production_auth_github_status_connected_false
+    - production_auth_github_status_credential_source_not_connected
+    - production_diagnostics_route_returned_spa_html_before_rewrite_fix
+  inferred:
+    - vercel_runtime_has_github_app_auth_start_config
+    - vercel_runtime_lacks_session_bound_user_credential_for_current_browser_or_instance_installation_id_for_cookie_less_repos_route
+    - github_app_installation_alone_does_not_create_backend_session_credentials
+risk:
+  level: high
+  statement: production_ui_can_show_connect_available_while_backend_github_read_routes_fail_closed_until_callback_session_or_instance_installation_id_is_valid
+decision_needed: operator_completes_callback_login_from_app_or_sets_vercel_github_app_installation_id_and_redeploys
+review:
+  owner: human
+  state: pending
+verification:
+  proof:
+    - curl_https_mosaicstacked_vercel_app_api_integrations_status
+    - curl_https_mosaicstacked_vercel_app_api_github_repos
+    - curl_https_mosaicstacked_vercel_app_api_auth_github_start_returnTo_console_settings
+    - curl_https_mosaicstacked_vercel_app_api_auth_github_status
+    - npm_test_server_test_vercel_config_ts
+links:
+  - ../../vercel.json
+  - ../../server/src/routes/github.ts
+  - ../../server/src/routes/integrations.ts
+next_gate: blocked_until_callback_session_or_instance_installation_id_is_verified

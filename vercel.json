@@ -26,6 +26,14 @@
       "destination": "/api/chat"
     },
     {
+      "source": "/diagnostics",
+      "destination": "/api/diagnostics"
+    },
+    {
+      "source": "/journal/recent",
+      "destination": "/api/journal/recent"
+    },
+    {
       "source": "/api/matrix/:path*",
       "destination": "/api/matrix/[...path]"
     },

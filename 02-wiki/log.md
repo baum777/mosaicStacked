@@ -107,3 +107,7 @@
 ## [2026-05-16] github-auth-local-installation-id-fix | corrected the local GitHub App installation ID and callback authority so the backend now reports `appReady: true` and a valid instance configuration for the login flow [[../.env]] [[../server/src/routes/integration-auth.ts]] [[../server/src/lib/github-env.ts]] [[../server/src/routes/integrations.ts]]
 
 ## [2026-05-16] env-example-minimalization | reduced `.env.example` to the actually relevant core, feature, and optional Matrix/GitHub/OpenRouter blocks; removed legacy smoke and router noise [[../.env.example]]
+
+## [2026-05-17] vercel-diagnostics-rewrite-fix | routed production `/diagnostics` and `/journal/recent` through the Vercel backend adapter and covered the rewrite contract with config tests [[../vercel.json]] [[../server/test/vercel-config.test.ts]]
+
+## [2026-05-17] github-production-env-config-blocked | reproduced production GitHub repo endpoint failure and routed missing backend GitHub App runtime readiness to MSPR [[../03-mspr/packets/2026-05-17-github-production-env-config-blocked.yml]]
