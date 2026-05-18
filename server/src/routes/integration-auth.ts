@@ -7,6 +7,11 @@ import {
   resolveGitHubAppConfig,
   resolveGitHubOAuthConfig
 } from "../lib/integration-auth-config.js";
+import {
+  buildClearIntegrationConnectionCookie,
+  buildIntegrationConnectionCookie,
+  readSignedIntegrationConnectionCookie
+} from "../lib/integration-auth-cookies.js";
 import { createGitHubAppAuthClient, GitHubAppAuthError } from "../lib/github-app-auth.js";
 import type { GitHubConfig } from "../lib/github-env.js";
 import type { IntegrationAuthStore, IntegrationProvider } from "../lib/integration-auth-store.js";
@@ -1376,12 +1381,23 @@ function registerProviderCallbackRoute(
           return sendIntegrationAuthError(reply, "missing_server_config", statusForErrorCode("missing_server_config"));
         }
 
-        deps.authStore.markConnected({
+        const connection = deps.authStore.markConnected({
           provider,
           sessionId: intent.sessionId,
           safeIdentityLabel: exchange.safeIdentityLabel,
           source: "user_connected"
         });
+        const connectionCookie = buildIntegrationConnectionCookie({
+          env: deps.env,
+          provider,
+          sessionId: intent.sessionId,
+          connection
+        });
+
+        if (connectionCookie) {
+          appendSetCookie(reply, connectionCookie);
+        }
+
         reply.header("Cache-Control", "no-store");
         return reply.redirect(intent.returnTo, 302);
       }
@@ -1422,12 +1438,23 @@ function registerProviderCallbackRoute(
           return sendIntegrationAuthError(reply, "missing_server_config", statusForErrorCode("missing_server_config"));
         }
 
-        deps.authStore.markConnected({
+        const connection = deps.authStore.markConnected({
           provider,
           sessionId: intent.sessionId,
           safeIdentityLabel: exchange.safeIdentityLabel,
           source: "user_connected"
         });
+        const connectionCookie = buildIntegrationConnectionCookie({
+          env: deps.env,
+          provider,
+          sessionId: intent.sessionId,
+          connection
+        });
+
+        if (connectionCookie) {
+          appendSetCookie(reply, connectionCookie);
+        }
+
         reply.header("Cache-Control", "no-store");
         return reply.redirect(intent.returnTo, 302);
       }
@@ -1478,6 +1505,7 @@ function registerProviderDisconnectRoute(
 
     deps.authStore.clearCredential(sessionId, provider);
     deps.authStore.disconnect(sessionId, provider);
+    appendSetCookie(reply, buildClearIntegrationConnectionCookie());
 
     return reply.status(200).send({
       ok: true,
@@ -1561,7 +1589,13 @@ function registerGitHubStatusRoute(
 ) {
   app.get("/api/auth/github/status", async (request, reply) => {
     const sessionId = readIntegrationSessionCookie(request);
-    const connection = deps.authStore.readConnection(sessionId, "github");
+    const connection = deps.authStore.readConnection(sessionId, "github")
+      ?? readSignedIntegrationConnectionCookie({
+        cookieHeader: request.headers.cookie,
+        env: deps.env,
+        provider: "github",
+        sessionId
+      });
     const appConfig = resolveGitHubAppConfig(deps.env);
     const oauthConfig = resolveGitHubOAuthConfig(deps.env);
     const githubAuthReady = appConfig.enabled || oauthConfig.enabled;

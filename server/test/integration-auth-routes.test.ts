@@ -938,9 +938,15 @@ test("GitHub App OAuth callback accepts OAuth App tokens when installation listi
     },
     logger: false
   });
+  const statusApp = createApp({
+    env,
+    openRouter: createMockOpenRouterClient(),
+    logger: false
+  });
 
   t.after(async () => {
     await app.close();
+    await statusApp.close();
   });
 
   const start = await app.inject({
@@ -963,12 +969,16 @@ test("GitHub App OAuth callback accepts OAuth App tokens when installation listi
 
   assert.equal(callback.statusCode, 302);
   assert.equal(callback.headers.location, "/console?mode=settings");
+  const statusCookie = joinCookiesForRequest([
+    ...readSetCookies(start),
+    ...readSetCookies(callback)
+  ]);
 
-  const status = await app.inject({
+  const status = await statusApp.inject({
     method: "GET",
     url: "/api/integrations/status",
     headers: {
-      cookie: browserCookie
+      cookie: statusCookie
     }
   });
 

@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { GitHubConfig } from "../lib/github-env.js";
 import type { AppEnv } from "../lib/env.js";
+import { readSignedIntegrationConnectionCookie } from "../lib/integration-auth-cookies.js";
 import { getGitHubAppRequirements, resolveGitHubAppConfig, resolveGitHubOAuthConfig } from "../lib/integration-auth-config.js";
 import type { MatrixConfig } from "../lib/matrix-env.js";
 import type { IntegrationAuthStore, IntegrationConnectionRecord, IntegrationProvider } from "../lib/integration-auth-store.js";
@@ -358,8 +359,20 @@ function buildMatrixStatus(config: MatrixConfig, connection: IntegrationConnecti
 export function integrationRoutes(app: FastifyInstance, deps: IntegrationRouteDependencies) {
   app.get("/api/integrations/status", async (request, reply) => {
     const sessionId = readIntegrationSessionCookie(request);
-    const githubConnection = deps.authStore.readConnection(sessionId, "github");
-    const matrixConnection = deps.authStore.readConnection(sessionId, "matrix");
+    const githubConnection = deps.authStore.readConnection(sessionId, "github")
+      ?? readSignedIntegrationConnectionCookie({
+        cookieHeader: request.headers.cookie,
+        env: deps.env,
+        provider: "github",
+        sessionId
+      });
+    const matrixConnection = deps.authStore.readConnection(sessionId, "matrix")
+      ?? readSignedIntegrationConnectionCookie({
+        cookieHeader: request.headers.cookie,
+        env: deps.env,
+        provider: "matrix",
+        sessionId
+      });
 
     reply.header("Cache-Control", "no-store");
     return reply.status(200).send({
