@@ -101,6 +101,8 @@
   --text-primary: var(--ms-text);
   --text-secondary: var(--ms-text2);
   --text-muted: var(--ms-text3);
+  --bg-primary: var(--ms-bg);
+  --bg-elevated: var(--ms-bg3);
   --accent-cyan: var(--ms-accent);
   --accent-green: var(--ms-teal);
   --accent-violet: var(--ms-accent2);

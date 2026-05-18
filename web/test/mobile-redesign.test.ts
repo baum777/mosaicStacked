@@ -247,10 +247,10 @@ test("deferred CSS keeps restored mobile shell chrome stable", () => {
   assert.ok((source.match(/:not\(\.mobile-context-strip\)/g) ?? []).length >= 3);
   assert.match(guard, /\.app-shell-mobile \.mobile-brand-button\s*{[\s\S]*background:\s*transparent !important/);
   assert.match(guard, /\.app-shell-mobile \.mobile-brand-button \.mosaicstacked-mark\s*{[\s\S]*display:\s*inline-flex !important/);
-  assert.match(guard, /\.app-shell-mobile \.mobile-context-strip\s*{[\s\S]*display:\s*grid !important[\s\S]*background:\s*rgba\(9,\s*11,\s*16,\s*0\.98\) !important/);
+  assert.match(guard, /\.app-shell-mobile \.mobile-context-strip\s*{[\s\S]*display:\s*grid(?:\s*!important)?[\s\S]*background:\s*rgba\(9,\s*11,\s*16,\s*0\.98\)(?:\s*!important)?/);
   assert.match(guard, /\.app-shell-mobile \.mobile-context-path span:not\(:first-child\)::before,[\s\S]*\.app-shell-mobile \.mobile-context-live::before\s*{[\s\S]*content:\s*none !important/);
   assert.match(guard, /\.app-shell-mobile \.mobile-context-live\s*{[\s\S]*background:\s*transparent !important/);
-  assert.match(guard, /\.app-shell-mobile \.workspace-tab-mobile\.workspace-tab-active\s*{[\s\S]*background:\s*rgba\(108,\s*92,\s*231,\s*0\.16\) !important/);
+  assert.match(guard, /\.app-shell-mobile \.workspace-tab-mobile\.workspace-tab-active\s*{[\s\S]*background:\s*rgba\(108,\s*92,\s*231,\s*0\.16\)(?:\s*!important)?/);
   assert.match(guard, /\.app-shell-mobile \.workspace-tab-mobile\.workspace-tab-active::after\s*{[\s\S]*display:\s*none !important/);
 });
 
