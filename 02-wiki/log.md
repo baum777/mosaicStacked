@@ -141,3 +141,5 @@
 ## [2026-05-18] ui-refactor-v2-critical-token-dedup-slice | removed redundant root-level token redefinitions from critical entry CSS and kept bridge coverage through semantic token aliases (`bg-primary`, `bg-elevated`) without changing dual-track loading [[../web/src/critical.css]] [[../web/src/styles/tokens/semantic.css]]
 
 ## [2026-05-18] ui-refactor-v2-mobile-important-reduction-slice | reduced `!important` usage for deferred mobile chrome guards (topbar, context strip, bottom nav, workspace tab mobile) while preserving selector scope and dual-track load behavior [[../web/src/ui-adaptation.css]]
+
+## [2026-05-18] ui-refactor-v2-mobile-controls-important-reduction-slice | reduced additional `!important` usage for deferred mobile control chrome (topbar actions, model badge, language toggle/buttons, context path/chip action) while keeping guarded context-live and brand-button hard locks [[../web/src/ui-adaptation.css]]
