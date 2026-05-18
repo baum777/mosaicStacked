@@ -21,7 +21,7 @@ Format: `[[link]] | summary | #tags | YYYY-MM-DD`
 [[../03-mspr/packets/2026-05-13-github-env-deploy-blocked.yml]] | Blocked GitHub Install and Authorize deploy repeat due missing app slug and invalid private-key env parse | #mspr #github #deployment #blocked | 2026-05-13
 [[../03-mspr/packets/2026-05-16-local-auth-github-key-blocked.yml]] | Accepted local auth review after valid GitHub App PEM restored repo verification; Matrix SSO browser session connected | #mspr #github #matrix #accepted | 2026-05-16
 [[../03-mspr/packets/2026-05-16-openrouter-default-key-repo-blocked.yml]] | Blocked request to commit a live OpenRouter default key into repo material; use env or secret store instead | #mspr #security #blocked | 2026-05-16
-[[../03-mspr/packets/2026-05-17-github-production-env-config-blocked.yml]] | Blocked production GitHub backend readiness after live app installation and empty pulled Vercel GitHub/Auth values | #mspr #github #deployment #blocked | 2026-05-18
+[[../03-mspr/packets/2026-05-17-github-production-env-config-blocked.yml]] | Accepted production GitHub backend readiness after approved Vercel private-key update and verified repo read | #mspr #github #deployment #accepted | 2026-05-18
 [[../03-mspr/packets/2026-05-18-env-example-github-secret-blocked.yml]] | Accepted cleanup of secret-like GitHub values from `.env.example`; example env now uses placeholder-only integration values | #mspr #security #github #accepted | 2026-05-18
 [[../docs/superpowers/plans/2026-05-10-settings-authority-control-center.md]] | Implementation plan for Settings authority control center redesign | #docs #plan #settings | 2026-05-10
 [[../docs/superpowers/specs/2026-05-16-agentic-helpdesk-companion-design.md]] | Proposed Design für agentischen Helpdesk Companion mit UI-Hilfe, Allowlist-Intents und Guardrails | #docs #chat #ux #authority | 2026-05-16
@@ -37,7 +37,7 @@ Format: `[[link]] | summary | #tags | YYYY-MM-DD`
 [[../server/src/routes/integration-auth.ts]] | Backend-owned GitHub-/Matrix-Auth-Start-, Callback- und Status-Routen mit getrennter GitHub-App-/OAuth-Readiness-Diagnose | #matrix #github #authority #derived | 2026-05-17
 [[../.env]] | Lokale GitHub-Auth-Konfiguration mit korrekter Callback-URL und numerischer App-Installation-ID fuer den Login-Flow | #env #github #derived | 2026-05-16
 [[../.env.example]] | Gekürzte Beispiel-Env mit Kernwerten und nur den wirklich genutzten Feature-Blöcken | #env #docs #derived | 2026-05-16
-[[../.gitignore]] | Lokaler Secret-/Build-Ausschluss inklusive Vercel-Pull-Dateien `.env*.local` | #env #security #derived | 2026-05-18
+[[../.gitignore]] | Lokaler Secret-/Build-Ausschluss inklusive Vercel-Pull-Dateien `.env*.local` und privaten PEM-Dateien | #env #security #derived | 2026-05-18
 [[../docs/model-routing.md]] | Routing-Contract inkl. `default-free` Alias, fail-closed Fehlercodes und serverseitiger Key/Model-Priorisierung | #docs #chat #authority | 2026-05-16
 [[../web/src/lib/shell-freshness.ts]] | Ableitung von `backend-fresh`, `local-restored` und `stale` für die persistente Truth Rail | #shell #truth #authority | 2026-05-16
 [[../web/src/lib/navigation-palette.ts]] | Typisierte Navigation-Palette-Einträge für Tabs und Session-Targets im Keyboard-Flow | #navigation #poweruser #contract | 2026-05-16

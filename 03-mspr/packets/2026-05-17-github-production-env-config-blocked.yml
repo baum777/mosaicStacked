@@ -1,6 +1,6 @@
 id: MSPR-20260517-001
 date: 2026-05-17
-status: blocked
+status: accepted
 trigger: production_validation_gap
 scope:
   paths:
@@ -26,18 +26,23 @@ authority:
     - local_vercel_env_pull_preview_expected_github_keys_present_but_empty_after_dotenv_parse
     - local_vercel_env_pull_production_expected_github_and_session_keys_present_but_empty_after_dotenv_parse
     - vercel_env_ls_production_shows_github_and_session_keys_as_encrypted_preview_or_production_scoped
+    - local_github_app_private_key_pem_file_signable_true
+    - user_explicitly_approved_uploading_local_pem_as_vercel_production_github_app_private_key
+    - vercel_env_add_github_app_private_key_production_force_completed_without_printing_secret
+    - vercel_production_deploy_dpl_BqeJ1Rmh7uYSiwqJopbm8FZJ8YH5_ready
+    - production_api_github_repos_returns_200_with_ready_repository_list
   inferred:
     - vercel_runtime_has_github_app_auth_start_config
     - vercel_runtime_lacks_session_bound_user_credential_for_current_browser_or_instance_installation_id_for_cookie_less_repos_route
     - github_app_installation_alone_does_not_create_backend_session_credentials
     - pulled_vercel_env_files_do_not_provide_nonempty_local_github_runtime_auth_values
 risk:
-  level: high
-  statement: production_ui_can_show_connect_available_while_backend_github_read_routes_fail_closed_until_callback_session_or_instance_installation_id_is_valid
-decision_needed: operator_completes_callback_login_from_app_or_sets_vercel_github_app_installation_id_and_redeploys
+  level: low
+  statement: production_github_repo_read_is_verified_after_operator_approved_key_update_and_redeploy
+decision_needed: none
 review:
   owner: human
-  state: pending
+  state: accepted
 verification:
   proof:
     - curl_https_mosaicstacked_vercel_app_api_integrations_status
@@ -50,8 +55,12 @@ verification:
     - vercel_env_pull_env_production_local_environment_production_yes
     - vercel_env_ls_production
     - node_dotenv_parse_presence_and_nonempty_check_for_pulled_env_files
+    - node_local_pem_signable_check_without_secret_output
+    - vercel_env_add_github_app_private_key_production_force_yes_scope_forgedfromwood
+    - vercel_deploy_prod_force_yes_scope_forgedfromwood
+    - curl_https_mosaicstacked_vercel_app_api_github_repos_returns_200
 links:
   - ../../vercel.json
   - ../../server/src/routes/github.ts
   - ../../server/src/routes/integrations.ts
-next_gate: blocked_until_nonempty_vercel_github_auth_values_or_callback_session_is_verified
+next_gate: monitor_allowed_repo_scope_and_keep_private_key_out_of_repo

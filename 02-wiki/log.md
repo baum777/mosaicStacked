@@ -129,3 +129,7 @@
 ## [2026-05-18] github-workbench-repo-switch-actions | fixed Workbench repo switching visibility by showing concrete `owner/repo` labels in repo selection and selected-state surfaces, and added Browser coverage for repo switch reset plus Open Diff, Copy Summary, Mark, Remove, Prepare, Create, and Verify actions [[../web/src/components/GitHubWorkspace.tsx]] [[../tests/browser/mosaicstacked.spec.ts]]
 
 ## [2026-05-18] vercel-env-pull-local-files | pulled Vercel development, preview, and production env files into ignored `.env*.local` targets; observed expected GitHub/Auth keys are still empty after dotenv parsing and updated the existing production GitHub MSPR evidence [[../.gitignore]] [[../03-mspr/packets/2026-05-17-github-production-env-config-blocked.yml]]
+
+## [2026-05-18] private-pem-gitignore | replaced non-matching `.pem` ignore entry with `*.pem` so local GitHub App private-key files remain untracked [[../.gitignore]]
+
+## [2026-05-18] vercel-production-github-key-redeploy | uploaded operator-approved signable GitHub App private key to Vercel Production without printing the secret, redeployed production dpl_BqeJ1Rmh7uYSiwqJopbm8FZJ8YH5, and verified `/api/github/repos` returns 200 ready repo data [[../03-mspr/packets/2026-05-17-github-production-env-config-blocked.yml]]

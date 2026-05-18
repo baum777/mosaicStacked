@@ -18,3 +18,5 @@ web/dist/
 .vercel
 update-vercel-env.sh
 .env*.local
+
+*.pem
