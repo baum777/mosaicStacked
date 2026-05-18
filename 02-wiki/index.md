@@ -52,3 +52,4 @@ Format: `[[link]] | summary | #tags | YYYY-MM-DD`
 [[../web/src/ui-adaptation.css]] | Deferred-Stability-Guard mit testverbindlichen `!important`-Locks für Brand-Mark, Context-Separator-Reset und Active-Tab-After-Reset | #ui #styles #mobile #derived | 2026-05-18
 [[../web/src/components/SettingsWorkspace.tsx]] | Mobile Settings als Control Center mit kompakteren Listen-Rows und Detailfokus im Bottom-Sheet | #ui #settings #mobile #derived | 2026-05-18
 [[../web/src/components/mobile/shared/SettingsRow.tsx]] | Mobile Settings-Row Primitive mit optionalem Detail-Track und Tone-Varianten | #ui #settings #mobile #derived | 2026-05-18
+[[../docs/smoke-test-matrix.md]] | Holistische Smoke-Matrix mit lokaler Default-Orchestrierung (`smoke`) und klarer Abgrenzung zu opt-in Live-Smokes | #docs #smoke #verification #derived | 2026-05-18

@@ -151,3 +151,5 @@
 ## [2026-05-18] ui-refactor-v2-mobile-pseudo-reset-important-reduction-slice | removed low-risk deferred mobile guard `!important` markers from pseudo-element resets and brand mark display, preserving mobile chrome behavior and selector scope [[../web/src/ui-adaptation.css]]
 
 ## [2026-05-18] ui-cleanup-onerun-context-browser-removal | removed dead mobile `ContextBrowserPanel` surface and related CSS selectors, restored test-bound deferred mobile stability guard `!important` markers, and tightened Settings mobile list density by suppressing verbose row details in-list while keeping sheet details [[../web/src/components/mobile/context/ContextBrowserPanel.tsx]] [[../web/src/styles.css]] [[../web/src/ui-adaptation.css]] [[../web/src/components/SettingsWorkspace.tsx]] [[../web/src/components/mobile/shared/SettingsRow.tsx]] [[../web/src/App.tsx]]
+
+## [2026-05-18] smoke-suite-orchestrator-and-matrix | added root smoke orchestrator scripts (`smoke`, `smoke:local`, `smoke:ci`) and documented a codebase-derived holistic smoke matrix with explicit local-vs-live scope boundaries [[../package.json]] [[../docs/smoke-test-matrix.md]]
