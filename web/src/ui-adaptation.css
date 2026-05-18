@@ -253,8 +253,9 @@ button.ghost-button:hover:not(:disabled) {
 }
 
 :focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
+  outline: var(--focus-ring-outline-width, 2px) solid var(--focus-ring-color, rgba(108, 92, 231, 0.45));
+  outline-offset: var(--focus-ring-outline-offset, 2px);
+  box-shadow: var(--focus-ring-shadow, none);
 }
 
 .workspace-tab:focus,
@@ -263,8 +264,8 @@ button.ghost-button:hover:not(:disabled) {
 .workspace-tab-vertical:focus-visible,
 .workspace-tab-mobile:focus,
 .workspace-tab-mobile:focus-visible {
-  outline: 2px solid var(--blue);
-  outline-offset: 2px;
+  outline: var(--focus-ring-outline-width, 2px) solid var(--focus-ring-color, var(--blue));
+  outline-offset: var(--focus-ring-outline-offset, 2px);
 }
 
 input,

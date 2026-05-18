@@ -1992,8 +1992,9 @@ pre, code, .message-meta, .detail-grid span, .scope-summary-meta, .runtime-note,
 }
 
 :where(button, input, textarea, select, summary):focus-visible {
-  outline: 2px solid rgba(98, 214, 255, 0.32);
-  outline-offset: 2px;
+  outline: var(--focus-ring-outline-width, 2px) solid var(--focus-ring-color, rgba(98, 214, 255, 0.32));
+  outline-offset: var(--focus-ring-outline-offset, 2px);
+  box-shadow: var(--focus-ring-shadow, none);
 }
 
 :where(.workspace-tab, .session-list-item, .github-action-card, .github-review-card, .github-repo-card, .github-plan-summary, .review-item-card, .empty-state-card, .candidate-card, .plan-card, .scope-summary-item):hover {
@@ -3947,8 +3948,9 @@ button {
 button:hover:not(:disabled) { transform: translateY(-1px); }
 
 :focus-visible {
-  outline: 2px solid var(--green);
-  outline-offset: 2px;
+  outline: var(--focus-ring-outline-width, 2px) solid var(--focus-ring-color, var(--green));
+  outline-offset: var(--focus-ring-outline-offset, 2px);
+  box-shadow: var(--focus-ring-shadow, none);
 }
 
 .secondary-button,
@@ -4517,7 +4519,7 @@ button:hover:not(:disabled) { transform: translateY(-1px); }
   border-radius: var(--r-lg);
   background: var(--bg-2);
   box-shadow: var(--shadow-card);
-  backdrop-filter: none;
+  backdrop-filter: var(--glass-backdrop-filter-disabled, none);
 }
 
 .session-list-item,
@@ -4526,12 +4528,22 @@ button:hover:not(:disabled) { transform: translateY(-1px); }
 .github-review-card,
 .github-action-card,
 .github-repo-card,
-.review-item-card,
-.room-picker-item,
+.review-item-card {
+  contain: layout paint;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 96px;
+}
+
+.room-picker-item {
+  contain: layout paint;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 80px;
+}
+
 .scope-summary-item {
   contain: layout paint;
   content-visibility: auto;
-  contain-intrinsic-size: 1px 96px;
+  contain-intrinsic-size: auto 120px;
 }
 
 .workspace-frame-card {
@@ -4551,16 +4563,16 @@ button:hover:not(:disabled) { transform: translateY(-1px); }
 .workspace-tab-vertical:focus-visible,
 .workspace-tab-mobile:focus,
 .workspace-tab-mobile:focus-visible {
-  outline: 2px solid var(--blue);
-  outline-offset: 2px;
+  outline: var(--focus-ring-outline-width, 2px) solid var(--focus-ring-color, var(--blue));
+  outline-offset: var(--focus-ring-outline-offset, 2px);
 }
 
 .shell-left-rail .workspace-tab:focus-visible {
   border-color: var(--blue);
   background: var(--blue-dim);
   color: var(--tx);
-  outline: 2px solid var(--blue);
-  outline-offset: 2px;
+  outline: var(--focus-ring-outline-width, 2px) solid var(--focus-ring-color, var(--blue));
+  outline-offset: var(--focus-ring-outline-offset, 2px);
 }
 
 .workspace-tab svg {
@@ -4986,9 +4998,9 @@ button:hover:not(:disabled) {
 }
 
 :focus-visible {
-  outline: 1px solid var(--accent-cyan);
-  outline-offset: 3px;
-  box-shadow: var(--glow-cyan);
+  outline: var(--focus-ring-outline-width, 2px) solid var(--focus-ring-color, var(--accent-cyan));
+  outline-offset: var(--focus-ring-outline-offset, 2px);
+  box-shadow: var(--focus-ring-shadow, var(--glow-cyan));
 }
 
 .app-shell-console {
@@ -6102,12 +6114,12 @@ body,
   overflow-x: hidden;
 }
 
-* {
+.scrollbar-hidden {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-*::-webkit-scrollbar {
+.scrollbar-hidden::-webkit-scrollbar {
   width: 0;
   height: 0;
   display: none;

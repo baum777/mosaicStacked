@@ -2354,7 +2354,7 @@ function ConsoleShell() {
 
   if (isMobileViewport) {
     return (
-      <main className="app-shell app-shell-console app-shell-mobile" data-testid="app-shell">
+      <main className="app-shell app-shell-console app-shell-mobile" data-testid="app-shell" data-workspace={mode}>
         <TopContextBar
           brandIcon={<MosaicStackedIcon />}
           title="MosaicStacked"
@@ -2496,7 +2496,7 @@ function ConsoleShell() {
   }
 
   return (
-    <main className="app-shell app-shell-console" data-testid="app-shell">
+    <main className="app-shell app-shell-console" data-testid="app-shell" data-workspace={mode}>
       <section className="shell-truth-top" aria-label={locale === "de" ? "Systemstatus" : "System status"}>
         <div className="shell-truth-top-left">
           <WorkspaceIcon mode={mode} />

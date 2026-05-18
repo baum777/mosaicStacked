@@ -1,2 +1,7 @@
-@import "./styles.css";
-@import "./ui-adaptation.css";
+@layer components.legacy, overrides.legacy, design-tokens.core, design-tokens.semantic, design-tokens.workspaces;
+
+@import "./styles.css" layer(components.legacy);
+@import "./ui-adaptation.css" layer(overrides.legacy);
+@import "./styles/tokens/core.css" layer(design-tokens.core);
+@import "./styles/tokens/semantic.css" layer(design-tokens.semantic);
+@import "./styles/tokens/workspaces.css" layer(design-tokens.workspaces);

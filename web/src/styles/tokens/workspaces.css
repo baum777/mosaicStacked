@@ -1,0 +1,35 @@
+[data-workspace="chat"] {
+  --workspace-accent: var(--token-accent-success);
+  --workspace-accent-strong: var(--token-accent-success-strong);
+  --workspace-bg: var(--color-bg-primary);
+}
+
+[data-workspace="workbench"] {
+  --workspace-accent: var(--token-accent-primary);
+  --workspace-accent-strong: var(--token-accent-primary-strong);
+  --workspace-bg: var(--color-bg-primary);
+}
+
+[data-workspace="matrix"] {
+  --workspace-accent: var(--token-accent-info);
+  --workspace-accent-strong: var(--token-accent-info-strong);
+  --workspace-bg: var(--color-bg-secondary);
+}
+
+[data-workspace="settings"] {
+  --workspace-accent: var(--token-neutral-500);
+  --workspace-accent-strong: var(--token-neutral-600);
+  --workspace-bg: var(--color-bg-primary);
+}
+
+[data-workspace] .chat-workspace,
+[data-workspace] .github-workspace,
+[data-workspace] .matrix-workspace,
+[data-workspace] .settings-workspace,
+[data-workspace] .workspace-frame-body,
+[data-workspace] .workspace-panel {
+  --accent: var(--workspace-accent);
+  --accent-strong: var(--workspace-accent-strong);
+  --blue: var(--workspace-accent);
+  --border-focus: color-mix(in srgb, var(--workspace-accent) 45%, transparent);
+}
