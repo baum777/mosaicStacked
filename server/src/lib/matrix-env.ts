@@ -11,6 +11,7 @@ const MatrixEnvSchema = z.object({
   MATRIX_CLIENT_ID: z.string().trim().default(""),
   MATRIX_TOKEN_EXPIRES_AT: z.string().trim().default(""),
   MATRIX_EXPECTED_USER_ID: z.string().trim().default(""),
+  MATRIX_LANDING_ROOM_ID: z.string().trim().default(""),
   MATRIX_REQUEST_TIMEOUT_MS: z.string().trim().default("5000"),
   MATRIX_EVIDENCE_ROOM_ID: z.string().trim().default(""),
   MATRIX_EVIDENCE_APPROVALS_ROOM_ID: z.string().trim().default(""),
@@ -33,6 +34,7 @@ export type MatrixConfig = {
   clientId: string | null;
   tokenExpiresAt: string | null;
   expectedUserId: string | null;
+  landingRoomId: string | null;
   requestTimeoutMs: number;
   evidenceWritesEnabled: boolean;
   evidenceWritesRequired: boolean;
@@ -119,6 +121,20 @@ function normalizeUserId(input: string) {
   return trimmed;
 }
 
+function normalizeRoomId(input: string) {
+  const trimmed = input.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (!trimmed.startsWith("!") || !trimmed.includes(":")) {
+    return null;
+  }
+
+  return trimmed;
+}
+
 function parseTimeout(input: string) {
   const value = Number.parseInt(input.trim(), 10);
 
@@ -156,6 +172,7 @@ export function createMatrixConfig(source: NodeJS.ProcessEnv = process.env): Mat
   const clientId = parsed.MATRIX_CLIENT_ID.trim() ? parsed.MATRIX_CLIENT_ID.trim() : null;
   const tokenExpiresAt = normalizeTokenExpiry(parsed.MATRIX_TOKEN_EXPIRES_AT);
   const expectedUserId = normalizeUserId(parsed.MATRIX_EXPECTED_USER_ID);
+  const landingRoomId = normalizeRoomId(parsed.MATRIX_LANDING_ROOM_ID);
   const requestTimeoutMs = parseTimeout(parsed.MATRIX_REQUEST_TIMEOUT_MS);
   const evidenceWritesEnabledParse = parseBoolean(parsed.MATRIX_EVIDENCE_WRITES_ENABLED);
   const evidenceWritesRequiredParse = parseBoolean(parsed.MATRIX_EVIDENCE_WRITES_REQUIRED);
@@ -198,6 +215,10 @@ export function createMatrixConfig(source: NodeJS.ProcessEnv = process.env): Mat
     issues.push("MATRIX_EXPECTED_USER_ID must be a Matrix user ID when set");
   }
 
+  if (parsed.MATRIX_LANDING_ROOM_ID.trim() && !landingRoomId) {
+    issues.push("MATRIX_LANDING_ROOM_ID must be a Matrix room ID when set");
+  }
+
   if (parsed.MATRIX_TOKEN_EXPIRES_AT.trim() && !tokenExpiresAt) {
     issues.push("MATRIX_TOKEN_EXPIRES_AT must be an ISO timestamp when set");
   }
@@ -226,6 +247,7 @@ export function createMatrixConfig(source: NodeJS.ProcessEnv = process.env): Mat
     clientId: ready ? clientId : null,
     tokenExpiresAt: ready ? tokenExpiresAt : null,
     expectedUserId: ready ? expectedUserId : null,
+    landingRoomId: ready ? landingRoomId : null,
     requestTimeoutMs: requestTimeoutMs ?? 5000,
     evidenceWritesEnabled: ready && evidenceWritesEnabledParse.value,
     evidenceWritesRequired: ready && evidenceWritesRequiredParse.value,
@@ -252,6 +274,7 @@ export function createDisabledMatrixConfig(): MatrixConfig {
     clientId: null,
     tokenExpiresAt: null,
     expectedUserId: null,
+    landingRoomId: null,
     requestTimeoutMs: 5000,
     evidenceWritesEnabled: false,
     evidenceWritesRequired: false,

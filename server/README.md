@@ -93,6 +93,7 @@ Optional environment variables:
 - `MATRIX_CLIENT_ID` - required when `MATRIX_REFRESH_TOKEN` is set; used for the refresh token grant
 - `MATRIX_TOKEN_EXPIRES_AT` - optional ISO timestamp for the current access token expiry; near-expiry tokens are refreshed backend-side before the next Matrix request
 - `MATRIX_EXPECTED_USER_ID` - optional Matrix user ID that must match `whoami` when set
+- `MATRIX_LANDING_ROOM_ID` - optional Matrix room ID (`!room:server`) used as the default selected room in the Matrix workspace when joined
 - `MATRIX_REQUEST_TIMEOUT_MS` - upstream request timeout in milliseconds, defaults to `5000`
 - `MATRIX_SMOKE_ROOM_ID` - dedicated live smoke room for the backend-owned topic-update flow
 - `MATRIX_SMOKE_TOPIC_PREFIX` - optional prefix for the temporary live smoke topic

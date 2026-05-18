@@ -123,3 +123,5 @@
 ## [2026-05-18] settings-integrations-status-early-apply | decoupled Settings runtime status application so backend health, GitHub capabilities, and integrations status update the browser state before slower aggregate probes finish [[../web/src/hooks/useRuntimeStatus.ts]] [[../web/test/settings-workspace.test.ts]]
 
 ## [2026-05-18] env-example-secret-cleanup | restored `.env.example` to placeholder-only GitHub/OpenRouter/Matrix values and accepted the prior MSPR blocker as cleaned up [[../.env.example]] [[../03-mspr/packets/2026-05-18-env-example-github-secret-blocked.yml]]
+
+## [2026-05-18] matrix-landing-room-default | added backend-supported `MATRIX_LANDING_ROOM_ID` config, surfaced it via integrations status labels, and auto-selected the joined landing room as default Matrix scope target when no room is selected yet [[../server/src/lib/matrix-env.ts]] [[../server/src/routes/integrations.ts]] [[../server/test/matrix-env.test.ts]] [[../web/src/lib/api.ts]] [[../web/src/App.tsx]] [[../web/src/components/MatrixWorkspace.tsx]] [[../.env.example]] [[../server/README.md]]

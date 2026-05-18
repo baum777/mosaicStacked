@@ -91,6 +91,7 @@ type MatrixWorkspaceProps = {
   expertMode: boolean;
   matrixReadAvailable: boolean;
   matrixHierarchyEnabled: boolean;
+  landingRoomId: string | null;
   onTelemetry: (
     kind: "info" | "warning" | "error",
     label: string,
@@ -699,6 +700,24 @@ export function MatrixWorkspace(props: MatrixWorkspaceProps) {
       cancelled = true;
     };
   }, [localText.operationJoinedRooms, localText.operationWhoAmI, localText.telemetryStateRestored, localText.telemetryStateRestoredDetail, persisted, props.onTelemetry, props.restoredSession]);
+
+  useEffect(() => {
+    const landingRoomId = props.landingRoomId?.trim() ?? "";
+
+    if (!landingRoomId || selectedRoomIds.length > 0 || joinedRooms.length === 0) {
+      return;
+    }
+
+    const landingRoomExists = joinedRooms.some((room) => room.roomId === landingRoomId);
+
+    if (!landingRoomExists) {
+      return;
+    }
+
+    setSelectedRoomIds([landingRoomId]);
+    setRoomId((current) => (current ?? "").trim().length > 0 ? current : landingRoomId);
+    setTopicRoomId((current) => current.trim().length > 0 ? current : landingRoomId);
+  }, [joinedRooms, props.landingRoomId, selectedRoomIds.length]);
   async function loadProvenance(roomId: string) {
     setProvenanceLoading(true);
     setProvenanceError(null);

@@ -190,6 +190,7 @@ export type IntegrationStatus = {
     scope: string | null;
     allowedReposStatus?: "configured" | "restricted" | "missing";
     homeserver?: string | null;
+    landingRoomId?: string | null;
     roomAccess?: "readable" | "blocked" | "unknown";
   };
   lastVerifiedAt: string | null;

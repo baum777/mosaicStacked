@@ -15,6 +15,7 @@ test("matrix config defaults to disabled", () => {
   assert.equal(config.clientId, null);
   assert.equal(config.tokenExpiresAt, null);
   assert.equal(config.expectedUserId, null);
+  assert.equal(config.landingRoomId, null);
   assert.equal(config.callbackUrl, null);
   assert.equal(config.issues.length, 0);
 });
@@ -50,6 +51,7 @@ test("matrix config becomes ready when enabled with a valid origin and token", (
   assert.equal(config.clientId, null);
   assert.equal(config.tokenExpiresAt, null);
   assert.equal(config.expectedUserId, "@user:matrix.example");
+  assert.equal(config.landingRoomId, null);
   assert.equal(config.callbackUrl, "https://app.example.test/api/auth/matrix/callback");
   assert.equal(config.requestTimeoutMs, 4000);
   assert.deepEqual(config.issues, []);
@@ -76,6 +78,7 @@ test("matrix config becomes ready when enabled with refresh credentials", () => 
   assert.equal(config.refreshToken, "refresh-token");
   assert.equal(config.clientId, "client-id");
   assert.equal(config.tokenExpiresAt, "2026-04-16T10:00:00.000Z");
+  assert.equal(config.landingRoomId, null);
   assert.equal(config.callbackUrl, "https://app.example.test/api/auth/matrix/callback");
   assert.equal(config.requestTimeoutMs, 4000);
   assert.deepEqual(config.issues, []);
@@ -111,6 +114,37 @@ test("matrix config rejects malformed expected user ids when set", () => {
   assert.equal(config.ready, false);
   assert.equal(config.expectedUserId, null);
   assert.match(config.issues.join("; "), /MATRIX_EXPECTED_USER_ID must be a Matrix user ID/);
+});
+
+test("matrix config accepts a landing room id when set", () => {
+  const config = createMatrixConfig({
+    MATRIX_ENABLED: "true",
+    MATRIX_REQUIRED: "false",
+    MATRIX_BASE_URL: "https://matrix.example",
+    MATRIX_ACCESS_TOKEN: "token",
+    MATRIX_SSO_CALLBACK_URL: "https://app.example.test/api/auth/matrix/callback",
+    MATRIX_LANDING_ROOM_ID: "!landing:matrix.example",
+    MATRIX_REQUEST_TIMEOUT_MS: "4000"
+  });
+
+  assert.equal(config.ready, true);
+  assert.equal(config.landingRoomId, "!landing:matrix.example");
+});
+
+test("matrix config rejects malformed landing room ids when set", () => {
+  const config = createMatrixConfig({
+    MATRIX_ENABLED: "true",
+    MATRIX_REQUIRED: "false",
+    MATRIX_BASE_URL: "https://matrix.example",
+    MATRIX_ACCESS_TOKEN: "token",
+    MATRIX_SSO_CALLBACK_URL: "https://app.example.test/api/auth/matrix/callback",
+    MATRIX_LANDING_ROOM_ID: "#start-here:matrix.example",
+    MATRIX_REQUEST_TIMEOUT_MS: "4000"
+  });
+
+  assert.equal(config.ready, false);
+  assert.equal(config.landingRoomId, null);
+  assert.match(config.issues.join("; "), /MATRIX_LANDING_ROOM_ID must be a Matrix room ID/);
 });
 
 test("matrix config rejects malformed token expiry when set", () => {

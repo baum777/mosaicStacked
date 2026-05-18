@@ -55,6 +55,7 @@ type IntegrationStatusPayload = {
     scope: string | null;
     allowedReposStatus?: "configured" | "restricted" | "missing";
     homeserver?: string | null;
+    landingRoomId?: string | null;
     roomAccess?: "readable" | "blocked" | "unknown";
   };
   lastVerifiedAt: string | null;
@@ -346,6 +347,7 @@ function buildMatrixStatus(config: MatrixConfig, connection: IntegrationConnecti
       identity: connection?.safeIdentityLabel ?? config.expectedUserId ?? providerIdentityFallback("matrix", credentialSource),
       scope: buildMatrixScopeLabel(config),
       homeserver: config.homeserverUrl,
+      landingRoomId: config.landingRoomId,
       roomAccess: config.ready ? "readable" : "unknown"
     },
     lastVerifiedAt: connection?.lastVerifiedAt ?? null,
