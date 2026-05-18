@@ -3706,11 +3706,11 @@ button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.
 
 /* Deferred mobile stability guard: keep the restored shell chrome stable after deferred.css loads. */
 .app-shell-mobile .mobile-topbar {
-  min-height: 57px !important;
-  padding: calc(env(safe-area-inset-top) + 8px) var(--sp-3) var(--sp-2) !important;
-  border-bottom: 1px solid var(--ms-border) !important;
-  background: rgba(9, 11, 16, 0.98) !important;
-  backdrop-filter: none !important;
+  min-height: 57px;
+  padding: calc(env(safe-area-inset-top) + 8px) var(--sp-3) var(--sp-2);
+  border-bottom: 1px solid var(--ms-border);
+  background: rgba(9, 11, 16, 0.98);
+  backdrop-filter: none;
 }
 
 .app-shell-mobile .mobile-brand-button {
@@ -3800,18 +3800,18 @@ button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.
 }
 
 .app-shell-mobile .mobile-context-strip {
-  top: calc(env(safe-area-inset-top) + 57px) !important;
-  min-height: 32px !important;
-  padding: 0 var(--sp-3) !important;
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) auto auto !important;
-  align-items: center !important;
-  gap: var(--sp-2) !important;
-  border: 0 !important;
-  border-bottom: 1px solid var(--ms-border) !important;
-  border-radius: 0 !important;
-  background: rgba(9, 11, 16, 0.98) !important;
-  box-shadow: none !important;
+  top: calc(env(safe-area-inset-top) + 57px);
+  min-height: 32px;
+  padding: 0 var(--sp-3);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--sp-2);
+  border: 0;
+  border-bottom: 1px solid var(--ms-border);
+  border-radius: 0;
+  background: rgba(9, 11, 16, 0.98);
+  box-shadow: none;
 }
 
 .app-shell-mobile .mobile-context-path {
@@ -3844,36 +3844,36 @@ button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.
 }
 
 .app-shell-mobile .mobile-bottom-nav {
-  height: calc(52px + env(safe-area-inset-bottom)) !important;
-  padding: 4px 8px calc(env(safe-area-inset-bottom) + 4px) !important;
-  gap: 6px !important;
-  border-top: 1px solid var(--ms-border2) !important;
-  background: rgba(9, 11, 16, 0.98) !important;
-  backdrop-filter: none !important;
+  height: calc(52px + env(safe-area-inset-bottom));
+  padding: 4px 8px calc(env(safe-area-inset-bottom) + 4px);
+  gap: 6px;
+  border-top: 1px solid var(--ms-border2);
+  background: rgba(9, 11, 16, 0.98);
+  backdrop-filter: none;
 }
 
 .app-shell-mobile .workspace-tab-mobile {
-  min-height: 44px !important;
-  padding: 4px 6px !important;
-  border: 1px solid var(--ms-border) !important;
-  border-radius: var(--r) !important;
-  background: transparent !important;
-  color: var(--ms-text2) !important;
-  font-size: 10px !important;
-  letter-spacing: 0.04em !important;
-  text-transform: uppercase !important;
-  box-shadow: none !important;
+  min-height: 44px;
+  padding: 4px 6px;
+  border: 1px solid var(--ms-border);
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--ms-text2);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: none;
 }
 
 .app-shell-mobile .workspace-tab-mobile svg {
-  width: 18px !important;
-  height: 18px !important;
+  width: 18px;
+  height: 18px;
 }
 
 .app-shell-mobile .workspace-tab-mobile.workspace-tab-active {
-  color: var(--ms-text) !important;
-  border-color: rgba(108, 92, 231, 0.6) !important;
-  background: rgba(108, 92, 231, 0.16) !important;
+  color: var(--ms-text);
+  border-color: rgba(108, 92, 231, 0.6);
+  background: rgba(108, 92, 231, 0.16);
 }
 
 .app-shell-mobile .workspace-tab-mobile.workspace-tab-active::after {
