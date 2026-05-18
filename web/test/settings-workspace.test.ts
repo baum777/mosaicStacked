@@ -192,6 +192,21 @@ test("Settings workspace keeps OpenRouter credential actions disabled until back
   assert.match(markup, /data-testid="openrouter-credentials-test" disabled=""/);
 });
 
+test("Settings workspace hardens OpenRouter API key input against autofill and supports visibility toggle", () => {
+  const markup = renderSettingsWorkspaceMarkup({
+    openRouterApiKeyInput: "sk-or-v1-example-key-with-sufficient-length",
+    openRouterModelInput: "deepseek/deepseek-v4-flash:free",
+  });
+
+  assert.match(markup, /data-testid="openrouter-api-key-input"/);
+  assert.match(markup, /type="password"/);
+  assert.match(markup, /autoComplete="new-password"/);
+  assert.match(markup, /data-lpignore="true"/);
+  assert.match(markup, /data-form-type="other"/);
+  assert.match(markup, /data-testid="openrouter-api-key-visibility-toggle"/);
+  assert.match(markup, /Show key/);
+});
+
 test("Settings workspace surfaces default-free model status", () => {
   const markup = renderSettingsWorkspaceMarkup({
     truthSnapshot: {

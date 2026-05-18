@@ -418,6 +418,8 @@ export function SettingsWorkspace({
         validation: `OpenRouter API Key braucht mindestens ${OPENROUTER_API_KEY_MIN_LENGTH} Zeichen; die Modell-ID muss provider/model verwenden.`,
         keyPlaceholder: "sk-or-v1-...",
         placeholder: "provider/model",
+        showKey: "Key anzeigen",
+        hideKey: "Key verbergen",
         save: "Speichern",
         saving: "Speichert",
         test: "Verbindung testen",
@@ -444,6 +446,8 @@ export function SettingsWorkspace({
         validation: `OpenRouter API key must have at least ${OPENROUTER_API_KEY_MIN_LENGTH} characters; model ID must use provider/model.`,
         keyPlaceholder: "sk-or-v1-...",
         placeholder: "provider/model",
+        showKey: "Show key",
+        hideKey: "Hide key",
         save: "Save",
         saving: "Saving",
         test: "Test connection",
@@ -514,6 +518,7 @@ export function SettingsWorkspace({
       ? "partial"
       : "error";
   const [mobileSettingsSheet, setMobileSettingsSheet] = React.useState<string | null>(null);
+  const [openRouterApiKeyVisible, setOpenRouterApiKeyVisible] = React.useState(false);
   const openRouterMobileStatusValue = defaultFreeStatusValue;
   const mobileTruthItems: MobileSettingsTruthItem[] = [
     {
@@ -676,17 +681,32 @@ export function SettingsWorkspace({
         }}
       >
         <label htmlFor={`${prefix}-api-key-input`}>{openRouterCopy.keyLabel}</label>
-        <input
-          id={`${prefix}-api-key-input`}
-          data-testid={`${prefix}-api-key-input`}
-          type="password"
-          autoComplete="off"
-          spellCheck={false}
-          value={openRouterApiKeyInput}
-          onChange={(event) => onOpenRouterApiKeyInputChange(event.target.value)}
-          placeholder={openRouterCopy.keyPlaceholder}
-          aria-describedby={validationId}
-        />
+        <div className="settings-secret-input-row">
+          <input
+            id={`${prefix}-api-key-input`}
+            data-testid={`${prefix}-api-key-input`}
+            type={openRouterApiKeyVisible ? "text" : "password"}
+            autoComplete="new-password"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            data-lpignore="true"
+            data-form-type="other"
+            value={openRouterApiKeyInput}
+            onChange={(event) => onOpenRouterApiKeyInputChange(event.target.value)}
+            placeholder={openRouterCopy.keyPlaceholder}
+            aria-describedby={validationId}
+          />
+          <button
+            type="button"
+            className="secondary-button settings-secret-toggle"
+            data-testid={`${prefix}-api-key-visibility-toggle`}
+            onClick={() => setOpenRouterApiKeyVisible((current) => !current)}
+            aria-label={openRouterApiKeyVisible ? openRouterCopy.hideKey : openRouterCopy.showKey}
+          >
+            {openRouterApiKeyVisible ? openRouterCopy.hideKey : openRouterCopy.showKey}
+          </button>
+        </div>
         <label htmlFor={`${prefix}-model-input`}>{inputLabel}</label>
         <div className="settings-inline-controls">
           <input

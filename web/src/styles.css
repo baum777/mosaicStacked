@@ -5833,12 +5833,19 @@ textarea:focus {
   text-transform: uppercase;
 }
 
+.settings-secret-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+}
+
 .settings-inline-controls {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-2);
 }
 
+.settings-secret-input-row input,
 .settings-inline-controls input {
   min-width: 0;
   border: 1px solid var(--border-soft);
@@ -5847,6 +5854,10 @@ textarea:focus {
   color: var(--text-primary);
   padding: 12px;
   font: inherit;
+}
+
+.settings-secret-toggle {
+  white-space: nowrap;
 }
 
 .settings-manual-config-input {
@@ -8409,6 +8420,11 @@ button:disabled,
 
 .app-shell-mobile .settings-mobile-openrouter-form,
 .app-shell-mobile .settings-mobile-openrouter-form .settings-inline-controls {
+  display: grid;
+  gap: 8px;
+}
+
+.app-shell-mobile .settings-mobile-openrouter-form .settings-secret-input-row {
   display: grid;
   gap: 8px;
 }
