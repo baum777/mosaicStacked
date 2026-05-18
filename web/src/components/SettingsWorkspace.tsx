@@ -782,7 +782,7 @@ export function SettingsWorkspace({
                   key={row.id}
                   label={row.label}
                   value={row.value}
-                  detail={row.detail}
+                  detail={row.id === "workmode" || row.id === "diagnostics" ? undefined : row.detail}
                   tone={row.tone}
                   testId={`settings-mobile-row-${row.id}`}
                   action={() => setMobileSettingsSheet(row.id)}

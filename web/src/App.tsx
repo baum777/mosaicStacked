@@ -183,8 +183,6 @@ const WORKSPACE_MODES: WorkspaceMode[] = ["chat", "workbench", "matrix", "settin
 const MOBILE_NAV_MODES: WorkspaceMode[] = ["chat", "workbench", "matrix", "settings"];
 const MOBILE_BREAKPOINT_QUERY = "(max-width: 760px)";
 const MATRIX_HIERARCHY_ENABLED = ((import.meta as { env?: { VITE_MATRIX_HIERARCHY?: string } }).env?.VITE_MATRIX_HIERARCHY ?? "false") === "true";
-// Reference-only mobile demo pages stay in-repo, but runtime defaults to functional workspaces.
-const MOBILE_REFERENCE_SURFACES_ENABLED = false;
 
 function WorkspaceIcon({ mode }: { mode: WorkspaceMode }) {
   switch (mode) {
