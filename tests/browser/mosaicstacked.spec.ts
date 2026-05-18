@@ -306,9 +306,47 @@ type GitHubWorkspaceMockOptions = {
 
 async function installGitHubWorkspaceMocks(page: Page, options: GitHubWorkspaceMockOptions = {}) {
   const counters = {
+    context: 0,
+    propose: 0,
     execute: 0,
     verify: 0,
   };
+  const requests: {
+    context: Array<{ owner?: string; repo?: string }>;
+    propose: Array<{ owner?: string; repo?: string }>;
+  } = {
+    context: [],
+    propose: [],
+  };
+  const repoFixtures = [
+    {
+      owner: "octo",
+      repo: "demo",
+      fullName: "octo/demo",
+      defaultBranch: "main",
+      defaultBranchSha: "abc123",
+      description: "Demo repository",
+      isPrivate: false,
+      status: "ready",
+      permissions: { canWrite: true },
+      checkedAt: "2026-04-16T08:00:00.000Z",
+    },
+    {
+      owner: "octo",
+      repo: "sample",
+      fullName: "octo/sample",
+      defaultBranch: "main",
+      defaultBranchSha: "def456",
+      description: "Sample repository",
+      isPrivate: false,
+      status: "ready",
+      permissions: { canWrite: true },
+      checkedAt: "2026-04-16T08:00:00.000Z",
+    },
+  ] as const;
+  const findRepo = (owner?: string, repo?: string) =>
+    repoFixtures.find((entry) => entry.owner === owner && entry.repo === repo) ?? repoFixtures[0];
+  const labelRepo = (repo: string) => `${repo.slice(0, 1).toUpperCase()}${repo.slice(1)}`;
 
   await page.route("**/api/github/capabilities", async (route) => {
     if (route.request().method() !== "GET") {
@@ -342,32 +380,7 @@ async function installGitHubWorkspaceMocks(page: Page, options: GitHubWorkspaceM
       body: JSON.stringify({
         ok: true,
         checkedAt: "2026-04-16T08:00:00.000Z",
-        repos: [
-          {
-            owner: "octo",
-            repo: "demo",
-            fullName: "octo/demo",
-            defaultBranch: "main",
-            defaultBranchSha: "abc123",
-            description: "Demo repository",
-            isPrivate: false,
-            status: "ready",
-            permissions: { canWrite: true },
-            checkedAt: "2026-04-16T08:00:00.000Z",
-          },
-          {
-            owner: "octo",
-            repo: "sample",
-            fullName: "octo/sample",
-            defaultBranch: "main",
-            defaultBranchSha: "def456",
-            description: "Sample repository",
-            isPrivate: false,
-            status: "ready",
-            permissions: { canWrite: true },
-            checkedAt: "2026-04-16T08:00:00.000Z",
-          },
-        ],
+        repos: repoFixtures,
       }),
     });
   });
@@ -378,27 +391,24 @@ async function installGitHubWorkspaceMocks(page: Page, options: GitHubWorkspaceM
       return;
     }
 
+    counters.context += 1;
+    const requestBody = route.request().postDataJSON() as { repo?: { owner?: string; repo?: string } };
+    requests.context.push({
+      owner: requestBody.repo?.owner,
+      repo: requestBody.repo?.repo,
+    });
+    const selectedRepo = findRepo(requestBody.repo?.owner, requestBody.repo?.repo);
+
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
         ok: true,
         context: {
-          repo: {
-            owner: "octo",
-            repo: "demo",
-            fullName: "octo/demo",
-            defaultBranch: "main",
-            defaultBranchSha: "abc123",
-            description: "Demo repository",
-            isPrivate: false,
-            status: "ready",
-            permissions: { canWrite: true },
-            checkedAt: "2026-04-16T08:00:00.000Z",
-          },
-          ref: "main",
-          baseSha: "abc123",
-          question: "Describe the repository and propose the safest next action.",
+          repo: selectedRepo,
+          ref: selectedRepo.defaultBranch,
+          baseSha: selectedRepo.defaultBranchSha,
+          question: `Describe ${selectedRepo.fullName} and propose the safest next action.`,
           files: [
             {
               path: "README.md",
@@ -434,6 +444,14 @@ async function installGitHubWorkspaceMocks(page: Page, options: GitHubWorkspaceM
       return;
     }
 
+    counters.propose += 1;
+    const requestBody = route.request().postDataJSON() as { repo?: { owner?: string; repo?: string } };
+    requests.propose.push({
+      owner: requestBody.repo?.owner,
+      repo: requestBody.repo?.repo,
+    });
+    const selectedRepo = findRepo(requestBody.repo?.owner, requestBody.repo?.repo);
+
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -441,27 +459,16 @@ async function installGitHubWorkspaceMocks(page: Page, options: GitHubWorkspaceM
         ok: true,
         plan: {
           planId: "plan-123",
-          repo: {
-            owner: "octo",
-            repo: "demo",
-            fullName: "octo/demo",
-            defaultBranch: "main",
-            defaultBranchSha: "abc123",
-            description: "Demo repository",
-            isPrivate: false,
-            status: "ready",
-            permissions: { canWrite: true },
-            checkedAt: "2026-04-16T08:00:00.000Z",
-          },
-          baseRef: "main",
-          baseSha: "abc123",
-          branchName: "mosaicstacked/demo-plan",
-          targetBranch: "main",
+          repo: selectedRepo,
+          baseRef: selectedRepo.defaultBranch,
+          baseSha: selectedRepo.defaultBranchSha,
+          branchName: `mosaicstacked/${selectedRepo.repo}-plan`,
+          targetBranch: selectedRepo.defaultBranch,
           status: "pending_review",
           stale: false,
           requiresApproval: true,
-          summary: "Demo plan",
-          rationale: "Safe demonstration proposal.",
+          summary: `${labelRepo(selectedRepo.repo)} plan`,
+          rationale: `Safe ${selectedRepo.repo} proposal.`,
           riskLevel: "low_surface",
           citations: [],
           diff: [
@@ -561,7 +568,7 @@ async function installGitHubWorkspaceMocks(page: Page, options: GitHubWorkspaceM
     });
   });
 
-  return counters;
+  return { counters, requests };
 }
 
 async function installAbortableChatFetchMock(page: Page) {
@@ -1130,7 +1137,7 @@ test("chat abort keeps fail-closed behavior and does not fabricate assistant com
 
 test("GitHub workspace runs analysis and proposal, then executes and verifies once", async ({ page }) => {
   await installBaseMocks(page, { matrixStatus: "ok" });
-  const counters = await installGitHubWorkspaceMocks(page);
+  const { counters } = await installGitHubWorkspaceMocks(page);
   await loadConsole(page);
 
   await page.getByTestId("tab-workbench").click();
@@ -1153,7 +1160,7 @@ test("GitHub workspace runs analysis and proposal, then executes and verifies on
 
 test("GitHub stale-plan execute failure is surfaced and no receipt is fabricated", async ({ page }) => {
   await installBaseMocks(page, { matrixStatus: "ok" });
-  const counters = await installGitHubWorkspaceMocks(page, {
+  const { counters } = await installGitHubWorkspaceMocks(page, {
     executeResponse: {
       status: 409,
       body: {
@@ -1179,6 +1186,59 @@ test("GitHub stale-plan execute failure is surfaced and no receipt is fabricated
   await expect(page.getByTestId("github-pr-result")).toHaveCount(0);
   expect(counters.execute).toBe(1);
   expect(counters.verify).toBe(0);
+});
+
+test("GitHub workspace shows concrete repositories, switches repo context, and resets tab actions", async ({ page }) => {
+  await installBaseMocks(page, { matrixStatus: "ok" });
+  const { counters, requests } = await installGitHubWorkspaceMocks(page);
+  await loadConsole(page);
+
+  await page.getByTestId("tab-workbench").click();
+  const repoSelect = page.locator("#github-repo-select");
+  await expect(repoSelect).toContainText("octo/demo");
+  await expect(repoSelect).toContainText("octo/sample");
+
+  await repoSelect.selectOption("octo/demo");
+  await expect(page.getByTestId("github-workspace")).toContainText("octo/demo");
+  await page.getByRole("button", { name: "Start analysis" }).click();
+  await page.getByRole("button", { name: "Review proposal" }).click();
+  await expect(page.getByTestId("workbench-change-log")).toContainText("Demo plan");
+  await expect(page.getByTestId("workbench-action-open-diff")).toBeEnabled();
+
+  await page.getByTestId("workbench-action-open-diff").click();
+  await expect(page.locator(".github-diff-preview")).toContainText("@@ -1 +1 @@");
+  await page.getByTestId("workbench-action-copy-summary").click();
+  await page.getByTestId("workbench-action-mark-for-stage").click();
+  await expect(page.getByTestId("workbench-change-log")).toContainText("marked");
+  await page.getByTestId("workbench-action-remove-review").click();
+  await expect(page.getByTestId("workbench-change-log")).toContainText("removed");
+
+  await repoSelect.selectOption("octo/sample");
+  await expect(page.getByTestId("github-workspace")).toContainText("octo/sample");
+  await expect(page.getByTestId("workbench-change-log")).toContainText("No active work yet.");
+  await expect(page.getByTestId("workbench-action-open-diff")).toBeDisabled();
+  await expect(page.getByTestId("workbench-action-create-pr")).toBeDisabled();
+
+  await page.getByRole("button", { name: "Start analysis" }).click();
+  await page.getByRole("button", { name: "Review proposal" }).click();
+  await expect(page.getByTestId("workbench-change-log")).toContainText("Sample plan");
+  await page.getByTestId("workbench-action-mark-for-stage").click();
+  await page.getByTestId("workbench-action-prepare-pr").click();
+  await page.getByTestId("workbench-action-create-pr").click();
+  await expect(page.getByTestId("github-pr-result")).toContainText("verified");
+
+  expect(requests.context).toEqual([
+    { owner: "octo", repo: "demo" },
+    { owner: "octo", repo: "sample" },
+  ]);
+  expect(requests.propose).toEqual([
+    { owner: "octo", repo: "demo" },
+    { owner: "octo", repo: "sample" },
+  ]);
+  expect(counters.context).toBe(2);
+  expect(counters.propose).toBe(2);
+  expect(counters.execute).toBe(1);
+  expect(counters.verify).toBe(1);
 });
 
 test("GitHub execute stays disabled when server capabilities deny execution", async ({ page }) => {

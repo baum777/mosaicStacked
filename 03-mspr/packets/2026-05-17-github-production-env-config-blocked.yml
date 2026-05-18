@@ -22,10 +22,15 @@ authority:
     - production_auth_github_status_connected_false
     - production_auth_github_status_credential_source_not_connected
     - production_diagnostics_route_returned_spa_html_before_rewrite_fix
+    - local_vercel_env_pull_development_created_env_local_with_only_vercel_oidc_token
+    - local_vercel_env_pull_preview_expected_github_keys_present_but_empty_after_dotenv_parse
+    - local_vercel_env_pull_production_expected_github_and_session_keys_present_but_empty_after_dotenv_parse
+    - vercel_env_ls_production_shows_github_and_session_keys_as_encrypted_preview_or_production_scoped
   inferred:
     - vercel_runtime_has_github_app_auth_start_config
     - vercel_runtime_lacks_session_bound_user_credential_for_current_browser_or_instance_installation_id_for_cookie_less_repos_route
     - github_app_installation_alone_does_not_create_backend_session_credentials
+    - pulled_vercel_env_files_do_not_provide_nonempty_local_github_runtime_auth_values
 risk:
   level: high
   statement: production_ui_can_show_connect_available_while_backend_github_read_routes_fail_closed_until_callback_session_or_instance_installation_id_is_valid
@@ -40,8 +45,13 @@ verification:
     - curl_https_mosaicstacked_vercel_app_api_auth_github_start_returnTo_console_settings
     - curl_https_mosaicstacked_vercel_app_api_auth_github_status
     - npm_test_server_test_vercel_config_ts
+    - vercel_env_pull_env_local_yes
+    - vercel_env_pull_env_preview_local_environment_preview_yes
+    - vercel_env_pull_env_production_local_environment_production_yes
+    - vercel_env_ls_production
+    - node_dotenv_parse_presence_and_nonempty_check_for_pulled_env_files
 links:
   - ../../vercel.json
   - ../../server/src/routes/github.ts
   - ../../server/src/routes/integrations.ts
-next_gate: blocked_until_callback_session_or_instance_installation_id_is_verified
+next_gate: blocked_until_nonempty_vercel_github_auth_values_or_callback_session_is_verified

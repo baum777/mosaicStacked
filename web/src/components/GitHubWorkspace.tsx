@@ -258,8 +258,8 @@ function formatRepoVisibility(isPrivate: boolean, locale: Locale) {
     : locale === "de" ? "Öffentlich" : "Public";
 }
 
-function friendlyRepoLabel(index: number, expertMode: boolean, fullName: string, locale: Locale) {
-  return expertMode ? fullName : locale === "de" ? `Repository ${index + 1}` : `Repository ${index + 1}`;
+function friendlyRepoLabel(_index: number, _expertMode: boolean, fullName: string, _locale: Locale) {
+  return fullName;
 }
 
 export function describeRepositoryAccess(repo: GitHubRepoSummary | null, locale: Locale = "de") {
@@ -893,9 +893,7 @@ export function GitHubWorkspace(props: GitHubWorkspaceProps) {
       : ui.common.none;
   const resultCopy = resultStatusCopy(executionResult, verificationResult, verifying, locale);
   const selectedRepoLabel = selectedRepo
-    ? expertMode
-      ? selectedRepo.fullName
-      : ui.github.repoSelected
+    ? selectedRepo.fullName
     : ui.github.noRepoSelected;
   const rawDiffPreview = useMemo(
     () => expertMode ? buildRawDiffPreview(proposalPlan) : null,
@@ -1535,7 +1533,7 @@ export function GitHubWorkspace(props: GitHubWorkspaceProps) {
       <section className="github-mobile-panel mobile-panel-scroll" aria-label={locale === "de" ? "Workbench mobile Arbeitsfläche" : "Workbench mobile workspace"}>
         <header className="github-mobile-summary github-mobile-summary-elevated">
           <span className="mobile-mono">WORKBENCH</span>
-          <strong>{selectedRepo ? (expertMode ? selectedRepo.fullName : ui.github.repoSelected) : ui.github.nextStepChooseRepo}</strong>
+          <strong>{selectedRepo ? selectedRepo.fullName : ui.github.nextStepChooseRepo}</strong>
           <p>
             {selectedRepo
               ? `${accessLabel} · ${selectedRepo.defaultBranch}`
@@ -1548,7 +1546,7 @@ export function GitHubWorkspace(props: GitHubWorkspaceProps) {
         <section className="github-mobile-truth-grid" aria-label={locale === "de" ? "Workbench Status" : "Workbench status"}>
           <div className="github-mobile-truth-item">
             <span>{locale === "de" ? "Repo" : "Repo"}</span>
-            <strong>{selectedRepo ? (expertMode ? selectedRepo.fullName : ui.github.repoSelected) : ui.github.noRepoSelected}</strong>
+            <strong>{selectedRepo ? selectedRepo.fullName : ui.github.noRepoSelected}</strong>
           </div>
           <div className="github-mobile-truth-item">
             <span>{locale === "de" ? "Branch" : "Branch"}</span>
