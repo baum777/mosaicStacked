@@ -3714,32 +3714,32 @@ button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.
 }
 
 .app-shell-mobile .mobile-brand-button {
-  min-width: 0 !important;
-  flex: 1 1 auto !important;
-  min-height: 36px !important;
-  padding: 4px 8px !important;
-  gap: var(--sp-2) !important;
-  border: 0 !important;
-  border-radius: 0 !important;
+  min-width: 0;
+  flex: 1 1 auto;
+  min-height: 36px;
+  padding: 4px 8px;
+  gap: var(--sp-2);
+  border: 0;
+  border-radius: 0;
   background: transparent !important;
-  color: var(--ms-text) !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  box-shadow: none !important;
+  color: var(--ms-text);
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: none;
 }
 
 .app-shell-mobile .mobile-brand-button > span:last-child {
-  min-width: 0 !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-shell-mobile .mobile-brand-button .mosaicstacked-mark {
   display: inline-flex !important;
-  flex: 0 0 auto !important;
-  width: 24px !important;
-  height: 24px !important;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
 }
 
 .app-shell-mobile .mobile-topbar-actions {
@@ -3832,15 +3832,15 @@ button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.
 }
 
 .app-shell-mobile .mobile-context-live {
-  margin-left: auto !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   background: transparent !important;
-  color: var(--ms-text2) !important;
-  font-family: var(--ms-mono) !important;
-  font-size: 11px !important;
-  display: block !important;
+  color: var(--ms-text2);
+  font-family: var(--ms-mono);
+  font-size: 11px;
+  display: block;
 }
 
 .app-shell-mobile .mobile-bottom-nav {
@@ -3877,73 +3877,73 @@ button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.
 }
 
 .app-shell-mobile .workspace-tab-mobile.workspace-tab-active::after {
-  content: none !important;
+  content: none;
   display: none !important;
 }
 
 .app-shell-mobile .governed-chat-card {
-  --mobile-chat-golden-ratio: 1.618 !important;
-  align-items: center !important;
+  --mobile-chat-golden-ratio: 1.618;
+  align-items: center;
 }
 
 .app-shell-mobile .governed-thread,
 .app-shell-mobile .mobile-chat-input-stack {
-  width: min(100%, 430px) !important;
-  margin-inline: auto !important;
+  width: min(100%, 430px);
+  margin-inline: auto;
 }
 
 .app-shell-mobile .governed-composer {
-  display: block !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: #090b10 !important;
+  display: block;
+  border: 0;
+  border-radius: 0;
+  background: #090b10;
 }
 
 .app-shell-mobile .mobile-compose-field {
-  position: relative !important;
-  min-height: 44px !important;
-  display: flex !important;
-  align-items: flex-end !important;
-  overflow: hidden !important;
-  border: 1px solid rgba(158, 168, 190, 0.28) !important;
-  border-radius: 12px !important;
-  background: #f7f8fb !important;
+  position: relative;
+  min-height: 44px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  border: 1px solid rgba(158, 168, 190, 0.28);
+  border-radius: 12px;
+  background: #f7f8fb;
 }
 
 .app-shell-mobile .governed-composer textarea {
-  width: 100% !important;
-  min-height: 36px !important;
-  max-height: 96px !important;
-  padding: 10px 48px 10px 12px !important;
-  border: 0 !important;
-  border-radius: 12px !important;
-  background: transparent !important;
-  color: #11131a !important;
-  overflow-y: auto !important;
-  scrollbar-width: none !important;
+  width: 100%;
+  min-height: 36px;
+  max-height: 96px;
+  padding: 10px 48px 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #11131a;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
 
 .app-shell-mobile .governed-composer textarea::-webkit-scrollbar {
-  display: none !important;
+  display: none;
 }
 
 .app-shell-mobile .mobile-compose-submit {
-  position: absolute !important;
-  right: 5px !important;
-  bottom: 5px !important;
-  width: 34px !important;
-  min-width: 34px !important;
-  min-height: 34px !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 10px !important;
-  background: #151722 !important;
-  color: #62c9ff !important;
-  font-size: 0 !important;
-  box-shadow: none !important;
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: #151722;
+  color: #62c9ff;
+  font-size: 0;
+  box-shadow: none;
 }
 
 .app-shell-mobile .mobile-compose-submit::before {
-  content: "↑" !important;
-  font-size: 17px !important;
+  content: "↑";
+  font-size: 17px;
 }
