@@ -248,6 +248,74 @@ export function useRuntimeStatus(options: {
   const loadConsoleState = useCallback(async (emitTelemetry = true) => {
     const signal = createStatusRequestSignal();
 
+    const healthStatusPromise = fetchCachedStatus({
+      key: "health",
+      signal,
+      fetcher: (requestSignal) => fetchHealth({ signal: requestSignal }),
+    });
+    const modelsStatusPromise = fetchCachedStatus({
+      key: "models",
+      signal,
+      fetcher: (requestSignal) => fetchModels({ signal: requestSignal }),
+    });
+    const diagnosticsStatusPromise = fetchCachedStatus({
+      key: "diagnostics",
+      signal,
+      fetcher: (requestSignal) => fetchDiagnostics({ signal: requestSignal }),
+    });
+    const journalStatusPromise = fetchCachedStatus({
+      key: "journal",
+      signal,
+      fetcher: (requestSignal) => fetchJournalRecent({ signal: requestSignal }),
+    });
+    const integrationsStatusPromise = fetchCachedStatus({
+      key: "integrations",
+      signal,
+      fetcher: (requestSignal) => fetchIntegrationsStatus({ signal: requestSignal }),
+    });
+    const openRouterCredentialStatusPromise = fetchOpenRouterCredentialStatus();
+    const githubCapabilitiesPromise = fetchCachedStatus({
+      key: "github-capabilities",
+      signal,
+      fetcher: () => fetchGitHubCapabilities(),
+    });
+
+    void healthStatusPromise
+      .then(() => {
+        if (!signal.aborted) {
+          setBackendHealthy(true);
+        }
+      })
+      .catch((error) => {
+        if (!signal.aborted && !isAbortError(error)) {
+          setBackendHealthy(false);
+        }
+      });
+
+    void integrationsStatusPromise
+      .then((nextStatus) => {
+        if (!signal.aborted) {
+          setIntegrationsStatus(nextStatus);
+        }
+      })
+      .catch((error) => {
+        if (!signal.aborted && !isAbortError(error)) {
+          setIntegrationsStatus(null);
+        }
+      });
+
+    void githubCapabilitiesPromise
+      .then((capabilities) => {
+        if (!signal.aborted) {
+          setGitHubCapabilities(capabilities);
+        }
+      })
+      .catch((error) => {
+        if (!signal.aborted && !isAbortError(error)) {
+          setGitHubCapabilities(null);
+        }
+      });
+
     const [
       healthResult,
       modelsResult,
@@ -257,37 +325,13 @@ export function useRuntimeStatus(options: {
       openRouterStatusResult,
       githubCapabilitiesResult,
     ] = await Promise.allSettled([
-      fetchCachedStatus({
-        key: "health",
-        signal,
-        fetcher: (requestSignal) => fetchHealth({ signal: requestSignal }),
-      }),
-      fetchCachedStatus({
-        key: "models",
-        signal,
-        fetcher: (requestSignal) => fetchModels({ signal: requestSignal }),
-      }),
-      fetchCachedStatus({
-        key: "diagnostics",
-        signal,
-        fetcher: (requestSignal) => fetchDiagnostics({ signal: requestSignal }),
-      }),
-      fetchCachedStatus({
-        key: "journal",
-        signal,
-        fetcher: (requestSignal) => fetchJournalRecent({ signal: requestSignal }),
-      }),
-      fetchCachedStatus({
-        key: "integrations",
-        signal,
-        fetcher: (requestSignal) => fetchIntegrationsStatus({ signal: requestSignal }),
-      }),
-      fetchOpenRouterCredentialStatus(),
-      fetchCachedStatus({
-        key: "github-capabilities",
-        signal,
-        fetcher: () => fetchGitHubCapabilities(),
-      }),
+      healthStatusPromise,
+      modelsStatusPromise,
+      diagnosticsStatusPromise,
+      journalStatusPromise,
+      integrationsStatusPromise,
+      openRouterCredentialStatusPromise,
+      githubCapabilitiesPromise,
     ]);
 
     if (signal.aborted) {

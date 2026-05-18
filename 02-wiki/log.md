@@ -119,3 +119,5 @@
 ## [2026-05-18] env-example-github-secret-blocked | blocked commit/push promotion of secret-like GitHub values in `.env.example` and routed cleanup/rotation to MSPR [[../03-mspr/packets/2026-05-18-env-example-github-secret-blocked.yml]]
 
 ## [2026-05-18] github-oauth-app-token-callback-fix | allowed GitHub callbacks that return an OAuth App token while GitHub App config is enabled to store a user OAuth identity when installation listing is unavailable, and added signed non-secret connection metadata fallback for serverless status continuity [[../server/src/routes/integration-auth.ts]] [[../server/src/routes/integrations.ts]] [[../server/src/lib/integration-auth-cookies.ts]] [[../server/test/integration-auth-routes.test.ts]]
+
+## [2026-05-18] settings-integrations-status-early-apply | decoupled Settings runtime status application so backend health, GitHub capabilities, and integrations status update the browser state before slower aggregate probes finish [[../web/src/hooks/useRuntimeStatus.ts]] [[../web/test/settings-workspace.test.ts]]

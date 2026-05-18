@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -617,4 +618,13 @@ test("Settings login adapters expose missing-server-config requirements", () => 
   assert.equal(github?.status, "missing_server_config");
   assert.equal(github?.primaryAction, "reconnect");
   assert.deepEqual(github?.requirements, ["GITHUB_OAUTH_CLIENT_ID", "GITHUB_OAUTH_CLIENT_SECRET"]);
+});
+
+test("runtime status applies integrations before aggregate probes finish", () => {
+  const source = readFileSync("web/src/hooks/useRuntimeStatus.ts", "utf8");
+
+  assert.match(source, /const integrationsStatusPromise = fetchCachedStatus/);
+  assert.match(source, /void integrationsStatusPromise\s*\n\s*\.then\(\(nextStatus\) => \{/);
+  assert.match(source, /setIntegrationsStatus\(nextStatus\)/);
+  assert.match(source, /Promise\.allSettled\(\[\s*healthStatusPromise[\s\S]*integrationsStatusPromise/);
 });
