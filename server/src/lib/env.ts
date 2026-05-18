@@ -354,8 +354,8 @@ export function createEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
 }
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
-  if (fs.existsSync(localEnvPath)) {
-    dotenv.config({ path: localEnvPath });
+  if (source === process.env && process.env.VERCEL !== "1" && fs.existsSync(localEnvPath)) {
+    dotenv.config({ path: localEnvPath, quiet: true });
   }
 
   return createEnv(source);

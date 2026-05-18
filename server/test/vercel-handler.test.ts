@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { createVercelRuntimeConfig, normalizeVercelRequestUrl } from "../../api/_handler.ts";
 import { createRuntimeConfig } from "../src/runtime/create-runtime-config.js";
+
+const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 test("vercel handler preserves matrix routes and strips the /api prefix for root API calls", () => {
   assert.equal(normalizeVercelRequestUrl("/api/chat"), "/chat");
@@ -45,4 +49,34 @@ test("local and vercel runtime builders normalize env from one shared source", (
   assert.equal(vercelRuntime.env.HOST, "0.0.0.0");
   assert.deepEqual(localRuntime.env.OPENROUTER_MODELS, vercelRuntime.env.OPENROUTER_MODELS);
   assert.equal(localRuntime.env.CHAT_MODEL, vercelRuntime.env.CHAT_MODEL);
+});
+
+test("vercel handler import does not hydrate instance GitHub env from repo .env", () => {
+  const script = `
+    await import("./api/_handler.ts");
+    const leaked = ["GITHUB_APP_INSTALLATION_ID", "GITHUB_ALLOWED_REPOS"].filter((key) => process.env[key]);
+    if (leaked.length > 0) {
+      console.error(leaked.join(","));
+      process.exit(1);
+    }
+  `;
+  const result = spawnSync(
+    process.execPath,
+    ["--import", "tsx", "--input-type=module", "--eval", script],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        HOME: process.env.HOME ?? "",
+        PATH: process.env.PATH ?? "",
+        NODE_ENV: "production",
+        VERCEL: "1",
+        GITHUB_APP_ID: "123456",
+        GITHUB_APP_PRIVATE_KEY: "not-a-real-key",
+        GITHUB_APP_SLUG: "mosaic-stack"
+      }
+    }
+  );
+
+  assert.equal(result.status, 0, `child status ${result.status}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
 });

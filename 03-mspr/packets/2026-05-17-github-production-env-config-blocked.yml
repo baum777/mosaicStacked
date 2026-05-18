@@ -5,6 +5,8 @@ trigger: production_validation_gap
 scope:
   paths:
     - vercel.json
+    - .vercelignore
+    - server/src/lib/env.ts
     - server/src/routes/github.ts
     - server/src/routes/integrations.ts
     - server/src/lib/github-env.ts
@@ -31,6 +33,14 @@ authority:
     - vercel_env_add_github_app_private_key_production_force_completed_without_printing_secret
     - vercel_production_deploy_dpl_BqeJ1Rmh7uYSiwqJopbm8FZJ8YH5_ready
     - production_api_github_repos_returns_200_with_ready_repository_list
+    - vercel_env_rm_github_allowed_repos_production_completed
+    - vercel_env_rm_github_app_installation_id_production_completed
+    - production_after_env_removal_still_returned_github_instance_config_from_local_dotenv_import_side_effect
+    - server_env_load_env_skips_repo_dotenv_when_process_env_vercel_is_1
+    - vercelignore_excludes_local_env_files_and_pem_files_from_deploy_context
+    - vercel_production_deploy_dpl_8t27QpgACvKbGj4qEMeK1byKAgVo_ready
+    - production_api_integrations_status_github_credential_source_not_connected_after_env_boundary_fix
+    - production_api_github_repos_returns_503_github_not_configured_without_session_after_env_boundary_fix
   inferred:
     - vercel_runtime_has_github_app_auth_start_config
     - vercel_runtime_lacks_session_bound_user_credential_for_current_browser_or_instance_installation_id_for_cookie_less_repos_route
@@ -38,7 +48,7 @@ authority:
     - pulled_vercel_env_files_do_not_provide_nonempty_local_github_runtime_auth_values
 risk:
   level: low
-  statement: production_github_repo_read_is_verified_after_operator_approved_key_update_and_redeploy
+  statement: production_github_is_now_per_user_connect_mode_without_instance_repo_read_fallback
 decision_needed: none
 review:
   owner: human
@@ -59,8 +69,19 @@ verification:
     - vercel_env_add_github_app_private_key_production_force_yes_scope_forgedfromwood
     - vercel_deploy_prod_force_yes_scope_forgedfromwood
     - curl_https_mosaicstacked_vercel_app_api_github_repos_returns_200
+    - vercel_env_rm_github_allowed_repos_production_yes_scope_forgedfromwood
+    - vercel_env_rm_github_app_installation_id_production_yes_scope_forgedfromwood
+    - node_test_import_api_handler_with_vercel_1_does_not_load_local_github_instance_env
+    - npm_run_typecheck_server
+    - npm_run_test_server
+    - vercel_deploy_prod_force_yes_scope_forgedfromwood_dpl_8t27QpgACvKbGj4qEMeK1byKAgVo
+    - curl_https_mosaicstacked_vercel_app_api_auth_github_status_app_ready_oauth_ready_auth_ready_not_connected
+    - curl_https_mosaicstacked_vercel_app_api_integrations_status_github_not_connected_read_blocked
+    - curl_https_mosaicstacked_vercel_app_api_github_repos_returns_503_github_not_configured
 links:
   - ../../vercel.json
+  - ../../.vercelignore
+  - ../../server/src/lib/env.ts
   - ../../server/src/routes/github.ts
   - ../../server/src/routes/integrations.ts
-next_gate: monitor_allowed_repo_scope_and_keep_private_key_out_of_repo
+next_gate: user_connects_github_installation_in_browser_to_select_own_repo

@@ -133,3 +133,5 @@
 ## [2026-05-18] private-pem-gitignore | replaced non-matching `.pem` ignore entry with `*.pem` so local GitHub App private-key files remain untracked [[../.gitignore]]
 
 ## [2026-05-18] vercel-production-github-key-redeploy | uploaded operator-approved signable GitHub App private key to Vercel Production without printing the secret, redeployed production dpl_BqeJ1Rmh7uYSiwqJopbm8FZJ8YH5, and verified `/api/github/repos` returns 200 ready repo data [[../03-mspr/packets/2026-05-17-github-production-env-config-blocked.yml]]
+
+## [2026-05-18] vercel-production-user-github-scope | entfernte `GITHUB_ALLOWED_REPOS` und `GITHUB_APP_INSTALLATION_ID` aus Vercel Production, verhinderte `.env`-Hydration im Vercel-Handler, ergänzte `.vercelignore`, redeployte production dpl_8t27QpgACvKbGj4qEMeK1byKAgVo und verifizierte GitHub ohne User-Session als fail-closed [[../server/src/lib/env.ts]] [[../server/test/vercel-handler.test.ts]] [[../.vercelignore]] [[../03-mspr/packets/2026-05-17-github-production-env-config-blocked.yml]]
