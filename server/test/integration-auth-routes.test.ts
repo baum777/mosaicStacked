@@ -878,6 +878,113 @@ test("GitHub App OAuth connect starts with authorize flow for existing installat
   assert.equal(payload.github.labels.scope, "GitHub App installation controls repository access.");
 });
 
+test("GitHub App OAuth callback accepts OAuth App tokens when installation listing is unavailable", async (t) => {
+  const env = createTestEnv({
+    ...TEST_GITHUB_APP_ENV,
+    ...TEST_GITHUB_OAUTH_ENV,
+    MOSAIC_STACK_SESSION_SECRET: "github-app-oauth-user-fallback-session-secret",
+    ...TEST_ENCRYPTION_KEY
+  });
+  const accessToken = "gho_oauth_app_user_token";
+
+  const app = createApp({
+    env,
+    openRouter: createMockOpenRouterClient(),
+    integrationFetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      const method = init?.method ?? "GET";
+
+      if (url.pathname === "/login/oauth/access_token" && method === "POST") {
+        return new Response(JSON.stringify({
+          access_token: accessToken,
+          token_type: "bearer",
+          scope: "read:user user:email"
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      if (url.pathname === "/user/installations" && method === "GET") {
+        return new Response(JSON.stringify({ message: "Resource not accessible by integration" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      if (url.pathname === "/user" && method === "GET") {
+        const authorization = new Headers(init?.headers).get("authorization");
+
+        if (authorization !== `Bearer ${accessToken}`) {
+          return new Response(JSON.stringify({ message: "Bad credentials" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+
+        return new Response(JSON.stringify({
+          id: 1,
+          login: "baum777"
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      return new Response(JSON.stringify({ message: "Unexpected GitHub request" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    },
+    logger: false
+  });
+
+  t.after(async () => {
+    await app.close();
+  });
+
+  const start = await app.inject({
+    method: "GET",
+    url: "/api/auth/github/start"
+  });
+  const state = readGitHubStateFromAuthorizeLocation(String(start.headers.location ?? ""));
+  const browserCookie = joinCookiesForRequest(readSetCookies(start));
+
+  assert.ok(state);
+  assert.ok(browserCookie);
+
+  const callback = await app.inject({
+    method: "GET",
+    url: `/api/auth/github/callback?state=${encodeURIComponent(state ?? "")}&code=oauth-app-code`,
+    headers: {
+      cookie: browserCookie
+    }
+  });
+
+  assert.equal(callback.statusCode, 302);
+  assert.equal(callback.headers.location, "/console?mode=settings");
+
+  const status = await app.inject({
+    method: "GET",
+    url: "/api/integrations/status",
+    headers: {
+      cookie: browserCookie
+    }
+  });
+
+  const payload = JSON.parse(status.body) as {
+    github: {
+      credentialSource: string;
+      labels: {
+        identity: string | null;
+      };
+    };
+  };
+
+  assert.equal(payload.github.credentialSource, "user_connected");
+  assert.equal(payload.github.labels.identity, "baum777");
+});
+
 test("GitHub App install and authorize callback fails closed for ambiguous user installations", async (t) => {
   const env = createTestEnv({
     ...TEST_GITHUB_APP_ENV,

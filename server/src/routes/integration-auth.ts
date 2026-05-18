@@ -627,6 +627,18 @@ async function exchangeGitHubOAuthCode(
     );
   }
 
+  const scope = typeof tokenPayload.scope === "string"
+    ? tokenPayload.scope.split(/[,\s]+/).map((entry) => entry.trim()).filter(Boolean)
+    : [];
+
+  return exchangeGitHubOAuthAccessToken(deps, accessToken, scope);
+}
+
+async function exchangeGitHubOAuthAccessToken(
+  deps: IntegrationAuthRouteDependencies,
+  accessToken: string,
+  scope: string[]
+) {
   const userResponse = await requestJson(
     deps.fetchImpl ?? fetch,
     "https://api.github.com/user",
@@ -649,10 +661,6 @@ async function exchangeGitHubOAuthCode(
   if (!userResponse.ok || !userPayload || login.length === 0) {
     throw new Error(userResponse.status === 401 || userResponse.status === 403 ? "auth_expired" : "token_exchange_failed");
   }
-
-  const scope = typeof tokenPayload.scope === "string"
-    ? tokenPayload.scope.split(/[,\s]+/).map((entry) => entry.trim()).filter(Boolean)
-    : [];
 
   return {
     safeIdentityLabel: login,
@@ -809,7 +817,18 @@ async function exchangeGitHubAppUserInstallationCode(
   installationIdRaw: string | undefined
 ) {
   const accessToken = await exchangeGitHubOAuthCodeForAccessToken(deps, code);
-  const userInstallations = await listGitHubAppUserInstallations(deps, accessToken);
+  let userInstallations: Awaited<ReturnType<typeof listGitHubAppUserInstallations>>;
+
+  try {
+    userInstallations = await listGitHubAppUserInstallations(deps, accessToken);
+  } catch (error) {
+    if (error instanceof Error && error.message === "auth_expired") {
+      return exchangeGitHubOAuthAccessToken(deps, accessToken, []);
+    }
+
+    throw error;
+  }
+
   const requestedInstallationId = parseGitHubInstallationId(installationIdRaw);
   const selectedInstallation = requestedInstallationId
     ? userInstallations.find((installation) => installation.installationId === requestedInstallationId) ?? null

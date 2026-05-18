@@ -117,3 +117,5 @@
 ## [2026-05-17] github-auth-status-oauth-readiness-fix | separated GitHub App readiness from OAuth readiness in the auth status endpoint so production diagnostics expose missing OAuth client config instead of reporting `oauthReady: true` from App-only readiness [[../server/src/routes/integration-auth.ts]] [[../server/test/integration-auth-routes.test.ts]]
 
 ## [2026-05-18] env-example-github-secret-blocked | blocked commit/push promotion of secret-like GitHub values in `.env.example` and routed cleanup/rotation to MSPR [[../03-mspr/packets/2026-05-18-env-example-github-secret-blocked.yml]]
+
+## [2026-05-18] github-oauth-app-token-callback-fix | allowed GitHub callbacks that return an OAuth App token while GitHub App config is enabled to store a user OAuth identity when installation listing is unavailable, preserving GitHub App installation handling when available [[../server/src/routes/integration-auth.ts]] [[../server/test/integration-auth-routes.test.ts]]
