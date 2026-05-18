@@ -7,48 +7,6 @@
 /* Critical path for the mobile chat shell. Deferred CSS fills in secondary workspaces. */
 :root {
   color-scheme: dark;
-  --ms-accent: #6c5ce7;
-  --ms-accent2: #a29bfe;
-  --ms-teal: #00cec9;
-  --ms-green: #55efc4;
-  --ms-amber: #fdcb6e;
-  --ms-red: #ff7675;
-  --ms-bg: #0f0f11;
-  --ms-bg2: #171719;
-  --ms-bg3: #1e1e21;
-  --ms-bg4: #252529;
-  --ms-text: #f0eff4;
-  --ms-text2: #9b99a8;
-  --ms-text3: #5e5d6b;
-  --ms-border: rgba(255, 255, 255, 0.07);
-  --ms-border2: rgba(255, 255, 255, 0.12);
-  --ms-font-display: "Geist", "Inter", system-ui, sans-serif;
-  --ms-font-sans: "Geist", "Inter", system-ui, sans-serif;
-  --ms-font-mono: "Geist Mono", "JetBrains Mono", monospace;
-  --ms-sans: var(--ms-font-sans);
-  --ms-mono: var(--ms-font-mono);
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --r: 8px;
-  --r2: 14px;
-  --bg: var(--ms-bg);
-  --panel: var(--ms-bg2);
-  --panel-strong: var(--ms-bg3);
-  --line: var(--ms-border);
-  --text: var(--ms-text);
-  --muted: var(--ms-text2);
-  --accent: var(--ms-accent);
-  --accent-strong: var(--ms-accent2);
-  --success: var(--ms-green);
-  --warning: var(--ms-amber);
-  --danger: var(--ms-red);
-  --error: var(--ms-red);
-  --bg-primary: var(--ms-bg);
-  --bg-elevated: var(--ms-bg3);
-  --border-soft: var(--ms-border);
-  --text-primary: var(--ms-text);
-  --text-secondary: var(--ms-text2);
-  --text-muted: var(--ms-text3);
 }
 
 * {
