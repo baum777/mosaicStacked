@@ -45,3 +45,6 @@ Format: `[[link]] | summary | #tags | YYYY-MM-DD`
 [[../web/src/lib/navigation-palette.ts]] | Typisierte Navigation-Palette-Einträge für Tabs und Session-Targets im Keyboard-Flow | #navigation #poweruser #contract | 2026-05-16
 [[../web/src/lib/button-gate.ts]] | Einheitliches UI-Gate-Contract-Mapping von Block-Gründen auf `aria-disabled` und Tooltip-Copy | #ux #gating #authority | 2026-05-16
 [[../vercel.json]] | Vercel-Rewrite-Contract für Backend-Routen, API-Adapter und SPA-Fallback | #deployment #routing #derived | 2026-05-17
+[[../docs/ui-refactoring-plan-v2.md]] | Umsetzbarer UI-Refactorplan v2 mit Dual-Track-Constraints, Layer-/Token-Migration und Repo-konformen Gates | #docs #ui #plan #derived | 2026-05-18
+[[../docs/ui-refactor-baseline-2026-05-18.md]] | Baseline-Snapshot für UI-Refactor mit CSS-Metriken, Konfliktindikatoren und Bundle-Gate-Nachweis | #docs #ui #metrics #derived | 2026-05-18
+[[../web/src/styles/README.md]] | Token-/Layer-Leitfaden für die schrittweise CSS-Migration mit Legacy-Bridge und Dark-Only-Canonical | #ui #styles #derived | 2026-05-18

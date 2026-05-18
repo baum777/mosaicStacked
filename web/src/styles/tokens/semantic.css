@@ -1,0 +1,123 @@
+:root {
+  /* Semantic surfaces */
+  --color-bg-primary: var(--token-neutral-0);
+  --color-bg-secondary: var(--token-neutral-50);
+  --color-bg-elevated: var(--token-neutral-100);
+  --color-bg-overlay: var(--token-neutral-200);
+
+  --color-text-primary: var(--token-neutral-700);
+  --color-text-secondary: var(--token-neutral-500);
+  --color-text-tertiary: var(--token-neutral-400);
+  --color-text-inverse: var(--token-neutral-0);
+
+  --color-border-primary: rgba(255, 255, 255, 0.07);
+  --color-border-secondary: rgba(255, 255, 255, 0.12);
+  --color-border-focus: rgba(108, 92, 231, 0.45);
+
+  --workspace-accent: var(--token-accent-primary);
+  --workspace-accent-strong: var(--token-accent-primary-strong);
+  --workspace-bg: var(--color-bg-primary);
+
+  --focus-ring-color: var(--workspace-accent);
+  --focus-ring-outline-width: 2px;
+  --focus-ring-outline-offset: 2px;
+  --focus-ring-shadow: 0 0 0 3px color-mix(in srgb, var(--workspace-accent) 25%, transparent);
+
+  --glass-backdrop-filter: blur(14px) saturate(0.8);
+  --glass-backdrop-filter-disabled: none;
+
+  /* Legacy bridge aliases (no behavior change, token source centralization) */
+  --ms-font-display: var(--token-font-display);
+  --ms-font-sans: var(--token-font-sans);
+  --ms-font-mono: var(--token-font-mono);
+  --ms-sans: var(--ms-font-sans);
+  --ms-mono: var(--ms-font-mono);
+
+  --ms-accent: var(--token-accent-primary);
+  --ms-accent2: var(--token-accent-primary-strong);
+  --ms-teal: var(--token-accent-info);
+  --ms-teal2: var(--token-accent-info-strong);
+  --ms-green: var(--token-accent-success);
+  --ms-amber: var(--token-accent-warning);
+  --ms-red: var(--token-accent-error);
+
+  --ms-bg: var(--token-neutral-0);
+  --ms-bg2: var(--token-neutral-50);
+  --ms-bg3: var(--token-neutral-100);
+  --ms-bg4: var(--token-neutral-200);
+  --ms-surface: var(--token-neutral-100);
+
+  --ms-text: var(--token-neutral-700);
+  --ms-text2: var(--token-neutral-500);
+  --ms-text3: var(--token-neutral-400);
+  --ms-border: var(--color-border-primary);
+  --ms-border2: var(--color-border-secondary);
+
+  --sp-1: var(--token-space-1);
+  --sp-2: var(--token-space-2);
+  --sp-3: var(--token-space-3);
+  --sp-4: var(--token-space-4);
+  --sp-5: var(--token-space-5);
+  --sp-6: var(--token-space-6);
+  --sp-8: var(--token-space-8);
+  --sp-10: var(--token-space-10);
+  --sp-12: var(--token-space-12);
+  --sp-16: var(--token-space-16);
+
+  --r: var(--token-radius-md);
+  --r2: var(--token-radius-lg);
+  --r3: var(--token-radius-xl);
+
+  --bg: var(--ms-bg);
+  --bg-2: var(--ms-bg2);
+  --bg-3: var(--ms-bg3);
+  --bg-4: var(--ms-bg4);
+  --panel: var(--ms-bg2);
+  --panel-strong: var(--ms-surface);
+  --line: var(--ms-border);
+  --text: var(--ms-text);
+  --muted: var(--ms-text2);
+  --accent: var(--workspace-accent);
+  --accent-strong: var(--workspace-accent-strong);
+  --success: var(--ms-green);
+  --warning: var(--ms-amber);
+  --danger: var(--ms-red);
+  --error: var(--ms-red);
+  --green: var(--ms-green);
+  --amber: var(--ms-amber);
+  --red: var(--ms-red);
+  --purple: var(--ms-accent2);
+  --blue: var(--ms-teal);
+  --tx: var(--ms-text);
+  --tx-2: var(--ms-text2);
+  --tx-3: var(--ms-text3);
+  --bd: var(--ms-border);
+  --bd-2: var(--ms-border2);
+  --border-soft: var(--ms-border);
+  --border-focus: var(--color-border-focus);
+  --surface: var(--ms-bg2);
+  --surface-soft: var(--ms-bg2);
+  --surface-raised: var(--ms-bg3);
+  --text-primary: var(--ms-text);
+  --text-secondary: var(--ms-text2);
+  --text-muted: var(--ms-text3);
+  --accent-cyan: var(--ms-accent);
+  --accent-green: var(--ms-teal);
+  --accent-violet: var(--ms-accent2);
+  --accent-orange: var(--ms-amber);
+  --space-1: var(--sp-1);
+  --space-2: var(--sp-2);
+  --space-3: var(--sp-3);
+  --space-4: var(--sp-4);
+  --space-5: var(--sp-5);
+  --space-6: var(--sp-6);
+  --space-7: var(--sp-12);
+  --space-8: var(--sp-16);
+  --radius-sm: var(--r);
+  --radius-md: var(--r2);
+  --radius-lg: var(--r3);
+  --glow-cyan: none;
+  --glow-green: none;
+  --shadow-card: var(--token-shadow-none);
+  --shell-border-soft: var(--ms-border);
+}
