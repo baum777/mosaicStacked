@@ -48,3 +48,7 @@ Format: `[[link]] | summary | #tags | YYYY-MM-DD`
 [[../docs/ui-refactoring-plan-v2.md]] | Umsetzbarer UI-Refactorplan v2 mit Dual-Track-Constraints, Layer-/Token-Migration und Repo-konformen Gates | #docs #ui #plan #derived | 2026-05-18
 [[../docs/ui-refactor-baseline-2026-05-18.md]] | Baseline-Snapshot für UI-Refactor mit CSS-Metriken, Konfliktindikatoren und Bundle-Gate-Nachweis | #docs #ui #metrics #derived | 2026-05-18
 [[../web/src/styles/README.md]] | Token-/Layer-Leitfaden für die schrittweise CSS-Migration mit Legacy-Bridge und Dark-Only-Canonical | #ui #styles #derived | 2026-05-18
+[[../web/src/styles.css]] | Konsolidierte Mobile-Surface-Styles ohne tote `context-browser`-Selektoren; Bottom-Nav, Settings-Rows und Bottom-Sheet-Primitives bleiben testgebunden stabil | #ui #styles #mobile #derived | 2026-05-18
+[[../web/src/ui-adaptation.css]] | Deferred-Stability-Guard mit testverbindlichen `!important`-Locks für Brand-Mark, Context-Separator-Reset und Active-Tab-After-Reset | #ui #styles #mobile #derived | 2026-05-18
+[[../web/src/components/SettingsWorkspace.tsx]] | Mobile Settings als Control Center mit kompakteren Listen-Rows und Detailfokus im Bottom-Sheet | #ui #settings #mobile #derived | 2026-05-18
+[[../web/src/components/mobile/shared/SettingsRow.tsx]] | Mobile Settings-Row Primitive mit optionalem Detail-Track und Tone-Varianten | #ui #settings #mobile #derived | 2026-05-18

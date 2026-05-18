@@ -143,3 +143,11 @@
 ## [2026-05-18] ui-refactor-v2-mobile-important-reduction-slice | reduced `!important` usage for deferred mobile chrome guards (topbar, context strip, bottom nav, workspace tab mobile) while preserving selector scope and dual-track load behavior [[../web/src/ui-adaptation.css]]
 
 ## [2026-05-18] ui-refactor-v2-mobile-controls-important-reduction-slice | reduced additional `!important` usage for deferred mobile control chrome (topbar actions, model badge, language toggle/buttons, context path/chip action) while keeping guarded context-live and brand-button hard locks [[../web/src/ui-adaptation.css]]
+
+## [2026-05-18] ui-refactor-v2-mobile-brand-context-important-reduction-slice | reduced further `!important` usage for deferred mobile brand/context guard (brand-button layout/text, context-live layout/text, governed chat ratio/container width), while preserving explicitly guarded background locks for stability [[../web/src/ui-adaptation.css]]
+
+## [2026-05-18] ui-refactor-v2-mobile-composer-important-reduction-slice | reduced deferred mobile composer `!important` usage (composer container, compose field, textarea, submit button) while preserving existing values and behavior in the guarded mobile chat path [[../web/src/ui-adaptation.css]]
+
+## [2026-05-18] ui-refactor-v2-mobile-pseudo-reset-important-reduction-slice | removed low-risk deferred mobile guard `!important` markers from pseudo-element resets and brand mark display, preserving mobile chrome behavior and selector scope [[../web/src/ui-adaptation.css]]
+
+## [2026-05-18] ui-cleanup-onerun-context-browser-removal | removed dead mobile `ContextBrowserPanel` surface and related CSS selectors, restored test-bound deferred mobile stability guard `!important` markers, and tightened Settings mobile list density by suppressing verbose row details in-list while keeping sheet details [[../web/src/components/mobile/context/ContextBrowserPanel.tsx]] [[../web/src/styles.css]] [[../web/src/ui-adaptation.css]] [[../web/src/components/SettingsWorkspace.tsx]] [[../web/src/components/mobile/shared/SettingsRow.tsx]] [[../web/src/App.tsx]]
