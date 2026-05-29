@@ -3,8 +3,24 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import App, { resolveAppSurface, shouldConfirmGitHubReviewNavigation } from "../src/App.js";
+import App, {
+  persistShellState,
+  readPersistedShellState,
+  resolveAppSurface,
+  shouldConfirmGitHubReviewNavigation,
+} from "../src/App.js";
 import { LocaleProvider } from "../src/lib/localization.js";
+
+function withWindow<T>(windowValue: Partial<Window>, fn: () => T) {
+  const globalAny = globalThis as unknown as { window?: Window };
+  const previousWindow = globalAny.window;
+  try {
+    globalAny.window = windowValue as Window;
+    return fn();
+  } finally {
+    globalAny.window = previousWindow;
+  }
+}
 
 test("app shell renders core EN labels", () => {
   const markup = renderToStaticMarkup(
@@ -78,4 +94,100 @@ test("legacy workspace URL modes normalize to workbench and shell tabs are four-
   assert.match(source, /const MOBILE_NAV_MODES: WorkspaceMode\[\] = \["chat", "workbench", "matrix", "settings"\]/);
   assert.match(source, /LANDING_ENTRY_GUIDE_KEY = "landing-entry"/);
   assert.match(source, /window\.location\.replace\(["']\/console["']\)/);
+});
+
+test("persisted shell state expires after the local restore TTL", () => {
+  const storage = new Map<string, string>();
+  const fakeWindow = {
+    localStorage: {
+      getItem(key: string) {
+        return storage.get(key) ?? null;
+      },
+      setItem(key: string, value: string) {
+        storage.set(key, value);
+      },
+      removeItem(key: string) {
+        storage.delete(key);
+      },
+    },
+  } as Partial<Window>;
+
+  storage.set("mosaicstacked.console.shell.v2", JSON.stringify({
+    activeTab: "matrix",
+    workMode: "expert",
+    savedAt: new Date(Date.now() - (8 * 24 * 60 * 60 * 1000)).toISOString(),
+  }));
+
+  assert.equal(withWindow(fakeWindow, () => readPersistedShellState()), null);
+
+  storage.set("mosaicstacked.console.shell.v2", JSON.stringify({
+    activeTab: "matrix",
+    workMode: "expert",
+    savedAt: new Date(Date.now() - (2 * 24 * 60 * 60 * 1000)).toISOString(),
+  }));
+
+  assert.deepEqual(withWindow(fakeWindow, () => readPersistedShellState()), {
+    activeTab: "matrix",
+    workMode: "expert",
+    savedAt: storage.get("mosaicstacked.console.shell.v2")
+      ? JSON.parse(storage.get("mosaicstacked.console.shell.v2") as string).savedAt
+      : "",
+  });
+});
+
+test("persisted shell state requires savedAt and writes fail closed", () => {
+  const storage = new Map<string, string>();
+  const fakeWindow = {
+    localStorage: {
+      getItem(key: string) {
+        return storage.get(key) ?? null;
+      },
+      setItem(key: string, value: string) {
+        storage.set(key, value);
+      },
+      removeItem(key: string) {
+        storage.delete(key);
+      },
+    },
+  } as Partial<Window>;
+
+  storage.set("mosaicstacked.console.shell.v2", JSON.stringify({
+    activeTab: "chat",
+    workMode: "beginner",
+  }));
+
+  assert.equal(withWindow(fakeWindow, () => readPersistedShellState()), null);
+
+  withWindow(fakeWindow, () => persistShellState({
+    activeTab: "workbench",
+    workMode: "expert",
+  }));
+
+  const persisted = JSON.parse(storage.get("mosaicstacked.console.shell.v2") ?? "{}") as {
+    activeTab?: string;
+    workMode?: string;
+    savedAt?: string;
+  };
+  assert.equal(persisted.activeTab, "workbench");
+  assert.equal(persisted.workMode, "expert");
+  assert.ok(persisted.savedAt);
+  assert.doesNotThrow(() => new Date(persisted.savedAt as string).toISOString());
+
+  const throwingWindow = {
+    localStorage: {
+      getItem() {
+        return null;
+      },
+      setItem() {
+        throw Object.assign(new Error("quota exceeded"), { name: "QuotaExceededError" });
+      },
+      removeItem() {
+        // no-op
+      },
+    },
+  } as Partial<Window>;
+
+  assert.doesNotThrow(() => {
+    withWindow(throwingWindow, () => persistShellState({ activeTab: "matrix" }));
+  });
 });
