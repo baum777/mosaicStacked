@@ -181,6 +181,7 @@ const STORAGE_KEY = "mosaicstacked.console.workspaces.v1";
 const LEGACY_MATRIX_STORAGE_KEY = "mosaicstacked.console.matrix.v1";
 const WORKSPACE_VALUES: WorkspaceKind[] = ["chat", "github", "matrix"];
 const SESSION_STATUS_VALUES: SessionStatus[] = ["draft", "in_progress", "review_required", "done", "failed"];
+const MAX_ARCHIVED_SESSIONS_PER_WORKSPACE = 10;
 
 function createId() {
   return crypto.randomUUID();
@@ -1012,6 +1013,16 @@ function ensureActiveSessionId<TMetadata>(sessions: WorkspaceSession<TMetadata>[
   return sessions[0]?.id ?? "";
 }
 
+function pruneArchivedSessions<TMetadata>(sessions: WorkspaceSession<TMetadata>[]): WorkspaceSession<TMetadata>[] {
+  const sorted = sortSessionsByUpdatedAt(sessions);
+  const activeSessions = sorted.filter((session) => !session.archived);
+  const archivedSessions = sorted
+    .filter((session) => session.archived)
+    .slice(0, MAX_ARCHIVED_SESSIONS_PER_WORKSPACE);
+
+  return [...activeSessions, ...archivedSessions];
+}
+
 export function createSession<TMetadata>(
   workspace: WorkspaceKind,
   metadata: TMetadata,
@@ -1264,9 +1275,9 @@ export function loadWorkspaceState(): WorkspaceState {
         }
 
         const sessionsByWorkspace: WorkspaceSessionMap = {
-          chat: chatSessions,
-          github: githubSessions,
-          matrix: matrixSessions
+          chat: pruneArchivedSessions(chatSessions),
+          github: pruneArchivedSessions(githubSessions),
+          matrix: pruneArchivedSessions(matrixSessions)
         };
 
         const activeWorkspace = isWorkspaceKind(parsed.activeWorkspace) ? parsed.activeWorkspace : "chat";
@@ -1301,22 +1312,28 @@ export function saveWorkspaceState(state: WorkspaceState) {
     return;
   }
 
+  const sessionsByWorkspace: WorkspaceSessionMap = {
+    chat: pruneArchivedSessions(state.sessionsByWorkspace.chat.map((session) => normalizeSessionForSave(session))),
+    github: pruneArchivedSessions(state.sessionsByWorkspace.github.map((session) => normalizeSessionForSave(session))),
+    matrix: pruneArchivedSessions(state.sessionsByWorkspace.matrix.map((session) => normalizeSessionForSave(session)))
+  };
+
   const normalized: WorkspaceState = {
     version: 1,
     activeWorkspace: state.activeWorkspace,
     activeSessionIdByWorkspace: {
-      chat: state.activeSessionIdByWorkspace.chat,
-      github: state.activeSessionIdByWorkspace.github,
-      matrix: state.activeSessionIdByWorkspace.matrix
+      chat: ensureActiveSessionId(sessionsByWorkspace.chat, state.activeSessionIdByWorkspace.chat),
+      github: ensureActiveSessionId(sessionsByWorkspace.github, state.activeSessionIdByWorkspace.github),
+      matrix: ensureActiveSessionId(sessionsByWorkspace.matrix, state.activeSessionIdByWorkspace.matrix)
     },
-    sessionsByWorkspace: {
-      chat: state.sessionsByWorkspace.chat.map((session) => normalizeSessionForSave(session)),
-      github: state.sessionsByWorkspace.github.map((session) => normalizeSessionForSave(session)),
-      matrix: state.sessionsByWorkspace.matrix.map((session) => normalizeSessionForSave(session))
-    }
+    sessionsByWorkspace
   };
 
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+  } catch {
+    // Fail closed: keep in-memory state and avoid crashing the console on quota errors.
+  }
 }
 
 export function workspaceLabel(workspace: WorkspaceKind) {
@@ -1396,7 +1413,7 @@ export function appendSession<TMetadata>(
   session: WorkspaceSession<TMetadata>
 ): WorkspaceState {
   const sessions = state.sessionsByWorkspace[workspace];
-  const nextSessions = sortSessionsByUpdatedAt([
+  const nextSessions = pruneArchivedSessions([
     ...(sessions as WorkspaceSession<TMetadata>[]),
     normalizeSessionForSave(session)
   ]);
