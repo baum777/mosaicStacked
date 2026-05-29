@@ -38,6 +38,11 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function normalizeMatrixDraftTag(tag: string): string | null {
+  const value = tag.trim().replace(/^#+/, "").trim();
+  return value ? `#${value}` : null;
+}
+
 export function applyOpenWorkbenchWithDraftCommand(options: {
   state: WorkspaceState;
   payload: Extract<CrossTabCommand, { type: "OpenWorkbenchWithDraft" }>["payload"];
@@ -77,9 +82,11 @@ export function applyQueueMatrixDraftCommand(options: {
     return options.state;
   }
 
-  const tags = options.payload.tags ?? [];
+  const tags = (options.payload.tags ?? [])
+    .map(normalizeMatrixDraftTag)
+    .filter((tag): tag is string => Boolean(tag));
   const tagsLine = tags.length > 0
-    ? `\n\n${tags.map((tag) => `#${tag}`).join(" ")}`
+    ? `\n\n${tags.join(" ")}`
     : "";
   const draftContent = `${content}${tagsLine}`;
   const now = nowIso();
