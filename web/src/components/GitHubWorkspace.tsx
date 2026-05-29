@@ -96,6 +96,105 @@ export type WorkbenchActionId =
   | "create_pr"
   | "copy_summary";
 
+export type WorkbenchWorkflowStepStatus = "complete" | "active" | "idle";
+
+export type WorkbenchWorkflowStepKey =
+  | "repo"
+  | "analysis"
+  | "proposal"
+  | "review"
+  | "execute"
+  | "verify";
+
+export type WorkbenchWorkflowStep = {
+  key: WorkbenchWorkflowStepKey;
+  label: string;
+  status: WorkbenchWorkflowStepStatus;
+  stateLabel: string;
+};
+
+type BuildWorkbenchWorkflowStepsOptions = {
+  selectedRepo: boolean;
+  analysisReady: boolean;
+  proposalReady: boolean;
+  workbenchActionState: WorkbenchActionState;
+  executionReady: boolean;
+  verificationReady: boolean;
+  locale?: Locale;
+};
+
+function toWorkflowStepStatus(completed: boolean, active: boolean): WorkbenchWorkflowStepStatus {
+  if (completed) {
+    return "complete";
+  }
+
+  return active ? "active" : "idle";
+}
+
+function describeWorkflowStepState(status: WorkbenchWorkflowStepStatus, locale: Locale): string {
+  if (status === "complete") {
+    return locale === "de" ? "abgeschlossen" : "complete";
+  }
+
+  if (status === "active") {
+    return locale === "de" ? "aktueller Schritt" : "current step";
+  }
+
+  return locale === "de" ? "nicht gestartet" : "not started";
+}
+
+export function buildWorkbenchWorkflowSteps(
+  options: BuildWorkbenchWorkflowStepsOptions,
+): WorkbenchWorkflowStep[] {
+  const locale = options.locale ?? "de";
+  const hasExecution = options.executionReady || options.verificationReady;
+  const hasReview = options.proposalReady && (
+    options.workbenchActionState === "marked"
+    || options.workbenchActionState === "pr_prepared"
+    || options.workbenchActionState === "pr_ready"
+    || hasExecution
+  );
+  const hasPreparedExecution = options.workbenchActionState === "pr_prepared";
+
+  const steps: Array<Omit<WorkbenchWorkflowStep, "stateLabel">> = [
+    {
+      key: "repo",
+      label: "Repo",
+      status: toWorkflowStepStatus(options.selectedRepo, !options.selectedRepo),
+    },
+    {
+      key: "analysis",
+      label: locale === "de" ? "Analyse" : "Analyze",
+      status: toWorkflowStepStatus(options.analysisReady, options.selectedRepo && !options.analysisReady),
+    },
+    {
+      key: "proposal",
+      label: "Proposal",
+      status: toWorkflowStepStatus(options.proposalReady, options.analysisReady && !options.proposalReady),
+    },
+    {
+      key: "review",
+      label: "Review",
+      status: toWorkflowStepStatus(hasReview, options.proposalReady && !hasReview),
+    },
+    {
+      key: "execute",
+      label: "Execute",
+      status: toWorkflowStepStatus(hasExecution, hasPreparedExecution && !hasExecution),
+    },
+    {
+      key: "verify",
+      label: "Verify",
+      status: toWorkflowStepStatus(options.verificationReady, hasExecution && !options.verificationReady),
+    },
+  ];
+
+  return steps.map((step) => ({
+    ...step,
+    stateLabel: describeWorkflowStepState(step.status, locale),
+  }));
+}
+
 const ANALYSIS_QUESTION =
   "Beschreibe die Projektstruktur und nenne die sichere nächste Aktion.";
 const PROPOSAL_OBJECTIVE =
@@ -1409,44 +1508,17 @@ export function GitHubWorkspace(props: GitHubWorkspaceProps) {
       locale,
     }),
   };
-  const workflowSteps = [
-    {
-      key: "repo",
-      label: "Repo",
-      completed: Boolean(selectedRepo),
-      active: !selectedRepo,
-    },
-    {
-      key: "analysis",
-      label: locale === "de" ? "Analyse" : "Analyze",
-      completed: Boolean(analysisBundle),
-      active: Boolean(selectedRepo) && !analysisBundle,
-    },
-    {
-      key: "proposal",
-      label: "Proposal",
-      completed: Boolean(proposalPlan),
-      active: Boolean(analysisBundle) && !proposalPlan,
-    },
-    {
-      key: "review",
-      label: locale === "de" ? "Review" : "Review",
-      completed: workbenchActionState === "marked" || workbenchActionState === "pr_prepared" || workbenchActionState === "pr_ready",
-      active: Boolean(proposalPlan) && workbenchActionState === "unmarked",
-    },
-    {
-      key: "execute",
-      label: locale === "de" ? "Execute" : "Execute",
-      completed: Boolean(executionResult),
-      active: workbenchActionState === "pr_prepared" && !executionResult,
-    },
-    {
-      key: "verify",
-      label: locale === "de" ? "Verify" : "Verify",
-      completed: Boolean(verificationResult),
-      active: Boolean(executionResult) && !verificationResult,
-    },
-  ];
+  const workflowSteps = buildWorkbenchWorkflowSteps({
+    selectedRepo: Boolean(selectedRepo),
+    analysisReady: Boolean(analysisBundle),
+    proposalReady: Boolean(proposalPlan),
+    workbenchActionState,
+    executionReady: Boolean(executionResult),
+    verificationReady: Boolean(verificationResult),
+    locale,
+  });
+  const currentWorkflowStep = workflowSteps.find((step) => step.status === "active")
+    ?? workflowSteps[workflowSteps.length - 1];
   const pinnableChatContext = useMemo(
     () => buildGitHubPinnedChatContext({
       selectedRepo,
@@ -1673,27 +1745,37 @@ export function GitHubWorkspace(props: GitHubWorkspaceProps) {
         />
       </section>
 
-      <article className="workspace-card github-workflow-stepper" data-testid="workbench-stepper">
+      <article
+        className="workspace-card github-workflow-stepper"
+        data-testid="workbench-stepper"
+        aria-label={locale === "de" ? "Workbench Fortschritt" : "Workbench progress"}
+      >
         <header className="card-header">
           <div>
             <span>{locale === "de" ? "Workflow" : "Workflow"}</span>
             <strong>{locale === "de" ? "Repo → Analyse → Proposal → Review → Execute → Verify" : "Repo → Analyze → Proposal → Review → Execute → Verify"}</strong>
+            <p className="workbench-progress-current">
+              {locale === "de" ? "Aktuell" : "Current"}: {currentWorkflowStep?.label ?? ui.common.na}
+            </p>
           </div>
         </header>
-        <div className="chip-list">
-          {workflowSteps.map((step) => (
-            <span
+        <ol className="workbench-progress-list">
+          {workflowSteps.map((step, index) => (
+            <li
               key={step.key}
-              className={step.completed
-                ? "workflow-chip workflow-chip-complete"
-                : step.active
-                  ? "workflow-chip workflow-chip-active"
-                  : "workflow-chip workflow-chip-idle"}
+              className={`workbench-progress-step workbench-progress-step-${step.status}`}
+              data-step-key={step.key}
+              data-step-state={step.status}
+              aria-current={step.status === "active" ? "step" : undefined}
             >
-              {step.completed ? "✓ " : ""}{step.label}
-            </span>
+              <span className="workbench-progress-index" aria-hidden="true">
+                {step.status === "complete" ? "✓" : String(index + 1).padStart(2, "0")}
+              </span>
+              <span className="workbench-progress-label">{step.label}</span>
+              <span className="sr-only">{step.stateLabel}</span>
+            </li>
           ))}
-        </div>
+        </ol>
       </article>
 
       <article className="workspace-card github-review-card">
