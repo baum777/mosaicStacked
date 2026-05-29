@@ -57,3 +57,29 @@ test("vercel config keeps governed GitHub and Matrix API routes on backend adapt
   assert.equal(rewrites.get("/:path*"), "/");
   assert.equal([...rewrites.values()].some((destination) => destination.includes(":path*")), false);
 });
+
+test("vercel config routes OpenRouter settings and model APIs before the SPA fallback", () => {
+  const vercelConfigPath = fileURLToPath(new URL("../../vercel.json", import.meta.url));
+  const vercelConfig = JSON.parse(fs.readFileSync(vercelConfigPath, "utf8")) as VercelConfig;
+  const rewrites = vercelConfig.rewrites ?? [];
+  const routeIndex = new Map(rewrites.map((rewrite, index) => [rewrite.source, index]));
+  const routeDestination = new Map(rewrites.map((rewrite) => [rewrite.source, rewrite.destination]));
+  const fallbackIndex = routeIndex.get("/:path*");
+
+  assert.equal(routeDestination.get("/models/openrouter"), "/api/models/openrouter");
+  assert.equal(routeDestination.get("/settings/openrouter/status"), "/api/settings/openrouter/status");
+  assert.equal(routeDestination.get("/settings/openrouter/credentials"), "/api/settings/openrouter/credentials");
+  assert.equal(routeDestination.get("/settings/openrouter/test"), "/api/settings/openrouter/test");
+  assert.equal(typeof fallbackIndex, "number", "SPA fallback rewrite must exist");
+
+  for (const source of [
+    "/models/openrouter",
+    "/settings/openrouter/status",
+    "/settings/openrouter/credentials",
+    "/settings/openrouter/test"
+  ]) {
+    const index = routeIndex.get(source);
+    assert.equal(typeof index, "number", `${source} rewrite must exist`);
+    assert.ok(index < fallbackIndex, `${source} must be routed before the SPA fallback`);
+  }
+});

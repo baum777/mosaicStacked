@@ -37,7 +37,11 @@ Frontend-facing endpoints are rewritten to backend handlers:
 
 - `/health` -> `/api/health`
 - `/models` -> `/api/models`
+- `/models/openrouter` -> `/api/models/openrouter`
 - `/chat` -> `/api/chat`
+- `/settings/openrouter/status` -> `/api/settings/openrouter/status`
+- `/settings/openrouter/credentials` -> `/api/settings/openrouter/credentials`
+- `/settings/openrouter/test` -> `/api/settings/openrouter/test`
 - `/api/matrix/*` -> `/api/matrix/[...path]`
 - `/api/auth/*` -> `/api/[...path]`
 - `/api/github/*` -> `/api/[...path]`
@@ -49,6 +53,8 @@ After deploy, verify:
 
 1. `/health` returns 200.
 2. `/models` returns public alias registry without provider IDs.
-3. `/chat` works for non-stream + stream (`start -> route -> token* -> done|error`).
-4. `api` routes remain functional (`auth`, `github`, `matrix`).
-5. No runtime config file loading errors on cold start.
+3. `/settings/openrouter/status` returns JSON, not the SPA document.
+4. `/api/settings/openrouter/status` returns the same backend-owned JSON contract.
+5. `/chat` works for non-stream + stream (`start -> route -> token* -> done|error`).
+6. `api` routes remain functional (`auth`, `github`, `matrix`).
+7. No runtime config file loading errors on cold start.

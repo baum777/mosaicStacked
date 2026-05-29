@@ -17,6 +17,7 @@ This document describes the current backend-owned model routing surface in Mosai
 - `GET /models` returns a public alias registry (labels/capabilities/tier), not provider IDs.
 - `GET /models` includes `default-free` as a safe alias for server-side default-free routing.
 - User-configured OpenRouter chat uses `GET /settings/openrouter/status` for safe aliases and `POST /settings/openrouter/credentials` for backend-only credential storage.
+- Vercel routes `/settings/openrouter/status`, `/settings/openrouter/credentials`, `/settings/openrouter/test`, and `/models/openrouter` through the backend API adapter before the SPA fallback.
 - User profile authority comes only from a backend-created signed/httpOnly local preview profile cookie. Request bodies must not supply `profileId`, `userId`, `tenantId`, or credential owner authority.
 - `POST /chat` streaming order is `start -> route -> token* -> done|error`.
 - Route metadata surfaces `selectedAlias`, `taskClass`, `fallbackUsed`, `degraded`, `streaming`, and optional decision fields.
@@ -105,6 +106,7 @@ SSE events:
 - The local preview profile cookie is local-only/dev-only until a full user-auth system becomes authoritative.
 - `OPENROUTER_API_KEY` is legacy/dev-only compatibility and must not silently satisfy user-owned OpenRouter chat.
 - `default-free` is configured server-side by `OPENROUTER_DEFAULT_MODEL` (+ optional `OPENROUTER_DEFAULT_LABEL`), with key/model status surfaced through `GET /settings/openrouter/status`.
+- Production must return JSON for `/settings/openrouter/status`; receiving the SPA document there is a routing drift and blocks release.
 
 ## Vercel Matrix Adapter Posture
 

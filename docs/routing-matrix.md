@@ -17,6 +17,10 @@ Security copy:
 
 | Browser Path | Vercel Destination | Adapter | Server Route | Owner | Secrets | Write? |
 |---|---|---|---|---|---|---|
+| `/models/openrouter` | `/api/models/openrouter` | `api/[...path].ts` | `server/src/routes/models.ts` | backend | none returned to browser | no external write; adds a backend-owned public alias |
+| `/settings/openrouter/status` | `/api/settings/openrouter/status` | `api/[...path].ts` | `server/src/routes/settings-openrouter.ts` | backend | none returned to browser | no |
+| `/settings/openrouter/credentials` | `/api/settings/openrouter/credentials` | `api/[...path].ts` | `server/src/routes/settings-openrouter.ts` | backend | OpenRouter API key in request body only; stored backend-side | backend credential store write |
+| `/settings/openrouter/test` | `/api/settings/openrouter/test` | `api/[...path].ts` | `server/src/routes/settings-openrouter.ts` | backend | OpenRouter API key in request body only; not persisted | provider test call only |
 | `/api/github/repos` | `/api/[...path]?path=:path*` | `api/[...path].ts` | `server/src/routes/github.ts` | backend | GitHub App installation token | no |
 | `/api/github/context` | `/api/[...path]?path=:path*` | `api/[...path].ts` | `server/src/routes/github.ts` | backend | GitHub App installation token | no |
 | `/api/github/actions/propose` | `/api/[...path]?path=:path*` | `api/[...path].ts` | `server/src/routes/github.ts` | backend | GitHub App installation token, model provider key | no external write; creates review plan |
@@ -41,6 +45,7 @@ Security copy:
 ## Drift Guards
 
 - Route contract tests live in `server/test/vercel-config.test.ts` and `server/test/vercel-handler.test.ts`.
+- OpenRouter settings/model routes are explicitly rewritten before the SPA fallback so production returns backend JSON for `/settings/openrouter/status`.
 - Browser upstream boundary tests live in `web/test/browser-upstream-boundary.test.ts`.
 - Browser flow tests for console URL state and route ownership copy live in `tests/browser/mosaicstacked.spec.ts`.
 - Opt-in live rotation smoke for GitHub integration auth credentials lives in `tests/live/integration-auth-rotation-live.test.ts` and is run via `npm run test:integration-auth-rotation-live`.
