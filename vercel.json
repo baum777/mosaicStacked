@@ -22,8 +22,24 @@
       "destination": "/api/models"
     },
     {
+      "source": "/models/openrouter",
+      "destination": "/api/models/openrouter"
+    },
+    {
       "source": "/chat",
       "destination": "/api/chat"
+    },
+    {
+      "source": "/settings/openrouter/status",
+      "destination": "/api/settings/openrouter/status"
+    },
+    {
+      "source": "/settings/openrouter/credentials",
+      "destination": "/api/settings/openrouter/credentials"
+    },
+    {
+      "source": "/settings/openrouter/test",
+      "destination": "/api/settings/openrouter/test"
     },
     {
       "source": "/diagnostics",

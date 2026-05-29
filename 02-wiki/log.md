@@ -155,3 +155,5 @@
 ## [2026-05-18] smoke-suite-orchestrator-and-matrix | added root smoke orchestrator scripts (`smoke`, `smoke:local`, `smoke:ci`) and documented a codebase-derived holistic smoke matrix with explicit local-vs-live scope boundaries [[../package.json]] [[../docs/smoke-test-matrix.md]]
 
 ## [2026-05-18] openrouter-key-input-hardening | added OpenRouter API-key visibility toggle, hardened the key input against password-manager autofill collisions, and covered the behavior with Settings workspace regression assertions [[../web/src/components/SettingsWorkspace.tsx]] [[../web/src/styles.css]] [[../web/test/settings-workspace.test.ts]]
+
+## [2026-05-29] openrouter-vercel-routing-drift-fix | added explicit Vercel rewrites for OpenRouter settings/model routes before the SPA fallback, documented the production JSON contract, and covered the route order with a Vercel config regression test [[../vercel.json]] [[../server/test/vercel-config.test.ts]] [[../docs/vercel-deployment.md]] [[../docs/routing-matrix.md]] [[../docs/model-routing.md]]
