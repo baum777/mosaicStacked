@@ -135,6 +135,9 @@ type SettingsCopy = {
   chatScope: string;
   chatAuthority: string;
   backendTruth: string;
+  accessCardTruth: string;
+  verificationCardTruth: string;
+  identityCardTruth: string;
   backendPolicy: string;
   modelChoiceNote: string;
   diagnosticsHidden: string;
@@ -343,6 +346,7 @@ type MatrixCopy = {
   composerModeLabel: string;
   composerTargetLabel: string;
   composerTargetMissing: string;
+  composerTargetGuidance: string;
   composerTargetSet: string;
   newPost: string;
   reply: string;
@@ -360,6 +364,7 @@ type MatrixCopy = {
   submitBusy: string;
   submitBlocked: string;
   submitFailClosed: string;
+  submitReadOnlyBeta: string;
   scopeNotice: string;
   scopeSummaryInfo: string;
   topicTitle: string;
@@ -428,7 +433,7 @@ const EN_COPY: LocalizationCopy = {
   shell: {
     appKicker: "MOSAICSTACK",
     appTitle: "MosaicStacked Console",
-    appDeck: "Governance-first operator shell.",
+    appDeck: "",
     workspaceConsoleKicker: "WORKSPACE CONSOLE",
     workspaceConsoleTitle: "Choose workspace",
     workspaceConsoleNote: "Navigation, session context, and disclosure stay pinned on the left.",
@@ -548,6 +553,9 @@ const EN_COPY: LocalizationCopy = {
     chatScope: "Chat active scope",
     chatAuthority: "Chat authority domain",
     backendTruth: "Shared infrastructure does not mean shared authority. The browser only reflects truth the backend can already prove.",
+    accessCardTruth: "Shared infrastructure does not mean shared authority. The browser only reflects truth the backend can already prove.",
+    verificationCardTruth: "Verification checks use backend routes and return safe summaries only.",
+    identityCardTruth: "Identity labels and connection state are read from backend receipts.",
     backendPolicy: "Model choice stays alias-based. Provider mapping and backend paths remain server-owned and are not treated as browser truth.",
     modelChoiceNote: "Model selection remains alias-based.",
     diagnosticsHidden: "Diagnostics stays hidden in Expert mode.",
@@ -753,6 +761,7 @@ const EN_COPY: LocalizationCopy = {
     composerModeLabel: "Composer mode",
     composerTargetLabel: "Composer target",
     composerTargetMissing: "Target missing",
+    composerTargetGuidance: "Select a room to open a post context.",
     composerTargetSet: "Target set",
     newPost: "New post",
     reply: "Reply",
@@ -770,6 +779,7 @@ const EN_COPY: LocalizationCopy = {
     submitBusy: "Submitting...",
     submitBlocked: "The submit stays blocked until a target is explicitly set.",
     submitFailClosed: "The submit is currently fail-closed because no write contract is wired in the backend.",
+    submitReadOnlyBeta: "Matrix posts are not enabled in this beta yet. Reading and analysis are available.",
     scopeNotice: "Backend-driven Matrix topic updates are available for explore, scope summary, read-only provenance, analysis, review, approval, execution, and verification.",
     scopeSummaryInfo: "Backend resolves the scope and loads the current summary.",
     topicTitle: "Topic update",
@@ -814,7 +824,7 @@ const DE_COPY: LocalizationCopy = {
   shell: {
     appKicker: "MOSAICSTACK",
     appTitle: "MosaicStacked Konsole",
-    appDeck: "Governance-first Operator-Shell.",
+    appDeck: "",
     workspaceConsoleKicker: "WORKSPACE CONSOLE",
     workspaceConsoleTitle: "Arbeitsbereich wählen",
     workspaceConsoleNote: "Navigation, Sessionkontext und Offenlegung bleiben links fixiert.",
@@ -934,6 +944,9 @@ const DE_COPY: LocalizationCopy = {
     chatScope: "Session-lokaler Chat-Thread (Browser)",
     chatAuthority: "Chat-Backend-Route (/chat)",
     backendTruth: "Gemeinsame Infrastruktur bedeutet nicht gemeinsame Autorität. Der Browser spiegelt nur Wahrheit wider, die der Backend-Server bereits belegen kann.",
+    accessCardTruth: "Gemeinsame Infrastruktur bedeutet nicht gemeinsame Autorität. Der Browser spiegelt nur Wahrheit wider, die der Backend-Server bereits belegen kann.",
+    verificationCardTruth: "Verifikation nutzt Backend-Routen und liefert nur sichere Zusammenfassungen.",
+    identityCardTruth: "Identitätslabels und Verbindungsstatus stammen aus Backend-Belegen.",
     backendPolicy: "Modellwahl bleibt alias-basiert. Provider-Zuordnung und Backend-Pfade bleiben serverseitig und werden im Browser nicht als Wahrheit behandelt.",
     modelChoiceNote: "Modellwahl bleibt alias-basiert.",
     diagnosticsHidden: "Diagnostik bleibt im Basismodus verborgen.",
@@ -1139,6 +1152,7 @@ const DE_COPY: LocalizationCopy = {
     composerModeLabel: "Eingabemodus",
     composerTargetLabel: "Eingabeziel",
     composerTargetMissing: "Ziel fehlt",
+    composerTargetGuidance: "Wähle einen Raum, um einen Post-Kontext zu öffnen.",
     composerTargetSet: "Ziel gesetzt",
     newPost: "Neuer Post",
     reply: "Antworten",
@@ -1156,6 +1170,7 @@ const DE_COPY: LocalizationCopy = {
     submitBusy: "Wird gesendet...",
     submitBlocked: "Senden bleibt blockiert, bis ein Ziel explizit gesetzt ist.",
     submitFailClosed: "Senden ist derzeit fail-closed, weil kein Write-Contract im Backend verdrahtet ist.",
+    submitReadOnlyBeta: "Matrix-Posts sind in dieser Beta noch nicht aktiviert. Lesen und Analyse sind verfügbar.",
     scopeNotice: "Backend-gesteuerte Matrix-Topic-Updates sind für Explore, Scope-Summary, read-only Provenienz, Analyse, Review, Freigabe, Ausführung und Verifikation verfügbar.",
     scopeSummaryInfo: "Backend löst den Scope auf und lädt die aktuelle Zusammenfassung.",
     topicTitle: "Topic-Update",

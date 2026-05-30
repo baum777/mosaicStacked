@@ -1201,6 +1201,12 @@ export function MatrixWorkspace(props: MatrixWorkspaceProps) {
       setTopicExecuteLoading(false);
     }
   }
+  const matrixSubmitActionLabel = props.expertMode
+    ? ui.matrix.submit
+    : (locale === "de" ? "Senden" : "Submit");
+  const matrixSubmitStatusLabel = props.expertMode
+    ? ui.matrix.submitFailClosed
+    : ui.matrix.submitReadOnlyBeta;
   const showMatrixConnectionEmptyState = status === "error" && Boolean(identityError || roomsError);
   return (
     <section
@@ -1229,8 +1235,8 @@ export function MatrixWorkspace(props: MatrixWorkspaceProps) {
             <strong>{topicPlan ? localText.runtimeTopicPlanReady : localText.runtimeNoTopicPlan}</strong>
           </div>
           <div>
-            <span>{ui.matrix.submit}</span>
-            <strong>{ui.matrix.submitFailClosed}</strong>
+            <span>{matrixSubmitActionLabel}</span>
+            <strong>{matrixSubmitStatusLabel}</strong>
           </div>
         </div>
 
@@ -1637,7 +1643,7 @@ export function MatrixWorkspace(props: MatrixWorkspaceProps) {
               testId="matrix-topic-plan"
               title={ui.matrix.topicTitle}
               summary={topicPlan.proposedValue}
-              consequence={ui.matrix.submitFailClosed}
+              consequence={matrixSubmitStatusLabel}
               statusLabel={
                 topicPlan.status === "pending_review"
                   ? ui.matrix.topicStatusApproval
@@ -2202,7 +2208,7 @@ export function MatrixWorkspace(props: MatrixWorkspaceProps) {
               <p className="muted-copy">
                 {props.expertMode
                   ? describeComposerTarget(composerTarget)
-                  : (composerTarget.kind === "none" ? ui.matrix.composerTargetMissing : ui.matrix.composerTargetSet)}
+                  : (composerTarget.kind === "none" ? ui.matrix.composerTargetGuidance : ui.matrix.composerTargetSet)}
               </p>
             </div>
             <div className="matrix-composer-banner-meta">
@@ -2226,7 +2232,7 @@ export function MatrixWorkspace(props: MatrixWorkspaceProps) {
               <span className="reference-chip">
                 {props.expertMode
                   ? describeComposerTarget(composerTarget)
-                  : (composerTarget.kind === "none" ? ui.matrix.composerTargetMissing : ui.matrix.composerTargetSet)}
+                  : (composerTarget.kind === "none" ? ui.matrix.composerTargetGuidance : ui.matrix.composerTargetSet)}
               </span>
             </div>
           </div>
@@ -2351,7 +2357,7 @@ export function MatrixWorkspace(props: MatrixWorkspaceProps) {
               {locale === "de" ? "Queue in Chat" : "Queue in Chat"}
             </button>
             <span className="muted-copy">
-              {ui.matrix.submitFailClosed}
+              {matrixSubmitStatusLabel}
             </span>
           </div>
 

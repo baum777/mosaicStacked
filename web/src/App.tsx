@@ -2576,7 +2576,9 @@ function ConsoleShell() {
           </span>
           <p className="app-kicker">{ui.shell.appKicker}</p>
           <h1>{ui.shell.appTitle}</h1>
-          <p className="app-deck">{ui.shell.appDeck}</p>
+          {ui.shell.appDeck.trim().length > 0 ? (
+            <p className="app-deck">{ui.shell.appDeck}</p>
+          ) : null}
         </div>
 
         <div className="header-actions">
