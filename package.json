@@ -26,6 +26,7 @@
     "smoke:matrix": "node scripts/matrix-smoke.mjs",
     "smoke:matrix-evidence": "node scripts/matrix-evidence-smoke.mjs",
     "smoke:github": "node scripts/github-smoke.mjs",
+    "smoke:openrouter-prod": "node scripts/openrouter-production-readiness.mjs",
     "test:matrix-live": "node --test --import tsx tests/live/matrix-smoke-live.test.ts",
     "test:matrix-evidence-live": "node --test --import tsx tests/live/matrix-evidence-smoke-live.test.ts",
     "test:integration-auth-rotation-live": "node --test --import tsx tests/live/integration-auth-rotation-live.test.ts",
