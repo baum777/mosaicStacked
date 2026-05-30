@@ -5,6 +5,7 @@ import {
   describeRepositoryAccess,
   buildGitHubReviewItems,
   buildGitHubPinnedChatContext,
+  buildWorkbenchWorkflowSteps,
   isGitHubReviewDirty,
   deriveWorkbenchActionLabel,
 } from "../src/components/GitHubWorkspace.js";
@@ -262,6 +263,146 @@ test("GitHub review dirty state tracks unsaved local review progress", () => {
     approvalChecked: false,
     executionError: "stale execute failed",
   }), true);
+});
+
+test("Workbench workflow progress helper marks the current checkpoint", () => {
+  const statesFor = (options: {
+    selectedRepo: boolean;
+    analysisReady: boolean;
+    proposalReady: boolean;
+    workbenchActionState: "unmarked" | "marked" | "removed" | "pr_prepared" | "pr_ready";
+    executionReady: boolean;
+    verificationReady: boolean;
+  }) => Object.fromEntries(
+    buildWorkbenchWorkflowSteps({ ...options, locale: "en" })
+      .map((step) => [step.key, step.status]),
+  );
+
+  assert.deepEqual(statesFor({
+    selectedRepo: false,
+    analysisReady: false,
+    proposalReady: false,
+    workbenchActionState: "unmarked",
+    executionReady: false,
+    verificationReady: false,
+  }), {
+    repo: "active",
+    analysis: "idle",
+    proposal: "idle",
+    review: "idle",
+    execute: "idle",
+    verify: "idle",
+  });
+
+  assert.deepEqual(statesFor({
+    selectedRepo: true,
+    analysisReady: false,
+    proposalReady: false,
+    workbenchActionState: "unmarked",
+    executionReady: false,
+    verificationReady: false,
+  }), {
+    repo: "complete",
+    analysis: "active",
+    proposal: "idle",
+    review: "idle",
+    execute: "idle",
+    verify: "idle",
+  });
+
+  assert.deepEqual(statesFor({
+    selectedRepo: true,
+    analysisReady: true,
+    proposalReady: false,
+    workbenchActionState: "unmarked",
+    executionReady: false,
+    verificationReady: false,
+  }), {
+    repo: "complete",
+    analysis: "complete",
+    proposal: "active",
+    review: "idle",
+    execute: "idle",
+    verify: "idle",
+  });
+
+  assert.deepEqual(statesFor({
+    selectedRepo: true,
+    analysisReady: true,
+    proposalReady: true,
+    workbenchActionState: "unmarked",
+    executionReady: false,
+    verificationReady: false,
+  }), {
+    repo: "complete",
+    analysis: "complete",
+    proposal: "complete",
+    review: "active",
+    execute: "idle",
+    verify: "idle",
+  });
+
+  assert.deepEqual(statesFor({
+    selectedRepo: true,
+    analysisReady: true,
+    proposalReady: true,
+    workbenchActionState: "pr_prepared",
+    executionReady: false,
+    verificationReady: false,
+  }), {
+    repo: "complete",
+    analysis: "complete",
+    proposal: "complete",
+    review: "complete",
+    execute: "active",
+    verify: "idle",
+  });
+
+  assert.deepEqual(statesFor({
+    selectedRepo: true,
+    analysisReady: true,
+    proposalReady: true,
+    workbenchActionState: "pr_ready",
+    executionReady: true,
+    verificationReady: false,
+  }), {
+    repo: "complete",
+    analysis: "complete",
+    proposal: "complete",
+    review: "complete",
+    execute: "complete",
+    verify: "active",
+  });
+
+  assert.deepEqual(statesFor({
+    selectedRepo: true,
+    analysisReady: true,
+    proposalReady: true,
+    workbenchActionState: "pr_ready",
+    executionReady: true,
+    verificationReady: true,
+  }), {
+    repo: "complete",
+    analysis: "complete",
+    proposal: "complete",
+    review: "complete",
+    execute: "complete",
+    verify: "complete",
+  });
+});
+
+test("Workbench stepper exposes sticky accessible progress semantics", () => {
+  const source = readFileSync("web/src/components/GitHubWorkspace.tsx", "utf8");
+  const css = readFileSync("web/src/styles.css", "utf8");
+
+  assert.match(source, /data-testid="workbench-stepper"/);
+  assert.match(source, /<ol className="workbench-progress-list"/);
+  assert.match(source, /data-step-key=\{step\.key\}/);
+  assert.match(source, /data-step-state=\{step\.status\}/);
+  assert.match(source, /aria-current=\{step\.status === "active" \? "step" : undefined\}/);
+  assert.match(source, /className="sr-only">\{step\.stateLabel\}/);
+  assert.match(css, /\.github-workflow-stepper\s*{[\s\S]*position:\s*sticky[\s\S]*top:\s*0[\s\S]*z-index:\s*4/);
+  assert.match(css, /\.workbench-progress-list\s*{[\s\S]*grid-template-columns:\s*repeat\(6,\s*minmax\(0,\s*1fr\)\)/);
 });
 
 test("Workbench action semantics keep local review state separate from backend execution", () => {

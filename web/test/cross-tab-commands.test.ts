@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  applyQueueMatrixDraftCommand,
   applyOpenWorkbenchWithDraftCommand,
   type CrossTabCommand,
 } from "../src/lib/cross-tab-commands.js";
@@ -73,4 +74,25 @@ test("applyOpenWorkbenchWithDraftCommand stores repo-compatible metadata fields"
   assert.equal(githubSession.metadata.pendingDraft?.repo, "acme/console");
   assert.equal(githubSession.metadata.pendingDraft?.branch, "feature/draft");
   assert.equal(githubSession.metadata.pendingDraft?.intent, "proposal");
+});
+
+test("QueueMatrixDraft normalizes hashtags before writing draft content", () => {
+  const initial = createDefaultWorkspaceState();
+  const next = applyQueueMatrixDraftCommand({
+    state: initial,
+    locale: "en",
+    payload: {
+      sourceMessageId: "msg-2",
+      roomId: " !room:matrix.example ",
+      content: " Ship the release note. ",
+      tags: [" release ", "#review", "##audit", "#", "   "],
+    },
+  });
+
+  const matrixSession = next.sessionsByWorkspace.matrix.find((session) => session.id === next.activeSessionIdByWorkspace.matrix);
+  assert.ok(matrixSession);
+  assert.equal(matrixSession.metadata.roomId, "!room:matrix.example");
+  assert.equal(matrixSession.metadata.draftContent, "Ship the release note.\n\n#release #review #audit");
+  assert.doesNotMatch(matrixSession.metadata.draftContent, /##/);
+  assert.doesNotMatch(matrixSession.metadata.draftContent, /(?:^|\s)#(?:\s|$)/);
 });

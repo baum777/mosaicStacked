@@ -81,9 +81,11 @@ type PersistedShellState = {
   activeTab?: string;
   workMode?: WorkMode;
   expertMode?: boolean;
+  savedAt?: string;
 };
 
 const SHELL_STORAGE_KEY = "mosaicstacked.console.shell.v2";
+const SHELL_STATE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const LANDING_ENTRY_GUIDE_KEY = "landing-entry";
 const DEFAULT_FREE_MODEL_ALIAS = "default-free";
 
@@ -154,25 +156,69 @@ function hasPrimaryModifier(event: KeyboardEvent) {
   return event.metaKey || event.ctrlKey;
 }
 
-function readPersistedShellState(): PersistedShellState | null {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizePersistedShellState(value: unknown): PersistedShellState | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  if (typeof value.savedAt !== "string") {
+    return null;
+  }
+
+  const savedAtMs = new Date(value.savedAt).getTime();
+  if (!Number.isFinite(savedAtMs) || Date.now() - savedAtMs > SHELL_STATE_MAX_AGE_MS) {
+    return null;
+  }
+
+  const state: PersistedShellState = {
+    savedAt: value.savedAt,
+  };
+
+  if (typeof value.activeTab === "string") {
+    state.activeTab = value.activeTab;
+  }
+
+  if (value.workMode === "beginner" || value.workMode === "expert") {
+    state.workMode = value.workMode;
+  }
+
+  if (typeof value.expertMode === "boolean") {
+    state.expertMode = value.expertMode;
+  }
+
+  return state;
+}
+
+export function readPersistedShellState(): PersistedShellState | null {
   if (typeof window === "undefined") {
     return null;
   }
 
   try {
     const raw = window.localStorage.getItem(SHELL_STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as PersistedShellState) : null;
+    return raw ? normalizePersistedShellState(JSON.parse(raw) as unknown) : null;
   } catch {
     return null;
   }
 }
 
-function persistShellState(state: PersistedShellState) {
+export function persistShellState(state: PersistedShellState) {
   if (typeof window === "undefined") {
     return;
   }
 
-  window.localStorage.setItem(SHELL_STORAGE_KEY, JSON.stringify(state));
+  try {
+    window.localStorage.setItem(SHELL_STORAGE_KEY, JSON.stringify({
+      ...state,
+      savedAt: new Date().toISOString(),
+    }));
+  } catch {
+    // localStorage may be unavailable or full; restored shell state is optional UI state.
+  }
 }
 
 function appendTelemetry(current: TelemetryEntry[], entry: TelemetryEntry) {

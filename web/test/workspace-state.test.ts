@@ -342,6 +342,130 @@ test("chat execution mode persists in workspace state", () => {
   assert.equal(loaded.sessionsByWorkspace.chat[0]?.metadata.executionMode, "governed");
 });
 
+test("workspace state persistence prunes archived sessions beyond the cap", () => {
+  const storage = new Map<string, string>();
+  const fakeWindow = {
+    localStorage: {
+      getItem(key: string) {
+        return storage.get(key) ?? null;
+      },
+      setItem(key: string, value: string) {
+        storage.set(key, value);
+      },
+      removeItem(key: string) {
+        storage.delete(key);
+      }
+    }
+  } as Partial<Window>;
+
+  const base = createDefaultWorkspaceState();
+  const activeChatSession = base.sessionsByWorkspace.chat[0];
+  assert.ok(activeChatSession);
+
+  const archivedChatSessions = Array.from({ length: 12 }, (_, index) => createSession("chat", createChatSessionMetadata(), {
+    id: `archived-chat-${index}`,
+    createdAt: `2026-05-${String(index + 1).padStart(2, "0")}T08:00:00.000Z`,
+    updatedAt: `2026-05-${String(index + 1).padStart(2, "0")}T09:00:00.000Z`,
+    lastOpenedAt: `2026-05-${String(index + 1).padStart(2, "0")}T09:30:00.000Z`,
+    archived: true,
+    resumable: false,
+  }));
+
+  const state: WorkspaceState = {
+    ...base,
+    sessionsByWorkspace: {
+      ...base.sessionsByWorkspace,
+      chat: [
+        activeChatSession,
+        ...archivedChatSessions,
+      ],
+    },
+  };
+
+  withWindow(fakeWindow, () => saveWorkspaceState(state));
+
+  const persisted = JSON.parse(storage.get("mosaicstacked.console.workspaces.v1") ?? "{}") as WorkspaceState;
+  const persistedChatSessions = persisted.sessionsByWorkspace.chat;
+  const archivedIds = persistedChatSessions
+    .filter((session) => session.archived)
+    .map((session) => session.id);
+
+  assert.equal(persistedChatSessions.some((session) => session.id === activeChatSession.id), true);
+  assert.equal(archivedIds.length, 10);
+  assert.equal(archivedIds.includes("archived-chat-0"), false);
+  assert.equal(archivedIds.includes("archived-chat-1"), false);
+  assert.equal(archivedIds.includes("archived-chat-11"), true);
+});
+
+test("appendSession prunes old archived sessions without dropping active sessions", () => {
+  const base = createDefaultWorkspaceState();
+  const activeChatSession = base.sessionsByWorkspace.chat[0];
+  assert.ok(activeChatSession);
+
+  const archivedChatSessions = Array.from({ length: 11 }, (_, index) => createSession("chat", createChatSessionMetadata(), {
+    id: `append-archived-chat-${index}`,
+    createdAt: `2026-06-${String(index + 1).padStart(2, "0")}T08:00:00.000Z`,
+    updatedAt: `2026-06-${String(index + 1).padStart(2, "0")}T09:00:00.000Z`,
+    lastOpenedAt: `2026-06-${String(index + 1).padStart(2, "0")}T09:30:00.000Z`,
+    archived: true,
+    resumable: false,
+  }));
+
+  const newChatSession = createSession("chat", {
+    ...createChatSessionMetadata(),
+    chatState: {
+      ...createChatSessionMetadata().chatState,
+      input: "New active session",
+    },
+  }, {
+    id: "new-active-chat",
+    createdAt: "2026-06-20T08:00:00.000Z",
+    updatedAt: "2026-06-20T09:00:00.000Z",
+    lastOpenedAt: "2026-06-20T09:30:00.000Z",
+  });
+
+  const next = appendSession({
+    ...base,
+    sessionsByWorkspace: {
+      ...base.sessionsByWorkspace,
+      chat: [
+        activeChatSession,
+        ...archivedChatSessions,
+      ],
+    },
+  }, "chat", newChatSession);
+
+  const archivedIds = next.sessionsByWorkspace.chat
+    .filter((session) => session.archived)
+    .map((session) => session.id);
+
+  assert.equal(next.sessionsByWorkspace.chat.some((session) => session.id === activeChatSession.id), true);
+  assert.equal(next.sessionsByWorkspace.chat.some((session) => session.id === "new-active-chat"), true);
+  assert.equal(archivedIds.length, 10);
+  assert.equal(archivedIds.includes("append-archived-chat-0"), false);
+  assert.equal(next.activeSessionIdByWorkspace.chat, "new-active-chat");
+});
+
+test("saveWorkspaceState fails closed when localStorage quota blocks writes", () => {
+  const fakeWindow = {
+    localStorage: {
+      getItem() {
+        return null;
+      },
+      setItem() {
+        throw Object.assign(new Error("quota exceeded"), { name: "QuotaExceededError" });
+      },
+      removeItem() {
+        // no-op
+      }
+    }
+  } as Partial<Window>;
+
+  assert.doesNotThrow(() => {
+    withWindow(fakeWindow, () => saveWorkspaceState(createDefaultWorkspaceState()));
+  });
+});
+
 test("in-progress chat streams normalize to interrupted state after reload with partial draft preserved", () => {
   const base = createDefaultWorkspaceState();
   const chatSession = base.sessionsByWorkspace.chat[0];

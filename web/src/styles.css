@@ -9253,8 +9253,104 @@ button,
   background: #181713;
 }
 
-.github-workflow-stepper .chip-list {
+.github-workflow-stepper {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.github-workflow-stepper .card-header {
+  align-items: flex-start;
+}
+
+.workbench-progress-current {
+  margin: 4px 0 0;
+  color: var(--ms-text2);
+  font-family: var(--ms-font-mono);
+  font-size: 11px;
+}
+
+.workbench-progress-list {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.workbench-progress-step {
+  min-width: 0;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--ms-border);
+  border-radius: 8px;
+  background: var(--ms-bg3);
+}
+
+.workbench-progress-index {
+  width: 26px;
+  aspect-ratio: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ms-border2);
+  border-radius: 999px;
+  font-family: var(--ms-font-mono);
+  font-size: 11px;
+}
+
+.workbench-progress-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ms-text);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workbench-progress-step-complete {
+  border-color: rgba(85, 239, 196, 0.24);
+  background: rgba(85, 239, 196, 0.1);
+}
+
+.workbench-progress-step-complete .workbench-progress-index {
+  color: var(--ms-green);
+  border-color: rgba(85, 239, 196, 0.3);
+}
+
+.workbench-progress-step-active {
+  border-color: rgba(232, 168, 56, 0.4);
+  background: rgba(232, 168, 56, 0.12);
+}
+
+.workbench-progress-step-active .workbench-progress-index {
+  color: #e8a838;
+  border-color: rgba(232, 168, 56, 0.46);
+}
+
+.workbench-progress-step-idle {
+  color: var(--ms-text2);
+}
+
+@media (max-width: 1180px) {
+  .workbench-progress-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .workbench-progress-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .matrix-preview-banner {
