@@ -2,6 +2,8 @@
 
 MosaicStacked ist eine backend-first Console für Chat, Repository-Arbeit und Matrix-gestützte Wissensräume. Die Browseroberfläche zeigt Absicht, Status und Review-Flächen; die Runtime-Wahrheit liegt beim Backend.
 
+Changelog: [CHANGELOG.md](./CHANGELOG.md)
+
 Der aktuelle Stand ist kein reines Demo-Frontend: Chat, GitHub-Workbench, Matrix-Workspace, Settings und Performance sind als fünf Console-Flächen verdrahtet. Provider-IDs, GitHub-/Matrix-Credentials und Ausführungswahrheit bleiben serverseitig.
 
 ## Ist-Zustand
