@@ -146,9 +146,13 @@ sequenceDiagram
 ```bash
 npm install
 cp .env.example .env
+# terminal 1
 npm run dev:server
+# terminal 2
 npm run dev:web
 ```
+
+Hinweis: `npm run dev` startet absichtlich nicht automatisch beide Prozesse und beendet sich mit einer klaren Anleitung. Für Backend-only-Start steht `npm run dev:server:only` bereit.
 
 Standard-Ports:
 
