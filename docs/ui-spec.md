@@ -7,6 +7,42 @@
 
 ---
 
+## Live-Ready Capture Baseline — 2026-05-30
+
+**Observed:** The current console is a four-surface app: Chat, Workbench, Matrix, and Settings. This live-ready baseline intentionally tracks the six release-gate assets requested for desktop/mobile Chat plus desktop Workbench/Matrix/Settings and mobile Matrix.
+
+**Capture source:** local production web build opened in the Codex in-app browser against a local mock authority endpoint. The mock endpoint serves backend-shaped responses only; it does not prove live provider, GitHub, Matrix, deployment, or production readiness.
+
+**Generated screenshot assets:**
+
+| Asset | Viewport | Surface | Expected state |
+|---|---:|---|---|
+| `output/live-ready-desktop-chat.png` | 1440 x 900 | Chat | Backend health visible, Read only mode selected, SSE-style chat response rendered, provider targets hidden. |
+| `output/live-ready-desktop-settings.png` | 1440 x 900 | Settings | Integration status, OpenRouter settings, diagnostics, and backend-owned controls visible. |
+| `output/live-ready-desktop-github.png` | 1440 x 900 | Workbench / GitHub | Repo context loaded, proposal visible, pending approval state shown before execute. |
+| `output/live-ready-desktop-matrix.png` | 1440 x 900 | Matrix | Matrix identity and joined room visible, read/write posture remains backend-gated. |
+| `output/live-ready-mobile-chat.png` | 390 x 844 | Chat | Mobile shell, top context, bottom navigation, composer, and chat workspace visible without desktop-only mock. |
+| `output/live-ready-mobile-matrix.png` | 390 x 844 | Matrix | Mobile Matrix panel, identity, scope status, joined room, and fail-closed send posture visible. |
+
+**Capture evidence (mtime, local):** `2026-05-30 15:40` (`desktop-chat`, `desktop-github`, `desktop-matrix`, `desktop-settings`, `mobile-chat`, `mobile-matrix`).
+
+**Browser tests already present in `tests/browser/mosaicstacked.spec.ts` (current gate: 32 passing tests):**
+
+| Area | Covered behavior |
+|---|---|
+| Routing and shell | Root preview stays separate from `/console`; legacy `?console=1` normalizes to `/console?mode=chat`; four workspace tabs render; old `tab-github` and `tab-review` are absent. |
+| Authority boundaries | GitHub and Matrix route ownership appears in the truth rail; secrets and provider targets are not exposed in DOM assertions. |
+| Responsive layout | Compact desktop avoids horizontal overflow; desktop panes stay within viewport; mobile Chat renders the real workspace, not a reference-only mock; mobile Settings opens its detail sheet. |
+| Workbench / GitHub | Repo selection, context load, proposal, local review actions, diff preview, approval-gated execute, verification, stale-plan failure, capability-denied execute, and Workbench replacement of old GitHub/Review tabs. |
+| Matrix | Composer remains fail-closed without a write contract; topic update flows through analyze, approve/execute, and verify; malformed backend data surfaces explicit fail-closed errors. |
+| Settings | Expert diagnostics gate, clear diagnostics action, backend-owned GitHub/Matrix auth start callbacks, connected reverify/disconnect controls, and verification buttons without secret leakage. |
+| Chat and companion | Chat routing status reflects backend routing without provider IDs; stream abort stays fail-closed; helpdesk companion explains UI flows and blocks execute intent. |
+| Localization and guides | Locale toggle persists across reload; workspace guides expose detailed operational cards for Chat, Matrix, and Settings. |
+
+**Validation expectation:** screenshot regeneration proves rendered local UI state only. Browser-test execution remains the stronger behavioral gate and should use `npm run test:browser` when a change modifies UI behavior. After generating or updating `output/live-ready-*.png`, run `npm run docs:update-ui-capture-evidence` to refresh the mtime evidence line automatically.
+
+---
+
 ## Table of Contents
 
 1. [Design Principles](#1-design-principles)

@@ -882,7 +882,7 @@ export function SettingsWorkspace({
           <header className="card-header">
             <div>
               <span>{adapterCopy.accessTitle}</span>
-              <strong>{ui.settings.backendTruth}</strong>
+              <strong>{ui.settings.accessCardTruth}</strong>
             </div>
           </header>
 
@@ -1020,7 +1020,7 @@ export function SettingsWorkspace({
           <header className="card-header">
             <div>
               <span>{verificationCopy.title}</span>
-              <strong>{ui.settings.backendTruth}</strong>
+              <strong>{ui.settings.verificationCardTruth}</strong>
             </div>
           </header>
           <p className="muted-copy">{verificationCopy.subtitle}</p>
@@ -1060,7 +1060,7 @@ export function SettingsWorkspace({
           <header className="card-header">
             <div>
               <span>{ui.settings.identityCardTitle}</span>
-              <strong>{ui.settings.backendTruth}</strong>
+              <strong>{ui.settings.identityCardTruth}</strong>
             </div>
           </header>
           <div className="detail-grid">

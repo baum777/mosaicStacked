@@ -800,6 +800,8 @@ test("shell renders core governed surfaces and keeps secrets out of the DOM", as
   const body = page.locator("body");
   await expect(body).not.toContainText("sk-test-openrouter-key");
   await expect(body).not.toContainText("sk-test-matrix-token");
+  await expect(body).not.toContainText("Governance-first operator shell.");
+  await expect(body).not.toContainText("Governance-first Operator-Shell.");
 });
 
 test("left rail workspace tabs keep keyboard focus names in compact layout", async ({ page }) => {
@@ -963,6 +965,49 @@ test("mobile viewport renders functional chat workspace instead of reference-onl
   await expect(page.getByTestId("chat-send")).toBeDisabled();
 });
 
+test("mobile workbench keeps content inside the mobile scroll container above fixed bottom nav", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installBaseMocks(page, { matrixStatus: "ok" });
+
+  await page.goto("/console?mode=workbench", { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("app-shell")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId("github-workspace")).toBeVisible();
+
+  const layout = await page.evaluate(() => {
+    const mobilePanel = document.querySelector<HTMLElement>(".github-mobile-panel");
+    const nav = document.querySelector<HTMLElement>(".mobile-bottom-nav");
+    const workspace = document.querySelector<HTMLElement>(".github-workspace");
+    const hiddenDesktopCards = Array.from(
+      document.querySelectorAll(".github-workspace > :not(.github-mobile-panel)")
+    ).filter((element) => getComputedStyle(element as HTMLElement).display !== "none").length;
+
+    const panelRect = mobilePanel?.getBoundingClientRect() ?? null;
+    const navRect = nav?.getBoundingClientRect() ?? null;
+
+    return {
+      htmlClientWidth: document.documentElement.clientWidth,
+      htmlScrollWidth: document.documentElement.scrollWidth,
+      hiddenDesktopCards,
+      workspaceOverflow: workspace ? getComputedStyle(workspace).overflow : null,
+      panelOverflowY: mobilePanel ? getComputedStyle(mobilePanel).overflowY : null,
+      panelPaddingBottom: mobilePanel ? getComputedStyle(mobilePanel).paddingBottom : null,
+      navPosition: nav ? getComputedStyle(nav).position : null,
+      panelBottom: panelRect?.bottom ?? null,
+      navTop: navRect?.top ?? null,
+    };
+  });
+
+  expect(layout.htmlScrollWidth).toBeLessThanOrEqual(layout.htmlClientWidth);
+  expect(layout.hiddenDesktopCards).toBe(0);
+  expect(layout.workspaceOverflow).toBe("hidden");
+  expect(layout.panelOverflowY).toBe("auto");
+  expect(layout.navPosition).toBe("fixed");
+  expect(Number.parseFloat(layout.panelPaddingBottom ?? "0")).toBeGreaterThanOrEqual(60);
+  expect(layout.panelBottom).not.toBeNull();
+  expect(layout.navTop).not.toBeNull();
+  expect(layout.panelBottom!).toBeLessThanOrEqual(layout.navTop! + 1);
+});
+
 test("mobile settings renders authority control center and opens detail sheet", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installBaseMocks(page, { matrixStatus: "ok" });
@@ -980,11 +1025,37 @@ test("mobile settings renders authority control center and opens detail sheet", 
     htmlScrollWidth: document.documentElement.scrollWidth,
     visibleDesktopSettingsCards: Array.from(document.querySelectorAll(".settings-workspace > :not(.settings-mobile-panel)")).filter((element) => getComputedStyle(element as HTMLElement).display !== "none").length,
     truthItemCount: document.querySelectorAll(".settings-mobile-truth-item").length,
+    rowOverflowCount: Array.from(document.querySelectorAll(".mobile-settings-row")).filter((element) => {
+      const row = element as HTMLElement;
+      return row.scrollWidth > row.clientWidth + 1;
+    }).length,
+    valueOverflowCount: Array.from(document.querySelectorAll(".mobile-settings-row-value")).filter((element) => {
+      const value = element as HTMLElement;
+      return value.scrollWidth > value.clientWidth + 1;
+    }).length,
+    detailOverflowCount: Array.from(document.querySelectorAll(".mobile-settings-row-detail")).filter((element) => {
+      const detail = element as HTMLElement;
+      return detail.scrollWidth > detail.clientWidth + 1;
+    }).length,
+    truthValueOverflowCount: Array.from(document.querySelectorAll(".settings-mobile-truth-item strong")).filter((element) => {
+      const value = element as HTMLElement;
+      return value.scrollWidth > value.clientWidth + 1;
+    }).length,
+    labelWordBreak: window.getComputedStyle(document.querySelector(".mobile-settings-row-label") as HTMLElement).wordBreak,
+    valueWordBreak: window.getComputedStyle(document.querySelector(".mobile-settings-row-value") as HTMLElement).wordBreak,
+    detailWordBreak: window.getComputedStyle(document.querySelector(".mobile-settings-row-detail") as HTMLElement).wordBreak,
   }));
 
   expect(layout.htmlScrollWidth).toBeLessThanOrEqual(layout.htmlClientWidth);
   expect(layout.visibleDesktopSettingsCards).toBe(0);
   expect(layout.truthItemCount).toBe(4);
+  expect(layout.rowOverflowCount).toBe(0);
+  expect(layout.valueOverflowCount).toBe(0);
+  expect(layout.detailOverflowCount).toBe(0);
+  expect(layout.truthValueOverflowCount).toBe(0);
+  expect(layout.labelWordBreak).toBe("break-word");
+  expect(layout.valueWordBreak).toBe("break-word");
+  expect(layout.detailWordBreak).toBe("break-word");
 
   await page.getByTestId("settings-mobile-row-openrouter").click();
   await expect(page.getByRole("dialog", { name: "OpenRouter models" })).toBeVisible();
@@ -1275,8 +1346,8 @@ test("Matrix composer remains fail-closed without write contract", async ({ page
   await expect(page.getByTestId("matrix-composer-copy-draft")).toBeVisible();
   await expect(page.getByTestId("matrix-composer-queue-chat")).toBeVisible();
   await expect(page.getByTestId("matrix-composer-submit")).toHaveCount(0);
-  await expect(page.locator(".matrix-preview-actions")).toContainText("fail-closed");
-  await expect(page.locator(".matrix-preview-actions")).toContainText("write contract");
+  await expect(page.locator(".matrix-preview-actions")).toContainText("not enabled in this beta");
+  await expect(page.locator(".matrix-preview-actions")).toContainText("Reading and analysis are available");
 });
 
 test("Matrix topic update flows from plan to execute+verify receipt", async ({ page }) => {

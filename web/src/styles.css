@@ -8073,16 +8073,22 @@ button:disabled,
 .app-shell-mobile .github-workspace {
   min-height: 0;
   height: 100%;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
   overflow: hidden;
 }
 
 .app-shell-mobile .github-mobile-panel {
+  min-height: 0;
   height: 100%;
+  box-sizing: border-box;
   padding: 18px 12px calc(74px + env(safe-area-inset-bottom));
   display: grid;
   align-content: start;
   gap: 14px;
   background: var(--mobile-redesign-bg);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .app-shell-mobile .github-workspace > :not(.github-mobile-panel) {
@@ -8316,15 +8322,21 @@ button:disabled,
 }
 
 .app-shell-mobile .settings-mobile-truth-item span {
+  max-width: 100%;
   color: var(--mobile-redesign-muted, var(--ms-text2));
   font-size: 10px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .app-shell-mobile .settings-mobile-truth-item strong {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   font-family: var(--ms-mono);
   font-size: 11px;
 }
@@ -8900,16 +8912,22 @@ button:disabled,
 
 .app-shell-mobile .mobile-settings-row-label {
   grid-area: label;
+  max-width: 100%;
   color: var(--mid);
   font-size: 12px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .app-shell-mobile .mobile-settings-row-value {
   grid-area: value;
+  max-width: 100%;
   color: var(--hi);
   font-family: "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace;
   font-size: 11px;
   font-weight: 500;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .app-shell-mobile .mobile-settings-row-detail {
@@ -8918,9 +8936,11 @@ button:disabled,
   color: var(--mobile-redesign-muted, var(--ms-text2));
   font-size: 11px;
   line-height: 1.35;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .app-shell-mobile .mobile-settings-row-chevron {

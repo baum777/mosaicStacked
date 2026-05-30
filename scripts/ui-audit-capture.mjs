@@ -340,9 +340,9 @@ async function captureScenario(browser, baseUrl, options) {
 
   if (!options.mobile) {
     const captures = [
-      { tab: "tab-github", workspace: "github-workspace", name: "github" },
+      { tab: "tab-workbench", workspace: "github-workspace", name: "github" },
       { tab: "tab-matrix", workspace: "matrix-workspace", name: "matrix" },
-      { tab: "tab-review", workspace: "review-workspace", name: "review" },
+      { tab: "tab-workbench", workspace: "github-workspace", name: "review" },
       { tab: "tab-settings", workspace: "settings-workspace", name: "settings" },
     ];
 
@@ -353,19 +353,19 @@ async function captureScenario(browser, baseUrl, options) {
       await page.screenshot({ path: `${outputDir}/${options.prefix}-${capture.name}.png`, fullPage: true });
     }
   } else {
-    await page.getByTestId("tab-github").click();
-    await page.getByTestId("github-workspace").waitFor({ state: "visible" });
-    await delay(250);
-    await page.screenshot({ path: `${outputDir}/${options.prefix}-github.png`, fullPage: true });
+    const captures = [
+      { tab: "tab-workbench", workspace: "github-workspace", name: "github" },
+      { tab: "tab-workbench", workspace: "github-workspace", name: "review" },
+      { tab: "tab-matrix", workspace: "matrix-workspace", name: "matrix" },
+      { tab: "tab-settings", workspace: "settings-workspace", name: "settings" },
+    ];
 
-    await page.getByTestId("tab-matrix").click();
-    await page.getByTestId("matrix-workspace").waitFor({ state: "visible" });
-    await delay(250);
-    await page.screenshot({ path: `${outputDir}/${options.prefix}-matrix.png`, fullPage: true });
-
-    await page.getByTestId("tab-context").click();
-    await delay(250);
-    await page.screenshot({ path: `${outputDir}/${options.prefix}-context.png`, fullPage: true });
+    for (const capture of captures) {
+      await page.getByTestId(capture.tab).click();
+      await page.getByTestId(capture.workspace).waitFor({ state: "visible" });
+      await delay(250);
+      await page.screenshot({ path: `${outputDir}/${options.prefix}-${capture.name}.png`, fullPage: true });
+    }
   }
 
   await context.close();
