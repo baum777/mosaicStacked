@@ -22,10 +22,17 @@
   --workspace-bg: var(--color-bg-primary);
 }
 
+[data-workspace="perf"] {
+  --workspace-accent: var(--token-accent-warning);
+  --workspace-accent-strong: var(--token-accent-warning-strong);
+  --workspace-bg: var(--color-bg-primary);
+}
+
 [data-workspace] .chat-workspace,
 [data-workspace] .github-workspace,
 [data-workspace] .matrix-workspace,
 [data-workspace] .settings-workspace,
+[data-workspace] .performance-workspace,
 [data-workspace] .workspace-frame-body,
 [data-workspace] .workspace-panel {
   --accent: var(--workspace-accent);

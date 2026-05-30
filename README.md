@@ -2,7 +2,7 @@
 
 MosaicStacked ist eine backend-first Console für Chat, Repository-Arbeit und Matrix-gestützte Wissensräume. Die Browseroberfläche zeigt Absicht, Status und Review-Flächen; die Runtime-Wahrheit liegt beim Backend.
 
-Der aktuelle Stand ist kein reines Demo-Frontend: Chat, GitHub-Workbench, Matrix-Workspace und Settings sind als vier Console-Flächen verdrahtet. Provider-IDs, GitHub-/Matrix-Credentials und Ausführungswahrheit bleiben serverseitig.
+Der aktuelle Stand ist kein reines Demo-Frontend: Chat, GitHub-Workbench, Matrix-Workspace, Settings und Performance sind als fünf Console-Flächen verdrahtet. Provider-IDs, GitHub-/Matrix-Credentials und Ausführungswahrheit bleiben serverseitig.
 
 ## Ist-Zustand
 
@@ -12,7 +12,8 @@ Der aktuelle Stand ist kein reines Demo-Frontend: Chat, GitHub-Workbench, Matrix
 | Workbench | GitHub-App-basierte Repo-Auswahl, Context Reads, Vorschlagspläne, approval-gated Execute, Verify und Datei-/Tree-Reads | Backend |
 | Matrix | WhoAmI, Joined Rooms, Scope Resolve/Summary, Provenienz, Topic Analyze, Plan Refresh, approval-gated Topic Execute und Verify | Backend |
 | Settings | Integrationsstatus, OpenRouter-Credential-Status, Diagnostics, Journal, Work Mode und Verbindungstests | Backend + Browser-Intent |
-| Browser Shell | Vier Tabs, mobile-first Layout, Truth Rail, Keyboard-Navigation, lokale Session-Wiederherstellung als UI-State | Browser |
+| Performance | Lokale Core-Web-Vitals-, Bundle- und Gate-Evidenz ohne Live-CI-/Deploy-Behauptung | Browser + lokale Evidenz |
+| Browser Shell | Fünf Tabs, mobile-first Layout, Truth Rail, Keyboard-Navigation, lokale Session-Wiederherstellung als UI-State | Browser |
 
 Wichtig: Matrix Topic Write ist lokal über Routen und Tests vorhanden. Live-E2E gegen einen echten Matrix-Origin, Evidence-Room-Writes und erweiterte Hierarchieflächen bleiben opt-in bzw. begrenzt.
 
@@ -49,11 +50,13 @@ flowchart TB
   Console --> Workbench["Workbench"]
   Console --> MatrixWs["Matrix"]
   Console --> Settings["Settings"]
+  Console --> Perf["Performance"]
 
   Chat -->|"POST /chat"| ChatBackend["Chat Router"]
   Workbench -->|"api/github/*"| GitHubBackend["GitHub Routes"]
   MatrixWs -->|"api/matrix/*"| MatrixBackend["Matrix Routes"]
   Settings -->|"diagnostics / status / credentials"| SettingsBackend["Runtime + Integration Routes"]
+  Perf -->|"local scripts / docs evidence"| PerfEvidence["Performance Gates"]
 ```
 
 ### Chat
@@ -84,6 +87,12 @@ flowchart TB
 - Speichert OpenRouter-Credentials backendseitig pro lokalem Profil.
 - Integration Connect/Reconnect/Disconnect/Reverify wird als backend-owned Intent gestartet.
 
+### Performance
+
+- Zeigt lokale Performance- und Qualitätsgates wie `npm run perf:bundle:web`, `npm run perf:lighthouse:tti`, Web-Typecheck, Web-Tests und Browser-Suite.
+- Behandelt Lighthouse-/Bundle-Werte als lokale Evidenz, nicht als Live-CI-, Scheduler-, Deployment- oder Produktions-Telemetrie.
+- Bleibt browserseitige Review-/Workflow-Fläche und führt keine GitHub-, Matrix- oder Provider-Writes aus.
+
 ## Approval-Flow
 
 ```mermaid
@@ -109,7 +118,7 @@ sequenceDiagram
 
 | Pfad | Rolle |
 | --- | --- |
-| `web/` | Vite + React Console, UI-State, mobile Shell, Chat/Workbench/Matrix/Settings |
+| `web/` | Vite + React Console, UI-State, mobile Shell, Chat/Workbench/Matrix/Settings/Performance |
 | `server/` | Fastify Authority Layer für Chat, GitHub, Matrix, Auth, Diagnostics und Journal |
 | `api/[...path].ts` | Vercel Serverless Adapter für allgemeine Backend-Routen |
 | `api/matrix/[...path].ts` | Separater Vercel Adapter für Matrix-Routen |

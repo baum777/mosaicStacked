@@ -6,7 +6,7 @@ export type SessionStatus = "draft" | "in_progress" | "review_required" | "done"
 export type ReviewStatus = "pending_review" | "approved" | "failed" | "rejected" | "stale" | "executed";
 export type ApprovalOutcome = "executed" | "failed" | "rejected" | "unverifiable";
 export type ConnectionState = "idle" | "submitting" | "streaming" | "completed" | "error";
-export type WorkspaceMode = "chat" | "workbench" | "matrix" | "settings";
+export type WorkspaceMode = "chat" | "workbench" | "matrix" | "settings" | "perf";
 
 type WorkspaceTabCopy = {
   label: string;
@@ -477,6 +477,7 @@ const EN_COPY: LocalizationCopy = {
       workbench: { label: "Workbench", description: "Review branch work, summary log, and handoff actions" },
       matrix: { label: "Matrix", description: "Scope, provenance, and topic updates" },
       settings: { label: "Settings", description: "View settings and diagnostics" },
+      perf: { label: "Perf", description: "Review local performance gates and workflow evidence" },
     },
   },
   sessionList: {
@@ -868,6 +869,7 @@ const DE_COPY: LocalizationCopy = {
       workbench: { label: "Workbench", description: "Branch-Arbeit, Summary-Log und Übergabe-Aktionen prüfen" },
       matrix: { label: "Matrix", description: "Scope, Provenienz und Topic-Updates" },
       settings: { label: "Einstellungen", description: "Ansicht und Diagnostik prüfen" },
+      perf: { label: "Perf", description: "Lokale Performance-Gates und Workflow-Evidenz prüfen" },
     },
   },
   sessionList: {

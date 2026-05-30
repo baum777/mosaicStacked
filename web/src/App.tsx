@@ -63,12 +63,15 @@ import type { NavigationPaletteEntry } from "./lib/navigation-palette.js";
 const loadChatWorkspace = () => import("./components/ChatWorkspace.js");
 const loadGitHubWorkspace = () => import("./components/GitHubWorkspace.js");
 const loadMatrixWorkspace = () => import("./components/MatrixWorkspace.js");
+const loadPerformanceWorkspace = () => import("./components/PerformanceWorkspace.js");
 
 const ChatWorkspace = lazy(() => loadChatWorkspace().then((module) => ({ default: module.ChatWorkspace })));
 const GitHubWorkspace = lazy(() => loadGitHubWorkspace().then((module) => ({ default: module.GitHubWorkspace })));
 const MatrixWorkspace = lazy(() => loadMatrixWorkspace().then((module) => ({ default: module.MatrixWorkspace })));
+const PerformanceWorkspace = lazy(() => loadPerformanceWorkspace().then((module) => ({ default: module.PerformanceWorkspace })));
 
-type WorkspaceMode = "chat" | "workbench" | "matrix" | "settings";
+type WorkspaceMode = "chat" | "workbench" | "matrix" | "settings" | "perf";
+type ConsoleTheme = "tokyo" | "darkula" | "muted-light";
 
 type TelemetryEntry = {
   id: string;
@@ -86,14 +89,17 @@ type PersistedShellState = {
 
 const SHELL_STORAGE_KEY = "mosaicstacked.console.shell.v2";
 const SHELL_STATE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const CONSOLE_THEME_STORAGE_KEY = "mosaicstacked.console.theme.v1";
 const LANDING_ENTRY_GUIDE_KEY = "landing-entry";
 const DEFAULT_FREE_MODEL_ALIAS = "default-free";
+const CONSOLE_THEMES: ConsoleTheme[] = ["tokyo", "darkula", "muted-light"];
 
 function isWorkspaceMode(value: string | null): value is WorkspaceMode {
   return value === "chat"
     || value === "workbench"
     || value === "matrix"
-    || value === "settings";
+    || value === "settings"
+    || value === "perf";
 }
 
 function normalizeWorkspaceMode(value: string | null | undefined): WorkspaceMode | null {
@@ -221,12 +227,33 @@ export function persistShellState(state: PersistedShellState) {
   }
 }
 
+function isConsoleTheme(value: string | null): value is ConsoleTheme {
+  return value === "tokyo" || value === "darkula" || value === "muted-light";
+}
+
+function readPersistedConsoleTheme(): ConsoleTheme {
+  if (typeof window === "undefined") {
+    return "tokyo";
+  }
+
+  const value = window.localStorage.getItem(CONSOLE_THEME_STORAGE_KEY);
+  return isConsoleTheme(value) ? value : "tokyo";
+}
+
+function persistConsoleTheme(theme: ConsoleTheme) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(CONSOLE_THEME_STORAGE_KEY, theme);
+}
+
 function appendTelemetry(current: TelemetryEntry[], entry: TelemetryEntry) {
   return [...current, entry].slice(-8);
 }
 
-const WORKSPACE_MODES: WorkspaceMode[] = ["chat", "workbench", "matrix", "settings"];
-const MOBILE_NAV_MODES: WorkspaceMode[] = ["chat", "workbench", "matrix", "settings"];
+const WORKSPACE_MODES: WorkspaceMode[] = ["chat", "workbench", "matrix", "settings", "perf"];
+const MOBILE_NAV_MODES: WorkspaceMode[] = ["chat", "workbench", "matrix", "settings", "perf"];
 const MOBILE_BREAKPOINT_QUERY = "(max-width: 760px)";
 const MATRIX_HIERARCHY_ENABLED = ((import.meta as { env?: { VITE_MATRIX_HIERARCHY?: string } }).env?.VITE_MATRIX_HIERARCHY ?? "false") === "true";
 
@@ -255,6 +282,13 @@ function WorkspaceIcon({ mode }: { mode: WorkspaceMode }) {
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path d="M12 8.5A3.5 3.5 0 1 1 12 15.5A3.5 3.5 0 0 1 12 8.5Z" />
           <path d="M4.5 12a7.5 7.5 0 0 1 .2-1.7l2-.4a6.7 6.7 0 0 1 .8-1.3l-1.2-1.7a8 8 0 0 1 2.4-2.4l1.7 1.2c.4-.3.9-.6 1.3-.8l.4-2A7.5 7.5 0 0 1 12 4.5c.6 0 1.1.1 1.7.2l.4 2c.5.2 1 .5 1.3.8l1.7-1.2a8 8 0 0 1 2.4 2.4l-1.2 1.7c.3.4.6.9.8 1.3l2 .4a7.5 7.5 0 0 1 0 3.4l-2 .4c-.2.5-.5 1-.8 1.3l1.2 1.7a8 8 0 0 1-2.4 2.4l-1.7-1.2c-.4.3-.9.6-1.3.8l-.4 2a7.5 7.5 0 0 1-3.4 0l-.4-2c-.5-.2-1-.5-1.3-.8l-1.7 1.2a8 8 0 0 1-2.4-2.4l1.2-1.7c-.3-.4-.6-.9-.8-1.3l-2-.4A7.5 7.5 0 0 1 4.5 12Z" />
+        </svg>
+      );
+    case "perf":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M4 16.5h2.5l2-7 3 10 2.5-15 2.2 12H20" />
+          <path d="M4 20h16" />
         </svg>
       );
     case "chat":
@@ -311,6 +345,44 @@ function BeginnerExpertToggle({
         </button>
       </div>
       <MutedSystemCopy className="work-mode-hint">{activeCopy.description}</MutedSystemCopy>
+    </div>
+  );
+}
+
+function ConsoleThemeToggle({
+  theme,
+  setTheme,
+}: {
+  theme: ConsoleTheme;
+  setTheme: (value: ConsoleTheme) => void;
+}) {
+  const labels: Record<ConsoleTheme, string> = {
+    tokyo: "Tokyo",
+    darkula: "Darkula",
+    "muted-light": "Light",
+  };
+  const ariaLabels: Record<ConsoleTheme, string> = {
+    tokyo: "Tokyo Night",
+    darkula: "Darkula",
+    "muted-light": "Muted Light",
+  };
+
+  return (
+    <div className="console-theme-toggle" role="group" aria-label="Console theme">
+      <span className={`console-theme-pill console-theme-pill-${theme}`} aria-hidden="true" />
+      {CONSOLE_THEMES.map((option) => (
+        <button
+          key={option}
+          type="button"
+          className={theme === option ? "console-theme-button console-theme-button-active" : "console-theme-button"}
+          onClick={() => setTheme(option)}
+          aria-pressed={theme === option}
+          aria-label={ariaLabels[option]}
+          data-testid={`console-theme-${option}`}
+        >
+          {labels[option]}
+        </button>
+      ))}
     </div>
   );
 }
@@ -1177,6 +1249,7 @@ function ConsoleShell() {
     () => readUrlWorkspaceMode() ?? normalizeWorkspaceMode(persisted?.activeTab) ?? "chat",
   );
   const [workMode, setWorkMode] = useState<WorkMode>(() => resolvePersistedWorkMode(persisted));
+  const [consoleTheme, setConsoleTheme] = useState<ConsoleTheme>(() => readPersistedConsoleTheme());
   const expertMode = isExpertMode(workMode);
   const workModeCopy = getWorkModeCopy(locale, workMode);
   const [telemetry, setTelemetry] = useState<TelemetryEntry[]>([]);
@@ -1186,6 +1259,7 @@ function ConsoleShell() {
   const [mobileContextOpen, setMobileContextOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
+  const [paletteSelectedIndex, setPaletteSelectedIndex] = useState(0);
   const mobileSettingsLongPressRef = useRef<number | null>(null);
   const mobileSettingsLongPressTriggeredRef = useRef(false);
   const recordTelemetry = useCallback(
@@ -1288,6 +1362,10 @@ function ConsoleShell() {
   }, [expertMode, mode, workMode]);
 
   useEffect(() => {
+    persistConsoleTheme(consoleTheme);
+  }, [consoleTheme]);
+
+  useEffect(() => {
     replaceConsoleUrl(mode);
   }, [mode]);
 
@@ -1379,7 +1457,7 @@ function ConsoleShell() {
       const key = event.key.toLowerCase();
       if (key === "k") {
         event.preventDefault();
-        setPaletteOpen(true);
+        setPaletteOpen((current) => !current);
         return;
       }
 
@@ -1405,6 +1483,9 @@ function ConsoleShell() {
       } else if (key === "4") {
         event.preventDefault();
         handleWorkspaceTabSelect("settings");
+      } else if (key === "5") {
+        event.preventDefault();
+        handleWorkspaceTabSelect("perf");
       }
     };
 
@@ -1711,6 +1792,11 @@ function ConsoleShell() {
     { label: ui.shell.workspaceTabs.matrix.label, value: `${settingsTruthSnapshot.matrix.identityLabel} · ${settingsTruthSnapshot.matrix.connectionLabel}` },
     { label: ui.settings.modelCardTitle, value: settingsTruthSnapshot.models.activeAlias },
   ];
+  const performanceRows: StatusPanelRow[] = [
+    { label: "LCP", value: "1.1 s · local evidence" },
+    { label: "CLS", value: "0.03 · local evidence" },
+    { label: "Gate", value: "npm run perf:bundle:web" },
+  ];
 
   const currentRows = useMemo(() => {
     switch (mode) {
@@ -1720,10 +1806,12 @@ function ConsoleShell() {
         return matrixRows;
       case "settings":
         return settingsRows;
+      case "perf":
+        return performanceRows;
       default:
         return chatRows;
     }
-  }, [chatRows, githubRows, matrixRows, mode, settingsRows]);
+  }, [chatRows, githubRows, matrixRows, mode, performanceRows, settingsRows]);
 
   const currentStatusBadge = useMemo(() => {
     switch (mode) {
@@ -1773,6 +1861,8 @@ function ConsoleShell() {
         }
 
         return ui.shell.statusReady;
+      case "perf":
+        return ui.shell.statusPartial;
       default:
         if (chatPendingProposal?.status === "pending") {
           return ui.review.approvalNeeded;
@@ -1819,7 +1909,14 @@ function ConsoleShell() {
     workbench: workbenchTabLabel,
     matrix: ui.shell.workspaceTabs.matrix.label,
     settings: ui.shell.workspaceTabs.settings.label,
-  }), [ui.shell.workspaceTabs.chat.label, ui.shell.workspaceTabs.matrix.label, ui.shell.workspaceTabs.settings.label, workbenchTabLabel]);
+    perf: ui.shell.workspaceTabs.perf.label,
+  }), [
+    ui.shell.workspaceTabs.chat.label,
+    ui.shell.workspaceTabs.matrix.label,
+    ui.shell.workspaceTabs.perf.label,
+    ui.shell.workspaceTabs.settings.label,
+    workbenchTabLabel,
+  ]);
   const workspaceName = workspaceTabLabels[mode];
   const nextStepTitle = ui.review.nextStepLabel;
   const matrixReadAvailable = integrationsStatus?.matrix.capabilities.read === "available";
@@ -1834,8 +1931,9 @@ function ConsoleShell() {
     const tabEntries: NavigationPaletteEntry[] = WORKSPACE_MODES.map((workspaceMode) => ({
       id: `tab:${workspaceMode}`,
       kind: "tab",
+      group: locale === "de" ? "Navigation" : "Navigate",
       label: workspaceTabLabels[workspaceMode],
-      detail: locale === "de" ? "Navigation" : "Navigation",
+      detail: workspaceMode === "perf" ? "Ctrl/Cmd+5" : locale === "de" ? "Arbeitsfläche öffnen" : "Open workspace",
       mode: workspaceMode,
       onSelect: () => {
         handleWorkspaceTabSelect(workspaceMode);
@@ -1851,6 +1949,7 @@ function ConsoleShell() {
         .map((session) => ({
           id: `session:${workspace}:${session.id}`,
           kind: "session" as const,
+          group: locale === "de" ? "Sessions" : "Sessions",
           label: session.title,
           detail: `${workspaceTabLabels[workspaceMode]} · ${session.status}`,
           mode: workspaceMode,
@@ -1861,8 +1960,78 @@ function ConsoleShell() {
         }));
     });
 
-    return [...tabEntries, ...sessionEntries];
-  }, [getWorkspaceSessions, handleWorkspaceSessionSelect, handleWorkspaceTabSelect, locale, workspaceTabLabels]);
+    const appearanceEntries: NavigationPaletteEntry[] = CONSOLE_THEMES.map((themeOption) => ({
+      id: `theme:${themeOption}`,
+      kind: "appearance",
+      group: locale === "de" ? "Darstellung" : "Appearance",
+      label: themeOption === "tokyo" ? "Theme: Tokyo Night" : themeOption === "darkula" ? "Theme: Darkula" : "Theme: Muted Light",
+      detail: themeOption === consoleTheme
+        ? (locale === "de" ? "Aktiv" : "Active")
+        : (locale === "de" ? "Shell-Theme anwenden" : "Apply shell theme"),
+      mode,
+      onSelect: () => {
+        setConsoleTheme(themeOption);
+        setPaletteOpen(false);
+      },
+    }));
+
+    const actionEntries: NavigationPaletteEntry[] = [
+      {
+        id: "action:create-session",
+        kind: "action",
+        group: locale === "de" ? "Aktionen" : "Actions",
+        label: appText.processCreateSession,
+        detail: isSessionWorkspace(mode)
+          ? (locale === "de" ? "Neue Session für aktuelle Arbeitsfläche" : "New session for current workspace")
+          : (locale === "de" ? "Nur für Chat, Workbench und Matrix" : "Only for Chat, Workbench, and Matrix"),
+        mode,
+        onSelect: () => {
+          if (isSessionWorkspace(mode)) {
+            handleWorkspaceSessionCreate(sessionWorkspace);
+          }
+          setPaletteOpen(false);
+        },
+      },
+      {
+        id: "action:perf-bundle",
+        kind: "action",
+        group: locale === "de" ? "Performance" : "Performance",
+        label: "Open performance gates",
+        detail: "npm run perf:bundle:web · npm run perf:lighthouse:tti",
+        mode: "perf",
+        onSelect: () => {
+          handleWorkspaceTabSelect("perf");
+          setPaletteOpen(false);
+        },
+      },
+      {
+        id: "action:workbench",
+        kind: "action",
+        group: locale === "de" ? "Workbench" : "Workbench",
+        label: locale === "de" ? "Freigaben prüfen" : "Review approvals",
+        detail: `${approvalSummary.pending} pending`,
+        mode: "workbench",
+        onSelect: () => {
+          handleWorkspaceTabSelect("workbench");
+          setPaletteOpen(false);
+        },
+      },
+    ];
+
+    return [...tabEntries, ...sessionEntries, ...appearanceEntries, ...actionEntries];
+  }, [
+    appText.processCreateSession,
+    approvalSummary.pending,
+    consoleTheme,
+    getWorkspaceSessions,
+    handleWorkspaceSessionCreate,
+    handleWorkspaceSessionSelect,
+    handleWorkspaceTabSelect,
+    locale,
+    mode,
+    sessionWorkspace,
+    workspaceTabLabels,
+  ]);
 
   const filteredPaletteEntries = useMemo(() => {
     const query = paletteQuery.trim().toLowerCase();
@@ -1871,10 +2040,56 @@ function ConsoleShell() {
     }
 
     return paletteEntries.filter((entry) => (
-      entry.label.toLowerCase().includes(query)
+      entry.group.toLowerCase().includes(query)
+      || entry.kind.toLowerCase().includes(query)
+      || entry.label.toLowerCase().includes(query)
       || entry.detail.toLowerCase().includes(query)
     ));
   }, [paletteEntries, paletteQuery]);
+
+  useEffect(() => {
+    setPaletteSelectedIndex(0);
+  }, [paletteQuery, paletteOpen]);
+
+  useEffect(() => {
+    if (!paletteOpen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setPaletteSelectedIndex((current) => Math.min(current + 1, Math.max(filteredPaletteEntries.length - 1, 0)));
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setPaletteSelectedIndex((current) => Math.max(current - 1, 0));
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        filteredPaletteEntries[paletteSelectedIndex]?.onSelect();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [filteredPaletteEntries, paletteOpen, paletteSelectedIndex]);
+
+  const groupedPaletteEntries = useMemo(() => {
+    return filteredPaletteEntries.slice(0, 32).reduce<Array<{ group: string; entries: NavigationPaletteEntry[] }>>((groups, entry) => {
+      const existing = groups.find((group) => group.group === entry.group);
+      if (existing) {
+        existing.entries.push(entry);
+      } else {
+        groups.push({ group: entry.group, entries: [entry] });
+      }
+      return groups;
+    }, []);
+  }, [filteredPaletteEntries]);
 
   const currentStatusTone = useMemo(() => {
     switch (mode) {
@@ -1916,6 +2131,8 @@ function ConsoleShell() {
         }
 
         return "ready";
+      case "perf":
+        return "partial";
       default:
         if (chatPendingProposal?.status === "pending" || chatPendingProposal?.status === "executing") {
           return "partial";
@@ -1980,6 +2197,10 @@ function ConsoleShell() {
         return expertMode
           ? ui.settings.connectionTruthNote
           : ui.shell.diagnosticsHidden;
+      case "perf":
+        return locale === "de"
+          ? "Performance zeigt lokale Evidenz und Repo-Gates; Live-CI oder Deployment werden hier nicht behauptet."
+          : "Performance shows local evidence and repo gates; live CI or deployment are not claimed here.";
       default:
         if (chatPendingProposal?.status === "pending") {
           return ui.chat.proposalHelper;
@@ -2187,6 +2408,8 @@ function ConsoleShell() {
       key={matrixSession?.id ?? "matrix-session"}
       {...matrixWorkspaceProps}
     />
+  ) : mode === "perf" ? (
+    <PerformanceWorkspace />
   ) : (
     <SettingsWorkspace {...settingsWorkspaceProps} />
   );
@@ -2380,16 +2603,27 @@ function ConsoleShell() {
         <div className="command-palette-results" role="listbox">
           {filteredPaletteEntries.length === 0 ? (
             <p className="muted-copy">{locale === "de" ? "Keine Treffer." : "No results."}</p>
-          ) : filteredPaletteEntries.slice(0, 24).map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              className="command-palette-item"
-              onClick={entry.onSelect}
-            >
-              <span>{entry.label}</span>
-              <small>{entry.detail}</small>
-            </button>
+          ) : groupedPaletteEntries.map((group) => (
+            <div className="command-palette-group" key={group.group}>
+              <span className="command-palette-group-label">{group.group}</span>
+              {group.entries.map((entry) => {
+                const selected = filteredPaletteEntries[paletteSelectedIndex]?.id === entry.id;
+                return (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    className={selected ? "command-palette-item command-palette-item-selected" : "command-palette-item"}
+                    onMouseEnter={() => setPaletteSelectedIndex(filteredPaletteEntries.findIndex((candidate) => candidate.id === entry.id))}
+                    onClick={entry.onSelect}
+                    role="option"
+                    aria-selected={selected}
+                  >
+                    <span>{entry.label}</span>
+                    <small>{entry.detail}</small>
+                  </button>
+                );
+              })}
+            </div>
           ))}
         </div>
       </section>
@@ -2398,7 +2632,7 @@ function ConsoleShell() {
 
   if (isMobileViewport) {
     return (
-      <main className="app-shell app-shell-console app-shell-mobile" data-testid="app-shell" data-workspace={mode}>
+      <main className="app-shell app-shell-console app-shell-mobile" data-testid="app-shell" data-workspace={mode} data-console-theme={consoleTheme}>
         <TopContextBar
           brandIcon={<MosaicStackedIcon />}
           title="MosaicStacked"
@@ -2540,7 +2774,7 @@ function ConsoleShell() {
   }
 
   return (
-    <main className="app-shell app-shell-console" data-testid="app-shell" data-workspace={mode}>
+    <main className="app-shell app-shell-console" data-testid="app-shell" data-workspace={mode} data-console-theme={consoleTheme}>
       <section className="shell-truth-top" aria-label={locale === "de" ? "Systemstatus" : "System status"}>
         <div className="shell-truth-top-left">
           <WorkspaceIcon mode={mode} />
@@ -2582,6 +2816,7 @@ function ConsoleShell() {
         </div>
 
         <div className="header-actions">
+          <ConsoleThemeToggle theme={consoleTheme} setTheme={setConsoleTheme} />
           <div className="shell-language-toggle" role="group" aria-label={ui.shell.languageLabel}>
             <button
               type="button"

@@ -86,12 +86,13 @@ test("Workbench navigation guard only triggers when leaving Workbench with local
   }), false);
 });
 
-test("legacy workspace URL modes normalize to workbench and shell tabs are four-only", () => {
+test("legacy workspace URL modes normalize to workbench and shell tabs include perf", () => {
   const source = readFileSync("web/src/App.tsx", "utf8");
 
   assert.match(source, /if \(value === "github" \|\| value === "review" \|\| value === "context"\) \{\s*return "workbench";\s*\}/);
-  assert.match(source, /const WORKSPACE_MODES: WorkspaceMode\[\] = \["chat", "workbench", "matrix", "settings"\]/);
-  assert.match(source, /const MOBILE_NAV_MODES: WorkspaceMode\[\] = \["chat", "workbench", "matrix", "settings"\]/);
+  assert.match(source, /const WORKSPACE_MODES: WorkspaceMode\[\] = \["chat", "workbench", "matrix", "settings", "perf"\]/);
+  assert.match(source, /const MOBILE_NAV_MODES: WorkspaceMode\[\] = \["chat", "workbench", "matrix", "settings", "perf"\]/);
+  assert.match(source, /handleWorkspaceTabSelect\("perf"\)/);
   assert.match(source, /LANDING_ENTRY_GUIDE_KEY = "landing-entry"/);
   assert.match(source, /window\.location\.replace\(["']\/console["']\)/);
 });

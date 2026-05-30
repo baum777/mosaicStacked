@@ -1729,6 +1729,20 @@ export function GitHubWorkspace(props: GitHubWorkspaceProps) {
               deletions={row.deletions}
               age={row.age}
               onPress={row.onPress}
+              quickActions={[
+                {
+                  label: workbenchActionLabels.openDiff,
+                  onPress: () => setDiffSheetOpen(true),
+                  tone: "primary",
+                },
+                {
+                  label: workbenchActionLabels.copySummary,
+                  onPress: () => {
+                    void handleCopySummary();
+                  },
+                  tone: "neutral",
+                },
+              ]}
             />
           )) : (
             <p>{locale === "de" ? "Noch keine Analyse oder Proposal in dieser Session." : "No analysis or proposal in this session yet."}</p>

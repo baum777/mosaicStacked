@@ -33,6 +33,12 @@ Rationale:
 - Mobile chat uses the static `ChatPage` entry so the initial route does not waterfall into a lazy chat chunk.
 - Desktop workspaces, full shell CSS, PWA registration, and console diagnostics are deferred so they do not compete with mobile TTI.
 
+## Console Performance Workspace
+
+- `/console?mode=perf` is a browser-owned review surface for local performance evidence and repo gate commands.
+- It may display local Lighthouse, bundle, typecheck, build, web test, and browser test gates.
+- It must not claim live CI, scheduler, deployment, preview, or production telemetry unless a backend- or CI-owned evidence route proves that state.
+
 ## Phase 2 GitHub Surface Guardrails
 
 - Mobile GitHub review UI enters through `web/src/pages/GitHubPage.tsx` and is loaded with `React.lazy()` from `web/src/App.tsx`.

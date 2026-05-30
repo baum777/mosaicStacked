@@ -121,7 +121,7 @@ function createStatusCache(): RequestDedupCache {
 }
 
 export function useRuntimeStatus(options: {
-  mode: "chat" | "workbench" | "matrix" | "settings";
+  mode: "chat" | "workbench" | "matrix" | "settings" | "perf";
   locale: "de" | "en";
   appText: {
     telemetryHealthLoaded: string;

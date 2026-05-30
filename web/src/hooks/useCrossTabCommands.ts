@@ -11,7 +11,7 @@ import {
   type CrossTabCommand,
 } from "../lib/cross-tab-commands.js";
 
-export type WorkspaceMode = "chat" | "workbench" | "matrix" | "settings";
+export type WorkspaceMode = "chat" | "workbench" | "matrix" | "settings" | "perf";
 
 type RecordTelemetry = (kind: "info" | "warning" | "error", label: string, detail?: string) => void;
 

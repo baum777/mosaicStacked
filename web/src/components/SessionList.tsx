@@ -180,10 +180,10 @@ export function SessionList<TMetadata>({
               </button>
 
               {showManagement ? (
-                <div className="session-list-actions">
+                <div className="session-list-actions inline-quick-actions" aria-label={`${session.title} quick actions`}>
                   <button
                     type="button"
-                    className="ghost-button"
+                    className="ghost-button inline-quick-action inline-quick-action-neutral"
                     onClick={() => onArchive(session.id)}
                     disabled={session.archived}
                     data-testid={`workspace-session-archive-${session.id}`}
@@ -192,7 +192,7 @@ export function SessionList<TMetadata>({
                   </button>
                   <button
                     type="button"
-                    className="ghost-button"
+                    className="ghost-button inline-quick-action inline-quick-action-danger"
                     onClick={() => onDelete(session.id)}
                     data-testid={`workspace-session-delete-${session.id}`}
                   >

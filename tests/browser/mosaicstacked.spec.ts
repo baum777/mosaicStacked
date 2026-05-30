@@ -622,7 +622,8 @@ async function loadConsole(page: Page) {
   await expect(page.getByTestId("tab-workbench")).toBeVisible();
   await expect(page.getByTestId("tab-matrix")).toBeVisible();
   await expect(page.getByTestId("tab-settings")).toBeVisible();
-  await expect(page.locator("[data-testid^='tab-']")).toHaveCount(4);
+  await expect(page.getByTestId("tab-perf")).toBeVisible();
+  await expect(page.locator("[data-testid^='tab-']")).toHaveCount(5);
   await expect(page.getByTestId("tab-github")).toHaveCount(0);
   await expect(page.getByTestId("tab-review")).toHaveCount(0);
 }
@@ -802,6 +803,33 @@ test("shell renders core governed surfaces and keeps secrets out of the DOM", as
   await expect(body).not.toContainText("sk-test-matrix-token");
   await expect(body).not.toContainText("Governance-first operator shell.");
   await expect(body).not.toContainText("Governance-first Operator-Shell.");
+});
+
+test("performance workspace is a fifth governed shell surface with scoped themes and palette navigation", async ({ page }) => {
+  await installBaseMocks(page, { matrixStatus: "ok" });
+  await page.goto("/console?mode=perf", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByTestId("app-shell")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId("performance-workspace")).toBeVisible();
+  await expect(page).toHaveURL(/\/console\?mode=perf$/);
+  await expect(page.getByTestId("app-shell")).toHaveAttribute("data-console-theme", "tokyo");
+
+  await page.getByTestId("console-theme-darkula").click();
+  await expect(page.getByTestId("app-shell")).toHaveAttribute("data-console-theme", "darkula");
+  expect(await page.evaluate(() => window.localStorage.getItem("mosaicstacked.console.theme.v1"))).toBe("darkula");
+
+  const modifier = process.platform === "darwin" ? "Meta" : "Control";
+  await page.keyboard.press(`${modifier}+K`);
+  await expect(page.getByRole("dialog", { name: /Command Palette/i })).toBeVisible();
+  await page.getByRole("searchbox").fill("bundle");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("performance-workspace")).toBeVisible();
+
+  await page.keyboard.press(`${modifier}+1`);
+  await expect(page).toHaveURL(/\/console\?mode=chat$/);
+  await page.keyboard.press(`${modifier}+5`);
+  await expect(page).toHaveURL(/\/console\?mode=perf$/);
 });
 
 test("left rail workspace tabs keep keyboard focus names in compact layout", async ({ page }) => {
