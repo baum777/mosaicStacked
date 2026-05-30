@@ -7,15 +7,11 @@ const outputDir = path.join(repoRoot, "output");
 
 const liveReadyAssets = [
   "live-ready-desktop-chat.png",
-  "live-ready-desktop-review.png",
   "live-ready-desktop-settings.png",
   "live-ready-desktop-github.png",
   "live-ready-desktop-matrix.png",
   "live-ready-mobile-chat.png",
-  "live-ready-mobile-github.png",
-  "live-ready-mobile-review.png",
   "live-ready-mobile-matrix.png",
-  "live-ready-mobile-settings.png",
 ];
 
 function formatLocalTimestamp(date) {

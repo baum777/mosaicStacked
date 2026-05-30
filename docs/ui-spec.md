@@ -9,7 +9,7 @@
 
 ## Live-Ready Capture Baseline — 2026-05-30
 
-**Observed:** The current console is a four-surface app: Chat, Workbench, Matrix, and Settings. Legacy separate GitHub/Review tabs are normalized into Workbench; `*-github` and `*-review` filenames are capture slots for Workbench states.
+**Observed:** The current console is a four-surface app: Chat, Workbench, Matrix, and Settings. This live-ready baseline intentionally tracks the six release-gate assets requested for desktop/mobile Chat plus desktop Workbench/Matrix/Settings and mobile Matrix.
 
 **Capture source:** local production web build opened in the Codex in-app browser against a local mock authority endpoint. The mock endpoint serves backend-shaped responses only; it does not prove live provider, GitHub, Matrix, deployment, or production readiness.
 
@@ -18,17 +18,13 @@
 | Asset | Viewport | Surface | Expected state |
 |---|---:|---|---|
 | `output/live-ready-desktop-chat.png` | 1440 x 900 | Chat | Backend health visible, Read only mode selected, SSE-style chat response rendered, provider targets hidden. |
-| `output/live-ready-desktop-review.png` | 1440 x 900 | Workbench (review state) | Desktop shell with icon left-rail, unified Workbench center flow, and no legacy subtitle/text-nav identity. |
 | `output/live-ready-desktop-settings.png` | 1440 x 900 | Settings | Integration status, OpenRouter settings, diagnostics, and backend-owned controls visible. |
 | `output/live-ready-desktop-github.png` | 1440 x 900 | Workbench / GitHub | Repo context loaded, proposal visible, pending approval state shown before execute. |
 | `output/live-ready-desktop-matrix.png` | 1440 x 900 | Matrix | Matrix identity and joined room visible, read/write posture remains backend-gated. |
 | `output/live-ready-mobile-chat.png` | 390 x 844 | Chat | Mobile shell, top context, bottom navigation, composer, and chat workspace visible without desktop-only mock. |
-| `output/live-ready-mobile-github.png` | 390 x 844 | Workbench mobile | Workbench mobile panel uses fixed bottom nav and in-container scroll with no content overflow under nav. |
-| `output/live-ready-mobile-review.png` | 390 x 844 | Workbench mobile (review slot) | Review capture slot maps to the same Workbench mobile layout language (not a separate legacy surface). |
 | `output/live-ready-mobile-matrix.png` | 390 x 844 | Matrix | Mobile Matrix panel, identity, scope status, joined room, and fail-closed send posture visible. |
-| `output/live-ready-mobile-settings.png` | 390 x 844 | Settings mobile | Text labels/details wrap within container bounds; no truncation/overflow on 390px viewport. |
 
-**Capture evidence (mtime, local):** `2026-05-30 13:40` (`desktop-review`, `mobile-github`, `mobile-review`, `mobile-settings`) and `2026-05-30 10:16` (`desktop-chat`, `desktop-github`, `desktop-matrix`, `desktop-settings`, `mobile-chat`, `mobile-matrix`).
+**Capture evidence (mtime, local):** `2026-05-30 15:40` (`desktop-chat`, `desktop-github`, `desktop-matrix`, `desktop-settings`, `mobile-chat`, `mobile-matrix`).
 
 **Browser tests already present in `tests/browser/mosaicstacked.spec.ts` (current gate: 32 passing tests):**
 
