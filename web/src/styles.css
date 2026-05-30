@@ -9229,7 +9229,9 @@ button,
 
 /* Console redesign slice: scoped themes, palette overlay, perf workspace, and inline quick actions. */
 .app-shell-console[data-console-theme="tokyo"] {
+  color-scheme: dark;
   --console-bg: #0d0f1a;
+  --console-bg-2: #111522;
   --console-panel: #1a1b26;
   --console-panel-2: #24283b;
   --console-border: #414868;
@@ -9241,22 +9243,25 @@ button,
 }
 
 .app-shell-console[data-console-theme="darkula"] {
-  --console-bg: #191821;
+  color-scheme: dark;
+  --console-bg: #18171f;
+  --console-bg-2: #201f2b;
   --console-panel: #282a36;
-  --console-panel-2: #343746;
-  --console-border: #6272a4;
+  --console-panel-2: #353746;
+  --console-border: #5f6381;
   --console-text: #f8f8f2;
-  --console-muted: #bfc7d5;
-  --console-accent: #bd93f9;
-  --console-accent-2: #8be9fd;
-  --console-warning: #f1fa8c;
+  --console-muted: #c2c8d7;
+  --console-accent: #ff79c6;
+  --console-accent-2: #50fa7b;
+  --console-warning: #ffb86c;
 }
 
 .app-shell-console[data-console-theme="muted-light"] {
-  --console-bg: #e8e3da;
-  --console-panel: #f0ebe2;
-  --console-panel-2: #e3ddd4;
-  --console-border: #a8a099;
+  --console-bg: #ebe6dc;
+  --console-bg-2: #f4efe6;
+  --console-panel: #f7f2e9;
+  --console-panel-2: #e5ded2;
+  --console-border: #b8aa98;
   --console-text: #28231e;
   --console-muted: #6b6358;
   --console-accent: #3d6fa8;
@@ -9266,18 +9271,87 @@ button,
 }
 
 .app-shell-console[data-console-theme] {
+  --ms-bg: var(--console-bg);
+  --ms-bg2: var(--console-bg-2);
+  --ms-bg3: var(--console-panel);
+  --ms-bg4: var(--console-panel-2);
+  --ms-text: var(--console-text);
+  --ms-text2: var(--console-muted);
+  --ms-text3: color-mix(in srgb, var(--console-muted) 72%, var(--console-bg));
+  --ms-border: color-mix(in srgb, var(--console-border) 62%, transparent);
+  --ms-border2: color-mix(in srgb, var(--console-border) 82%, transparent);
+  --ms-accent: var(--console-accent);
+  --ms-accent2: var(--console-accent-2);
+  --ms-green: var(--console-accent-2);
+  --ms-amber: var(--console-warning);
+  --ms-teal: var(--console-accent);
+  --bg-primary: var(--console-bg);
+  --bg-secondary: var(--console-bg-2);
+  --surface-soft: color-mix(in srgb, var(--console-panel) 88%, transparent);
+  --surface-strong: color-mix(in srgb, var(--console-panel-2) 92%, transparent);
+  --border-soft: color-mix(in srgb, var(--console-border) 54%, transparent);
+  --border-focus: color-mix(in srgb, var(--console-accent) 64%, transparent);
+  --text-primary: var(--console-text);
+  --text-secondary: var(--console-muted);
+  --accent-cyan: var(--console-accent);
+  --accent-green: var(--console-accent-2);
+  --glow-cyan: 0 0 24px color-mix(in srgb, var(--console-accent) 24%, transparent);
+  --shadow-card: 0 18px 60px color-mix(in srgb, var(--console-bg) 72%, #000 28%);
   background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--console-accent) 13%, transparent), transparent 30%),
-    linear-gradient(180deg, var(--console-bg), color-mix(in srgb, var(--console-bg) 90%, #000 10%));
+    radial-gradient(circle at top left, color-mix(in srgb, var(--console-accent) 16%, transparent), transparent 30%),
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--console-accent-2) 10%, transparent), transparent 34%),
+    linear-gradient(180deg, var(--console-bg-2), var(--console-bg));
   color: var(--console-text);
 }
 
+.app-shell-console[data-console-theme] .shell-truth-top,
+.app-shell-console[data-console-theme] .global-header-shell,
+.app-shell-console[data-console-theme] .workspace-sidebar,
+.app-shell-console[data-console-theme] .workspace-context,
+.app-shell-console[data-console-theme] .console-main {
+  border-color: var(--ms-border);
+  color: var(--console-text);
+}
+
+.app-shell-console[data-console-theme] .global-header-shell,
+.app-shell-console[data-console-theme] .workspace-sidebar,
+.app-shell-console[data-console-theme] .workspace-context {
+  background: color-mix(in srgb, var(--console-bg-2) 84%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.app-shell-console[data-console-theme] .console-layout {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--console-border) 18%, transparent) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(180deg, color-mix(in srgb, var(--console-border) 12%, transparent) 1px, transparent 1px) 0 0 / 48px 48px,
+    color-mix(in srgb, var(--console-bg) 92%, var(--console-bg-2));
+}
+
+.app-shell-console[data-console-theme] .shell-truth-top {
+  background: color-mix(in srgb, var(--console-panel) 82%, var(--console-bg));
+}
+
 .app-shell-console[data-console-theme] .shell-card,
+.app-shell-console[data-console-theme] .workspace-frame-card,
+.app-shell-console[data-console-theme] .chat-card,
 .app-shell-console[data-console-theme] .workspace-card,
+.app-shell-console[data-console-theme] .status-panel-card,
 .app-shell-console[data-console-theme] .session-list-card,
+.app-shell-console[data-console-theme] .sidebar-card,
+.app-shell-console[data-console-theme] .context-summary-card,
+.app-shell-console[data-console-theme] .empty-state-card,
+.app-shell-console[data-console-theme] .github-review-card,
+.app-shell-console[data-console-theme] .github-action-card,
+.app-shell-console[data-console-theme] .github-repo-card,
+.app-shell-console[data-console-theme] .review-item-card,
+.app-shell-console[data-console-theme] .safety-tip-card,
 .app-shell-console[data-console-theme] .truth-rail-section,
 .app-shell-console[data-console-theme] .command-palette {
-  background: color-mix(in srgb, var(--console-panel) 92%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--console-panel) 94%, transparent),
+    color-mix(in srgb, var(--console-panel-2) 72%, var(--console-bg))
+  );
   border-color: color-mix(in srgb, var(--console-border) 70%, transparent);
   color: var(--console-text);
 }
