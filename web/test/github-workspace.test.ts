@@ -191,6 +191,34 @@ test("pinned chat context prompt appends bounded local context block", () => {
   assert.match(pinnedPrompt, /Find logic regressions in the execute gate\./);
 });
 
+test("pinned chat context prompt caps the local context block with localized truncation markers", () => {
+  const basePrompt = "Review only the local context block bounds.";
+  const oversizedContext = {
+    source: "github" as const,
+    repoFullName: "acme/console",
+    ref: "main",
+    path: "web/src/components/GitHubWorkspace.tsx",
+    summary: "Bound the pinned prompt context before sending it to chat.",
+    excerpt: `excerpt-start\n${"A".repeat(7_200)}\nexcerpt-end`,
+    diffPreview: `diff-start\n${"B".repeat(4_000)}\ndiff-end`,
+    createdAt: "2026-04-21T08:04:00.000Z",
+  };
+
+  const englishPrompt = buildPinnedChatContextPrompt(basePrompt, oversizedContext, "en");
+  const englishBlock = englishPrompt.slice(`${basePrompt}\n\n`.length);
+
+  assert.ok(englishBlock.length <= 8_000);
+  assert.match(englishBlock, /\[Context truncated to 8000 characters\]/);
+  assert.doesNotMatch(englishBlock, /diff-end/);
+
+  const germanPrompt = buildPinnedChatContextPrompt(basePrompt, oversizedContext, "de");
+  const germanBlock = germanPrompt.slice(`${basePrompt}\n\n`.length);
+
+  assert.ok(germanBlock.length <= 8_000);
+  assert.match(germanBlock, /\[Kontext gekuerzt auf 8000 Zeichen\]/);
+  assert.doesNotMatch(germanBlock, /diff-end/);
+});
+
 test("GitHub review dirty state tracks unsaved local review progress", () => {
   const proposalPlan = {
     planId: "plan-dirty",
