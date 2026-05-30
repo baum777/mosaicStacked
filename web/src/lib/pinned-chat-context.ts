@@ -14,6 +14,7 @@ export type PinnedChatContext = {
 const SUMMARY_MAX = 240;
 const EXCERPT_MAX = 4_000;
 const DIFF_PREVIEW_MAX = 8_000;
+const PINNED_CONTEXT_BLOCK_MAX = 8_000;
 
 function normalizeText(value: string) {
   return value.replace(/\r\n/g, "\n").trim();
@@ -25,6 +26,28 @@ function truncate(value: string, max: number) {
   }
 
   return `${value.slice(0, max).trimEnd()}…`;
+}
+
+function getPinnedContextTruncationMarker(locale: Locale) {
+  return locale === "de"
+    ? "[Kontext gekuerzt auf 8000 Zeichen]"
+    : "[Context truncated to 8000 characters]";
+}
+
+function boundPinnedContextBlock(block: string, endMarker: string, locale: Locale) {
+  if (block.length <= PINNED_CONTEXT_BLOCK_MAX) {
+    return block;
+  }
+
+  const marker = getPinnedContextTruncationMarker(locale);
+  const suffix = `\n${marker}\n${endMarker}`;
+  const endSuffix = `\n${endMarker}`;
+  const blockWithoutEndMarker = block.endsWith(endSuffix)
+    ? block.slice(0, -endSuffix.length)
+    : block;
+  const prefixMax = Math.max(0, PINNED_CONTEXT_BLOCK_MAX - suffix.length);
+
+  return `${blockWithoutEndMarker.slice(0, prefixMax).trimEnd()}${suffix}`;
 }
 
 export function createPinnedChatContext(options: {
@@ -59,6 +82,7 @@ export function buildPinnedChatContextPrompt(basePrompt: string, context: Pinned
     return basePrompt;
   }
 
+  const endMarker = locale === "de" ? "[Ende lokaler GitHub-Kontext]" : "[End local GitHub context]";
   const lines = locale === "de"
     ? [
         "[Lokaler GitHub-Kontext]",
@@ -69,7 +93,7 @@ export function buildPinnedChatContextPrompt(basePrompt: string, context: Pinned
         "Auszug:",
         context.excerpt,
         ...(context.diffPreview ? ["", "Diff-Vorschau:", context.diffPreview] : []),
-        "[Ende lokaler GitHub-Kontext]",
+        endMarker,
       ]
     : [
         "[Local GitHub context]",
@@ -80,8 +104,8 @@ export function buildPinnedChatContextPrompt(basePrompt: string, context: Pinned
         "Excerpt:",
         context.excerpt,
         ...(context.diffPreview ? ["", "Diff preview:", context.diffPreview] : []),
-        "[End local GitHub context]",
+        endMarker,
       ];
 
-  return `${basePrompt}\n\n${lines.join("\n")}`;
+  return `${basePrompt}\n\n${boundPinnedContextBlock(lines.join("\n"), endMarker, locale)}`;
 }
