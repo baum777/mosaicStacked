@@ -14,6 +14,7 @@ Lokale, reproduzierbare Smoke-Schicht ohne Pflicht auf Live-Secrets oder externe
 | App Shell | `tests/browser/mosaicstacked.spec.ts` (`root route renders public preview...`, `shell renders core governed surfaces...`) | Kein Root-Orchestrator | `npm run smoke:local` / `npm run smoke:ci` |
 | Console | `tests/browser/mosaicstacked.spec.ts` (`console route normalizes...`, Tab-/Layout-Checks) | Kein dedizierter Smoke-Einstieg | `npm run smoke` |
 | Settings/Auth CTA | `tests/browser/mosaicstacked.spec.ts` (`Settings ... opens detail sheet`, GitHub/Matrix CTA), `web/test/settings-workspace.test.ts` | Keine | Über `npm run test` + `npm run test:browser` |
+| OpenRouter Production Routing | `server/test/openrouter-production-readiness.test.ts`, `server/test/vercel-config.test.ts` | Kein Provider-Chat-Smoke im Release-Gate | `npm run smoke:openrouter-prod` prüft `/models`, `/settings/openrouter/status` und `/api/settings/openrouter/status` read-only |
 | GitHub | `tests/browser/mosaicstacked.spec.ts` (analysis/proposal/execute/verify + stale/fail-closed), `server/test/github-*.test.ts` | Live-Smoke nicht default-fähig | `smoke:github` bleibt opt-in |
 | Matrix | `tests/browser/mosaicstacked.spec.ts` (fail-closed + topic flow), `server/test/matrix-*.test.ts` | Live-Token abhängig | `smoke:matrix` bleibt opt-in |
 | Diagnostics | `web/test/diagnostics-api.test.ts`, `server/test/backend.test.ts` (`/diagnostics`, `/journal/recent`) | Keine | In `npm run test` enthalten |
@@ -27,12 +28,16 @@ Lokale, reproduzierbare Smoke-Schicht ohne Pflicht auf Live-Secrets oder externe
   - `npm run smoke:local`
 - CI-orientiert:
   - `npm run smoke:ci`
+- Production OpenRouter release gate ohne Provider-Credit-Verbrauch:
+  - `npm run smoke:openrouter-prod`
+  - Optional gegen eine spezifische Deployment-URL: `MOSAICSTACK_PRODUCTION_BASE_URL=https://... npm run smoke:openrouter-prod`
 - Standard:
   - `npm run smoke` (alias auf `smoke:ci`)
 
 ## Live-/Extern-Abhängigkeiten
 
 - Nicht im Default-Smoke enthalten:
+  - `npm run smoke:openrouter-prod`
   - `npm run smoke:github`
   - `npm run smoke:matrix`
   - `npm run smoke:matrix-evidence`
