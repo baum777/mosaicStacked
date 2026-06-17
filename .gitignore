@@ -15,11 +15,11 @@ server/dist/
 web/node_modules/
 web/dist/
 
-# Local perf cache written by scripts/check-web-bundle-budget.mjs and
-# scripts/check-lighthouse-tti.mjs. The committed stub in
-# web/src/lib/perf-cache.json provides the initial "unknown" value; each
-# perf run overwrites it. The Performance tab reads this file.
-web/src/lib/perf-cache.json
+# Local perf cache lives at web/src/lib/perf-cache.json. The stub with
+# the initial "unknown" value IS committed (provides first-build
+# determinism). After commit, the file is marked skip-worktree so
+# scripts/check-web-bundle-budget.mjs and scripts/check-lighthouse-tti.mjs
+# can overwrite it locally without producing commit noise.
 
 .vercel
 update-vercel-env.sh

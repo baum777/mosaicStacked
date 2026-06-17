@@ -1,0 +1,15 @@
+{
+  "lastUpdated": "unknown",
+  "lighthouse": {
+    "fetchTime": "2026-05-09T05:11:01.576Z",
+    "lcpMs": 2093,
+    "cls": 0.03,
+    "ttiMs": 2081
+  },
+  "bundle": {
+    "gzipBytes": 104440,
+    "brotliBytes": 89800,
+    "budgetGzipBytes": 184320,
+    "budgetBrotliBytes": 163840
+  }
+}
