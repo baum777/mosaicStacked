@@ -184,6 +184,51 @@ type SettingsCopy = {
   configured: string;
   notConfigured: string;
   unavailable: string;
+  adapter: {
+    accessTitle: string;
+    actionLabel: string;
+    requirementsLabel: string;
+    noRequirements: string;
+    credentialSourceLabel: string;
+    capabilitiesLabel: string;
+    lastVerifiedLabel: string;
+    lastErrorLabel: string;
+    status: Record<string, string>;
+    source: Record<string, string>;
+    action: Record<string, string>;
+  };
+  openRouter: {
+    title: string;
+    subtitle: string;
+    keyLabel: string;
+    inputLabel: string;
+    validation: (minLength: number) => string;
+    keyPlaceholder: string;
+    placeholder: string;
+    showKey: string;
+    hideKey: string;
+    save: string;
+    saving: string;
+    test: string;
+    testing: string;
+    manualConfigLabel: string;
+    manualConfigPlaceholder: string;
+    defaultLimitsLabel: string;
+    appliedLimitsLabel: string;
+    manualConfigHint: string;
+    manualConfigError: string;
+    configured: string;
+    empty: string;
+    defaultFreeStatusLabel: string;
+    statusConfigured: string;
+    statusMissingKey: string;
+    statusMissingModel: string;
+    statusUnavailable: string;
+  };
+  matrixHierarchy: string;
+  matrixHierarchyEnabledValue: string;
+  matrixHierarchyDisabledValue: string;
+  matrixHierarchyHelp: string;
 };
 
 type ChatCopy = {
@@ -603,6 +648,72 @@ const EN_COPY: LocalizationCopy = {
     configured: "Configured",
     notConfigured: "Not configured",
     unavailable: "Unavailable",
+    adapter: {
+      accessTitle: "Access",
+      actionLabel: "Action",
+      requirementsLabel: "Requirements",
+      noRequirements: "No open requirements",
+      credentialSourceLabel: "Credential source",
+      capabilitiesLabel: "Capabilities",
+      lastVerifiedLabel: "Last verified",
+      lastErrorLabel: "Last error",
+      status: {
+        not_connected: "Not connected",
+        connect_available: "Connect available",
+        connected: "Connected",
+        auth_expired: "Auth expired",
+        missing_server_config: "Missing server config",
+        scope_denied: "Scope denied",
+        upstream_unreachable: "Upstream unreachable",
+        disabled_by_policy: "Disabled by policy",
+        checking: "Checking",
+        error: "Error",
+      },
+      source: {
+        instance_configured: "Instance configured",
+        user_connected: "User connected",
+        user_connected_stub: "Legacy stub connection",
+        not_connected: "Not connected",
+      },
+      action: {
+        connect: "Connect",
+        reconnect: "Reconnect",
+        disconnect: "Disconnect",
+        reverify: "Reverify",
+      },
+    },
+    openRouter: {
+      title: "OpenRouter models",
+      subtitle: "Store your own OpenRouter API key on the backend. The browser only shows masked status after save.",
+      keyLabel: "OpenRouter API key",
+      inputLabel: "OpenRouter model ID",
+      validation: (minLength: number) => `OpenRouter API key must have at least ${minLength} characters; model ID must use provider/model.`,
+      keyPlaceholder: "sk-or-v1-...",
+      placeholder: "provider/model",
+      showKey: "Show key",
+      hideKey: "Hide key",
+      save: "Save",
+      saving: "Saving",
+      test: "Test connection",
+      testing: "Testing",
+      manualConfigLabel: "Local diagnostic (not sent to backend)",
+      manualConfigPlaceholder: "{\"chat\":30,\"auth_login\":8,\"github_propose\":10,\"github_execute\":6,\"matrix_execute\":6}",
+      defaultLimitsLabel: "Default limits",
+      appliedLimitsLabel: "Applied limits",
+      manualConfigHint: "Local UI config only; it is not sent to the backend.",
+      manualConfigError: "Invalid JSON config. Allowed keys: chat, auth_login, github_propose, github_execute, matrix_execute. Values must be positive integers.",
+      configured: "OpenRouter key configured",
+      empty: "No OpenRouter key is configured for this local profile yet.",
+      defaultFreeStatusLabel: "Default-free status",
+      statusConfigured: "configured",
+      statusMissingKey: "missing key",
+      statusMissingModel: "missing model",
+      statusUnavailable: "unavailable",
+    },
+    matrixHierarchy: "Matrix hierarchy",
+    matrixHierarchyEnabledValue: "Available",
+    matrixHierarchyDisabledValue: "Hidden",
+    matrixHierarchyHelp: "Set VITE_MATRIX_HIERARCHY=true in the web env to expose the hierarchy surface in Matrix.",
   },
   chat: {
     title: "Chat workspace",
@@ -995,6 +1106,72 @@ const DE_COPY: LocalizationCopy = {
     configured: "Konfiguriert",
     notConfigured: "Nicht konfiguriert",
     unavailable: "Nicht verfügbar",
+    adapter: {
+      accessTitle: "Zugänge",
+      actionLabel: "Aktion",
+      requirementsLabel: "Voraussetzungen",
+      noRequirements: "Keine offenen Voraussetzungen",
+      credentialSourceLabel: "Credential Source",
+      capabilitiesLabel: "Capabilities",
+      lastVerifiedLabel: "Last verified",
+      lastErrorLabel: "Last error",
+      status: {
+        not_connected: "Nicht verbunden",
+        connect_available: "Verbinden verfügbar",
+        connected: "Verbunden",
+        auth_expired: "Auth abgelaufen",
+        missing_server_config: "Server-Konfig fehlt",
+        scope_denied: "Scope verweigert",
+        upstream_unreachable: "Upstream nicht erreichbar",
+        disabled_by_policy: "Policy deaktiviert",
+        checking: "Wird geprüft",
+        error: "Fehler",
+      },
+      source: {
+        instance_configured: "Instance configured",
+        user_connected: "User connected",
+        user_connected_stub: "Legacy stub connection",
+        not_connected: "Not connected",
+      },
+      action: {
+        connect: "Verbinden",
+        reconnect: "Neu verbinden",
+        disconnect: "Trennen",
+        reverify: "Erneut prüfen",
+      },
+    },
+    openRouter: {
+      title: "OpenRouter Modelle",
+      subtitle: "Speichere deinen eigenen OpenRouter API Key backend-seitig. Der Browser zeigt danach nur einen maskierten Status.",
+      keyLabel: "OpenRouter API Key",
+      inputLabel: "OpenRouter Modell-ID",
+      validation: (minLength: number) => `OpenRouter API Key braucht mindestens ${minLength} Zeichen; die Modell-ID muss provider/model verwenden.`,
+      keyPlaceholder: "sk-or-v1-...",
+      placeholder: "provider/model",
+      showKey: "Key anzeigen",
+      hideKey: "Key verbergen",
+      save: "Speichern",
+      saving: "Speichert",
+      test: "Verbindung testen",
+      testing: "Test läuft",
+      manualConfigLabel: "Local diagnostic (not sent to backend)",
+      manualConfigPlaceholder: "{\"chat\":30,\"auth_login\":8,\"github_propose\":10,\"github_execute\":6,\"matrix_execute\":6}",
+      defaultLimitsLabel: "Default-Limits",
+      appliedLimitsLabel: "Aktive Limits",
+      manualConfigHint: "Nur lokale UI-Konfiguration; wird nicht an das Backend gesendet.",
+      manualConfigError: "Ungültige JSON-Config. Erlaubte Keys: chat, auth_login, github_propose, github_execute, matrix_execute. Werte müssen positive Ganzzahlen sein.",
+      configured: "OpenRouter key configured",
+      empty: "Noch kein OpenRouter-Key für dieses lokale Profil gespeichert.",
+      defaultFreeStatusLabel: "Default-Free-Status",
+      statusConfigured: "configured",
+      statusMissingKey: "missing key",
+      statusMissingModel: "missing model",
+      statusUnavailable: "unavailable",
+    },
+    matrixHierarchy: "Matrix-Hierarchie",
+    matrixHierarchyEnabledValue: "Verfügbar",
+    matrixHierarchyDisabledValue: "Verborgen",
+    matrixHierarchyHelp: "Setze VITE_MATRIX_HIERARCHY=true in der Web-Env, um die Hierarchie-Fläche in Matrix sichtbar zu machen.",
   },
   chat: {
     title: "Chat-Arbeitsbereich",

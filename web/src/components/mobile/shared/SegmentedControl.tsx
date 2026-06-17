@@ -3,6 +3,9 @@ export type SegmentedControlOption<TValue extends string> = {
   label: string;
 };
 
+// Block C (Mobile-Tab-Adapter): widen the options type from a fixed 2-tuple
+// to a generic array of length ≥ 1 so the DiffSheet can render 3 tabs
+// (Chat / Diff / Patch) without duplicating the SegmentedControl markup.
 export function SegmentedControl<TValue extends string>({
   label,
   value,
@@ -11,7 +14,7 @@ export function SegmentedControl<TValue extends string>({
 }: {
   label: string;
   value: TValue;
-  options: [SegmentedControlOption<TValue>, SegmentedControlOption<TValue>];
+  options: SegmentedControlOption<TValue>[];
   onChange: (value: TValue) => void;
 }) {
   return (

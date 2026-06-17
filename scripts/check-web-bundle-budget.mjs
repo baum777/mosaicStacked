@@ -1,10 +1,11 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { brotliCompressSync, gzipSync } from "node:zlib";
 
 const distDir = join(process.cwd(), "web", "dist");
 const assetsDir = join(distDir, "assets");
 const indexHtmlPath = join(distDir, "index.html");
+const perfCachePath = join(process.cwd(), "web", "src", "lib", "perf-cache.json");
 
 const COMBINED_GZIP_BUDGET_BYTES = 180 * 1024;
 const COMBINED_BROTLI_BUDGET_BYTES = 160 * 1024;
@@ -170,6 +171,37 @@ console.log(
 console.log(
   `TOTAL combined raw ${formatKiB(combinedRaw)} | gzip ${formatKiB(combinedGzip)} / budget ${formatKiB(COMBINED_GZIP_BUDGET_BYTES)} | brotli ${formatKiB(combinedBrotli)} / budget ${formatKiB(COMBINED_BROTLI_BUDGET_BYTES)} => ${totalPass ? "PASS" : "FAIL"}`,
 );
+
+// Persist the latest bundle numbers + lastUpdated into the local perf cache
+// so the Performance tab can show real numbers after a perf run. The
+// `lighthouse` block is preserved as-is (managed by check-lighthouse-tti.mjs).
+function writePerfCacheBundle() {
+  let previous = {};
+  try {
+    previous = JSON.parse(readFileSync(perfCachePath, "utf8"));
+  } catch {
+    previous = {};
+  }
+
+  const next = {
+    ...previous,
+    lastUpdated: new Date().toISOString(),
+    bundle: {
+      gzipBytes: combinedGzip,
+      brotliBytes: combinedBrotli,
+      budgetGzipBytes: COMBINED_GZIP_BUDGET_BYTES,
+      budgetBrotliBytes: COMBINED_BROTLI_BUDGET_BYTES,
+    },
+  };
+
+  try {
+    writeFileSync(perfCachePath, `${JSON.stringify(next, null, 2)}\n`);
+  } catch (error) {
+    console.error(`WARN could not write perf cache at ${perfCachePath}: ${error.message}`);
+  }
+}
+
+writePerfCacheBundle();
 
 if (!totalPass) {
   process.exit(1);

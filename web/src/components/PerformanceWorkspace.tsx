@@ -1,6 +1,7 @@
 import React from "react";
 import { useLocalization } from "../lib/localization.js";
 import { SectionLabel, StatusBadge } from "./ShellPrimitives.js";
+import perfCache from "../lib/perf-cache.json";
 
 type MetricTone = "ready" | "partial" | "error";
 
@@ -20,33 +21,66 @@ type WorkflowStep = {
   width: number;
 };
 
+const lighthouseSource = (perfCache as { lighthouse?: { lcpMs?: unknown; cls?: unknown; ttiMs?: unknown } }).lighthouse;
+const bundleSource = (perfCache as { bundle?: { gzipBytes?: unknown; brotliBytes?: unknown; budgetGzipBytes?: unknown; budgetBrotliBytes?: unknown } }).bundle;
+
+function readNumber(source: Record<string, unknown> | undefined, key: string): number | null {
+  const value = source?.[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+const lcpMs = readNumber(lighthouseSource, "lcpMs");
+const clsValue = readNumber(lighthouseSource, "cls");
+const ttiMs = readNumber(lighthouseSource, "ttiMs");
+const gzipBytes = readNumber(bundleSource, "gzipBytes");
+const budgetGzipBytes = readNumber(bundleSource, "budgetGzipBytes");
+
+const lcpDisplay = lcpMs !== null ? `${(lcpMs / 1000).toFixed(1)} s` : "unknown";
+const clsDisplay = clsValue !== null ? clsValue.toFixed(2) : "unknown";
+const ttiDisplay = ttiMs !== null ? `${(ttiMs / 1000).toFixed(1)} s` : "unknown";
+const bundleDisplay = gzipBytes !== null && budgetGzipBytes !== null
+  ? (gzipBytes <= budgetGzipBytes ? "budgeted" : "over")
+  : "unknown";
+
+const lastUpdated: string = (() => {
+  const raw = (perfCache as { lastUpdated?: unknown }).lastUpdated;
+  if (typeof raw !== "string" || raw === "unknown" || raw.length === 0) {
+    return "unknown";
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    return "unknown";
+  }
+  return parsed.toISOString();
+})();
+
 const metrics: PerfMetric[] = [
   {
     label: "LCP",
-    value: "1.1 s",
+    value: lcpDisplay,
     detail: "Reference from docs/lighthouse-report.json, local evidence only",
     tone: "ready",
     points: "0,18 12,14 24,16 36,11 48,9 60,10 72,7 84,9 100,6",
   },
   {
     label: "CLS",
-    value: "0.03",
+    value: clsDisplay,
     detail: "Reference from docs/lighthouse-report.json, local evidence only",
     tone: "ready",
     points: "0,12 12,12 24,11 36,14 48,12 60,11 72,12 84,13 100,11",
   },
   {
     label: "TTI",
-    value: "2.0 s",
+    value: ttiDisplay,
     detail: "Checked by npm run perf:lighthouse:tti against local preview",
     tone: "ready",
     points: "0,17 12,15 24,14 36,12 48,13 60,10 72,9 84,10 100,8",
   },
   {
     label: "Bundle",
-    value: "budgeted",
+    value: bundleDisplay,
     detail: "Checked by npm run perf:bundle:web",
-    tone: "partial",
+    tone: gzipBytes !== null && budgetGzipBytes !== null && gzipBytes <= budgetGzipBytes ? "ready" : "partial",
     points: "0,11 12,10 24,12 36,10 48,11 60,9 72,11 84,8 100,9",
   },
 ];
@@ -113,6 +147,8 @@ export function PerformanceWorkspace() {
         deploy: "Deploy-Hinweis",
         deployBody: "Production- und Preview-Status bleiben außerhalb dieser Browserfläche, bis Backend- oder CI-Evidenz sie belegt.",
         status: "Evidenz",
+        localEvidenceOnly: "Nur lokale Evidenz",
+        lastUpdatedLabel: "Zuletzt aktualisiert",
       }
     : {
         kicker: "PERFORMANCE",
@@ -123,6 +159,8 @@ export function PerformanceWorkspace() {
         deploy: "Deploy note",
         deployBody: "Production and preview status stay outside this browser surface until backend or CI evidence proves them.",
         status: "Evidence",
+        localEvidenceOnly: "Local evidence only",
+        lastUpdatedLabel: "Last updated",
       };
 
   return (
@@ -136,6 +174,17 @@ export function PerformanceWorkspace() {
           <StatusBadge tone="partial">{copy.status}: partial</StatusBadge>
         </header>
         <p className="muted-copy">{copy.body}</p>
+        <p className="muted-copy performance-last-updated-line">
+          <span className="performance-last-updated-label">{copy.lastUpdatedLabel}:</span>
+          <span
+            data-testid="performance-last-updated"
+            data-last-updated={lastUpdated}
+          >
+            {lastUpdated}
+          </span>
+          <span aria-hidden="true"> · </span>
+          <span className="performance-local-evidence-disclaimer">{copy.localEvidenceOnly}</span>
+        </p>
       </article>
 
       <article className="workspace-card performance-metric-card">

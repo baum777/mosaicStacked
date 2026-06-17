@@ -1221,6 +1221,58 @@ export function MatrixWorkspace(props: MatrixWorkspaceProps) {
           <p>{identityLabel} · {homeserverLabel}</p>
         </header>
 
+        <div className="matrix-mobile-stage-card" data-stage="identity">
+          <p className="matrix-mobile-stage-card-label">
+            {locale === "de" ? "STUFE 1 · IDENTITÄT" : "STAGE 1 · IDENTITY"}
+          </p>
+          <p className="matrix-mobile-stage-card-value">
+            {props.expertMode
+              ? `${whoami?.userId ?? ui.common.na} · ${whoami?.homeserver ?? ui.common.na}`
+              : (whoami ? `${identityLabel} · ${homeserverLabel}` : identityLabel)}
+          </p>
+        </div>
+
+        <div className="matrix-mobile-stage-card" data-stage="rooms">
+          <p className="matrix-mobile-stage-card-label">
+            {locale === "de" ? "STUFE 2 · RÄUME" : "STAGE 2 · ROOMS"}
+          </p>
+          <p className="matrix-mobile-stage-card-value">
+            {visibleJoinedRooms.length > 0
+              ? (locale === "de"
+                ? `${visibleJoinedRooms.length} verbundene Räume`
+                : `${visibleJoinedRooms.length} joined rooms`)
+              : (status === "loading"
+                ? ui.matrix.scopeSummaryLoading
+                : ui.matrix.roomPickerEmpty)}
+          </p>
+        </div>
+
+        <div className="matrix-mobile-stage-card" data-stage="scope">
+          <p className="matrix-mobile-stage-card-label">
+            {locale === "de" ? "STUFE 3 · SCOPE" : "STAGE 3 · SCOPE"}
+          </p>
+          <p className="matrix-mobile-stage-card-value">
+            {currentScope
+              ? (props.expertMode
+                ? `${currentScope.type} · ${currentScope.scopeId}`
+                : ui.matrix.scopeSelected)
+              : ui.matrix.scopeUnresolved}
+          </p>
+        </div>
+
+        <div className="matrix-mobile-stage-card" data-stage="topic">
+          <p className="matrix-mobile-stage-card-label">
+            {locale === "de" ? "STUFE 4 · TOPIC" : "STAGE 4 · TOPIC"}
+          </p>
+          <p className="matrix-mobile-stage-card-value">
+            {topicPlan
+              ? (props.expertMode
+                ? `${localText.runtimeTopicPlanReady} · ${topicPlan.status}`
+                : localText.runtimeTopicPlanReady)
+              : localText.runtimeNoTopicPlan}
+          </p>
+        </div>
+
         <div className="matrix-mobile-status-grid">
           <div>
             <span>{ui.matrix.scopeTitle}</span>
@@ -1263,6 +1315,18 @@ export function MatrixWorkspace(props: MatrixWorkspaceProps) {
             {locale === "de" ? "Prüfen" : "Verify"}
           </button>
         </div>
+
+        {!props.matrixReadAvailable || !matrixGates.canApproveTopic ? (
+          <p
+            className="matrix-mobile-submit-hint"
+            data-testid="matrix-mobile-submit-hint"
+            aria-live="polite"
+          >
+            {locale === "de"
+              ? "Senden ist gesperrt: ohne aktiven Schreibvertrag bleibt die Composer-Oberfläche im Lesemodus (read-only). Backend-Freigabe erforderlich."
+              : "Submit is disabled: without an active write contract the composer stays read-only. Backend approval is required."}
+          </p>
+        ) : null}
 
         <section className="matrix-mobile-list">
           <span className="mobile-mono">{ui.matrix.joinedRoomsTitle}</span>

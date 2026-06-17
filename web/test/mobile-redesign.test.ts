@@ -165,7 +165,17 @@ test("mobile chat slice uses bounded composer and inline diff primitives", () =>
   assert.match(source, /InlineDiff/);
   assert.match(source, /mobile-compose-field/);
   assert.match(source, /mobile-compose-submit/);
-  assert.match(source, /Math\.min\(textarea\.scrollHeight,\s*96\)/);
+  // Block C (Mobile-Tab-Adapter) raises the auto-resize cap from 96 px to
+  // 200 px so long prompts no longer scroll inside a tiny input. Accept
+  // either the literal `200` or a `COMPOSE_AUTO_RESIZE_MAX_PX` constant
+  // bound to 200.
+  const composerCap = /Math\.min\(\s*textarea\.scrollHeight\s*,\s*200\s*\)/.test(source)
+    || (/COMPOSE_AUTO_RESIZE_MAX_PX\s*=\s*200/.test(source)
+      && /Math\.min\(\s*textarea\.scrollHeight\s*,\s*COMPOSE_AUTO_RESIZE_MAX_PX\s*\)/.test(source));
+  assert.ok(
+    composerCap,
+    "ComposeZone must cap the auto-resize at scrollHeight, 200 (Block C audit fix)",
+  );
   assert.match(source, /extractInlineDiffFiles/);
   assert.match(css, /--mobile-chat-golden-ratio:\s*1\.618/);
   assert.match(css, /\.mobile-compose-field[\s\S]*position:\s*relative/);
@@ -273,9 +283,11 @@ test("desktop shell has critical and deferred responsive guards", () => {
   const ui = uiAdaptationSource();
 
   assert.match(critical, /Desktop shell critical layout/);
-  assert.match(critical, /@media \(min-width:\s*761px\)[\s\S]*\.app-shell-console:not\(\.app-shell-mobile\) \.console-layout\s*{[\s\S]*grid-template-columns:\s*220px minmax\(0,\s*1fr\) minmax\(280px,\s*320px\)/);
+  // Block B (R2 fix) widens the desktop sidebar to 240px so the visible
+  // tab labels have room to render.
+  assert.match(critical, /@media \(min-width:\s*761px\)[\s\S]*\.app-shell-console:not\(\.app-shell-mobile\) \.console-layout\s*{[\s\S]*grid-template-columns:\s*minmax\(240px,\s*260px\) minmax\(0,\s*1fr\) minmax\(280px,\s*320px\)/);
   assert.match(ui, /Desktop shell responsive stability guard/);
-  assert.match(ui, /@media \(min-width:\s*1024px\)[\s\S]*\.app-shell-console:not\(\.app-shell-mobile\) \.console-layout\s*{[\s\S]*grid-template-columns:\s*220px minmax\(0,\s*1fr\) minmax\(280px,\s*320px\) !important/);
-  assert.match(ui, /@media \(min-width:\s*1024px\) and \(max-width:\s*1279px\)[\s\S]*grid-template-columns:\s*220px minmax\(0,\s*1fr\) 280px !important/);
+  assert.match(ui, /@media \(min-width:\s*1024px\)[\s\S]*\.app-shell-console:not\(\.app-shell-mobile\) \.console-layout\s*{[\s\S]*grid-template-columns:\s*minmax\(240px,\s*260px\) minmax\(0,\s*1fr\) minmax\(280px,\s*320px\) !important/);
+  assert.match(ui, /@media \(min-width:\s*1024px\) and \(max-width:\s*1279px\)[\s\S]*grid-template-columns:\s*minmax\(240px,\s*260px\) minmax\(0,\s*1fr\) 280px !important/);
   assert.match(ui, /\.app-shell-console:not\(\.app-shell-mobile\) \.workspace-tab-vertical span,[\s\S]*\.app-shell-console:not\(\.app-shell-mobile\) \.workspace-tab-vertical strong,[\s\S]*\.app-shell-console:not\(\.app-shell-mobile\) \.workspace-tab-vertical small,[\s\S]*overflow:\s*hidden/);
 });

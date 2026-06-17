@@ -339,21 +339,31 @@ button:disabled {
   height: calc(52px + env(safe-area-inset-bottom));
   padding: 4px 8px calc(env(safe-area-inset-bottom) + 4px);
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
   border-top: 1px solid var(--ms-border2);
   background: var(--ms-bg2);
 }
 
 .app-shell-mobile .workspace-tab-mobile {
   min-height: 44px;
-  padding: 4px 6px;
+  padding: 4px 4px;
   border-radius: var(--r);
   flex-direction: column;
-  gap: 4px;
-  font-size: 10px;
-  letter-spacing: 0.04em;
+  gap: 2px;
+  font-size: 9px;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-shell-mobile .workspace-tab-mobile > span {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-shell-mobile .workspace-tab-mobile svg {
@@ -376,6 +386,29 @@ button:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.app-shell-mobile .mobile-settings-button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-shell-mobile .mobile-settings-button svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
 }
 
 .mobile-chat-page,
@@ -714,6 +747,7 @@ button:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 0 1 auto;
 }
 
 .app-shell-mobile .mobile-context-live {
@@ -784,7 +818,7 @@ button:disabled {
   width: 100%;
   height: auto;
   min-height: 36px;
-  max-height: 96px;
+  max-height: clamp(44px, 24dvh, 200px);
   padding: 10px 48px 10px 12px;
   border: 0;
   border-radius: 12px;
@@ -1649,7 +1683,7 @@ button:disabled {
     height: calc(100vh - 57px);
     min-height: 0;
     display: grid;
-    grid-template-columns: 220px minmax(0, 1fr) minmax(280px, 320px);
+    grid-template-columns: minmax(240px, 260px) minmax(0, 1fr) minmax(280px, 320px);
     align-items: stretch;
     overflow: hidden;
   }
@@ -2127,4 +2161,136 @@ body.light-mode {
 
 .app-shell-mobile .workspace-tab-mobile span:empty {
   display: none;
+}
+
+/* Block C (Mobile-Tab-Adapter) — Workbench mobile stage progress indicator */
+.app-shell-mobile .github-mobile-stage-progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  min-height: 8px;
+  padding: 0 2px;
+  align-items: center;
+}
+
+.app-shell-mobile .github-mobile-stage-progress-dot {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(158, 168, 190, 0.22);
+  transition: background 0.15s ease;
+}
+
+.app-shell-mobile .github-mobile-stage-progress-dot-active {
+  background: var(--mobile-redesign-amber, var(--ms-amber));
+}
+
+.app-shell-mobile .github-mobile-stage-progress-label {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--mobile-redesign-muted, var(--ms-text2));
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Block C (Mobile-Tab-Adapter) — Matrix mobile stage cards (Identity / Rooms / Scope / Topic) */
+.app-shell-mobile .matrix-mobile-stage-card {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(98, 201, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(11, 20, 34, 0.56);
+}
+
+.app-shell-mobile .matrix-mobile-stage-card-label {
+  margin: 0;
+  color: var(--mobile-redesign-muted, var(--ms-text2));
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-shell-mobile .matrix-mobile-stage-card-value {
+  margin: 0;
+  color: var(--mobile-redesign-text, var(--ms-text));
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.app-shell-mobile .matrix-mobile-stage-card[data-stage="identity"] {
+  border-color: rgba(98, 201, 255, 0.32);
+}
+
+.app-shell-mobile .matrix-mobile-stage-card[data-stage="rooms"] {
+  border-color: rgba(62, 207, 142, 0.28);
+}
+
+.app-shell-mobile .matrix-mobile-stage-card[data-stage="scope"] {
+  border-color: rgba(253, 203, 110, 0.32);
+}
+
+.app-shell-mobile .matrix-mobile-stage-card[data-stage="topic"] {
+  border-color: rgba(240, 82, 82, 0.28);
+}
+
+/* Block C (Mobile-Tab-Adapter) — Matrix mobile submit-disabled hint */
+.app-shell-mobile .matrix-mobile-submit-hint {
+  display: block;
+  margin: 6px 0 0;
+  padding: 0 2px;
+  color: var(--mobile-redesign-muted, var(--ms-text2));
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Block C (Mobile-Tab-Adapter) — Mobile diff patch renderer (third tab) */
+.app-shell-mobile .mobile-diff-patch {
+  margin: 0;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(158, 168, 190, 0.18);
+  background: rgba(9, 15, 26, 0.78);
+  color: var(--hi);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  max-height: 40dvh;
+  overflow: auto;
+  scrollbar-width: thin;
+  white-space: pre;
+}
+
+.app-shell-mobile .mobile-diff-patch-line {
+  display: block;
+  padding: 0 4px;
+  border-radius: 4px;
+  white-space: pre;
+}
+
+.app-shell-mobile .mobile-diff-patch-line-added {
+  background: rgba(62, 207, 142, 0.12);
+  color: #3fcf8e;
+}
+
+.app-shell-mobile .mobile-diff-patch-line-removed {
+  background: rgba(240, 82, 82, 0.12);
+  color: #f05252;
+}
+
+.app-shell-mobile .mobile-diff-patch-line-context {
+  color: var(--mid);
+}
+
+.app-shell-mobile .mobile-diff-patch-empty {
+  margin: 0;
+  padding: 10px;
+  color: var(--mobile-redesign-muted, var(--ms-text2));
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
 }

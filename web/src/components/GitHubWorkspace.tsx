@@ -1596,6 +1596,17 @@ export function GitHubWorkspace(props: GitHubWorkspaceProps) {
               ? ui.github.workspaceNoticeRepos
               : null;
 
+  // Block C (Mobile-Tab-Adapter): the mobile Workbench has 4 ordered
+  // stages (repo → analysis → proposal → approval). Compute the active
+  // stage from existing state so the progress dots reflect the real flow.
+  const workbenchMobileStage: 1 | 2 | 3 | 4 = approvalChecked
+    ? 4
+    : proposalPlan
+      ? 3
+      : analysisBundle
+        ? 2
+        : 1;
+
   return (
     <section
       className="workspace-panel github-workspace"
@@ -1633,6 +1644,33 @@ export function GitHubWorkspace(props: GitHubWorkspaceProps) {
             <strong>{mobileNextStepLabel}</strong>
           </div>
         </section>
+
+        <div
+          className="github-mobile-stage-progress"
+          data-stage-progress={workbenchMobileStage}
+          aria-label={locale === "de"
+            ? `Arbeitsschritt ${workbenchMobileStage} von 4`
+            : `Workbench step ${workbenchMobileStage} of 4`}
+          role="progressbar"
+          aria-valuenow={workbenchMobileStage}
+          aria-valuemin={1}
+          aria-valuemax={4}
+        >
+          {[1, 2, 3, 4].map((dot) => (
+            <span
+              key={dot}
+              className={dot <= workbenchMobileStage
+                ? "github-mobile-stage-progress-dot github-mobile-stage-progress-dot-active"
+                : "github-mobile-stage-progress-dot"}
+              aria-hidden="true"
+            />
+          ))}
+          <span className="github-mobile-stage-progress-label">
+            {locale === "de"
+              ? `Schritt ${workbenchMobileStage} von 4`
+              : `Step ${workbenchMobileStage} of 4`}
+          </span>
+        </div>
 
         <section className="github-mobile-stage-card" aria-label={locale === "de" ? "Schritt 1 Kontext" : "Step 1 context"}>
           <span className="mobile-mono">{locale === "de" ? "SCHRITT 1 · KONTEXT" : "STEP 1 · CONTEXT"}</span>
@@ -1715,6 +1753,46 @@ export function GitHubWorkspace(props: GitHubWorkspaceProps) {
               disabled={!proposalPlan}
             >
               {workbenchActionLabels.openDiff}
+            </button>
+          </div>
+        </section>
+
+        <section className="github-mobile-stage-card" aria-label={locale === "de" ? "Schritt 4 Freigabe" : "Step 4 approval"}>
+          <span className="mobile-mono">{locale === "de" ? "SCHRITT 4 · FREIGABE" : "STEP 4 · APPROVAL"}</span>
+          <p>
+            {approvalChecked
+              ? (locale === "de"
+                ? "Vorschlag freigegeben. Ausführung läuft im Backend."
+                : "Proposal approved. Backend execution is in progress.")
+              : (locale === "de"
+                ? "Bestätige den Vorschlag und gib ihn frei oder lehne ihn ab."
+                : "Confirm the proposal, then approve or reject it.")}
+          </p>
+          <div className="github-mobile-stage-actions" data-testid="github-mobile-stage-approval">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => setDiffSheetOpen(true)}
+              disabled={!proposalPlan}
+            >
+              {locale === "de" ? "Bestätigen" : "Confirm"}
+            </button>
+            <button
+              type="button"
+              onClick={handleMarkForStage}
+              disabled={markForStageDisabled}
+              title={markForStageDisabled ? markForStageGate.tooltipText ?? undefined : undefined}
+            >
+              {workbenchActionLabels.markForStage}
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleRemoveFromReview}
+              disabled={removeFromReviewDisabled}
+              title={removeFromReviewDisabled ? removeFromReviewGate.tooltipText ?? undefined : undefined}
+            >
+              {workbenchActionLabels.removeReview}
             </button>
           </div>
         </section>

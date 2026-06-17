@@ -1,5 +1,10 @@
 import { useLayoutEffect, type FormEvent, type KeyboardEvent, type MutableRefObject, type ReactNode } from "react";
 
+// Block C (Mobile-Tab-Adapter): cap the auto-resize at 200 px so long prompts
+// no longer scroll inside a tiny 96 px input. The CSS `max-height: clamp(44px,
+// 24dvh, 200px)` mirrors this ceiling for the layout guard.
+const COMPOSE_AUTO_RESIZE_MAX_PX = 200;
+
 export function ComposeZone({
   value,
   placeholder,
@@ -36,7 +41,7 @@ export function ComposeZone({
     }
 
     textarea.style.height = "0px";
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 96)}px`;
+    textarea.style.height = `${Math.min(textarea.scrollHeight, COMPOSE_AUTO_RESIZE_MAX_PX)}px`;
   }, [textareaRef, value]);
 
   return (

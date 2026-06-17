@@ -39,6 +39,13 @@ Rationale:
 - It may display local Lighthouse, bundle, typecheck, build, web test, and browser test gates.
 - It must not claim live CI, scheduler, deployment, preview, or production telemetry unless a backend- or CI-owned evidence route proves that state.
 
+## Performance Cache
+
+- `web/src/lib/perf-cache.json` is a repo-local snapshot of the last known LCP, CLS, TTI, bundle, and per-step timing values that the `/console?mode=perf` page reads on mount.
+- The snapshot is intentionally a static file rather than a runtime cache: the Performance workspace is a review surface, and the browser must never treat its numbers as live CI, scheduler, or production telemetry.
+- A `lastUpdated` timestamp is required on the snapshot; the workspace renders `unknown` when the file is missing or the field is absent, so the page can never claim a fresher value than the evidence actually carries.
+- The console keeps a "local evidence only" disclaimer next to the timestamp, mirroring the bundle/lighthouse postured caveats in this document.
+
 ## Phase 2 GitHub Surface Guardrails
 
 - Mobile GitHub review UI enters through `web/src/pages/GitHubPage.tsx` and is loaded with `React.lazy()` from `web/src/App.tsx`.

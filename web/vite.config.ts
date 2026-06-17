@@ -4,10 +4,9 @@ import react from "@vitejs/plugin-react";
 const DEFERRED_PRELOAD_CHUNK_PREFIXES = [
   "GitHubPage",
   "MatrixPage",
+  "SettingsWorkspace",
   "chunk-github",
   "chunk-matrix",
-  "vendor-syntax",
-  "vendor-ui",
 ];
 
 export default defineConfig({
@@ -26,23 +25,18 @@ export default defineConfig({
         manualChunks(id) {
           const normalizedId = id.replaceAll("\\", "/");
 
-          if (normalizedId.includes("/node_modules/react/")
+          if (
+            normalizedId.includes("/node_modules/react/")
             || normalizedId.includes("/node_modules/react-dom/")
-            || normalizedId.includes("/node_modules/react-is/")
-            || normalizedId.includes("/node_modules/scheduler/")) {
+          ) {
             return "vendor-react";
           }
 
-          if (normalizedId.includes("/node_modules/react-router/")) {
-            return "vendor-router";
-          }
-
-          if (normalizedId.includes("/node_modules/highlight.js/") || normalizedId.includes("/node_modules/shiki/")) {
-            return "vendor-syntax";
-          }
-
-          if (normalizedId.includes("/node_modules/framer-motion/") || normalizedId.includes("/node_modules/@radix-ui/")) {
-            return "vendor-ui";
+          if (
+            normalizedId.includes("/node_modules/react-markdown/")
+            || normalizedId.includes("/node_modules/remark-gfm/")
+          ) {
+            return "vendor-markdown";
           }
 
           return undefined;

@@ -952,6 +952,23 @@ pre, code, .message-meta, .detail-grid span, .scope-summary-meta, .runtime-note,
   line-height: 1.1;
 }
 
+.sidebar-tab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-inline-start: 8px;
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.workspace-tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
 .workspace-tab-vertical small {
   color: var(--muted);
   font-size: 0.75rem;
@@ -9120,8 +9137,8 @@ button,
 }
 
 .workspace-sidebar {
-  width: 220px;
-  min-width: 220px;
+  width: 240px;
+  min-width: 240px;
 }
 
 .workspace-tab-icon-rail {

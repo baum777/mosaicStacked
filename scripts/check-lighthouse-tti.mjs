@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -9,6 +9,7 @@ const RUN_COUNT = Number.parseInt(process.env.LIGHTHOUSE_TTI_RUNS ?? "3", 10);
 const TTI_BUDGET_MS = Number.parseInt(process.env.LIGHTHOUSE_TTI_BUDGET_MS ?? "2600", 10);
 const TARGET_URL = process.env.LIGHTHOUSE_URL ?? DEFAULT_URL;
 const FINAL_REPORT_PATH = process.env.LIGHTHOUSE_REPORT_PATH ?? "docs/lighthouse-report.json";
+const PERF_CACHE_PATH = join(process.cwd(), "web", "src", "lib", "perf-cache.json");
 
 function median(values) {
   const sorted = [...values].sort((a, b) => a - b);
@@ -88,6 +89,39 @@ try {
   const medianTti = median(runs.map((run) => run.tti));
   const medianRun = runs.find((run) => run.tti === medianTti) ?? runs[0];
   copyFileSync(medianRun.reportPath, FINAL_REPORT_PATH);
+
+  // Persist the median-run lighthouse numbers + lastUpdated into the local
+  // perf cache so the Performance tab can show real numbers after a perf run.
+  // The `bundle` block is preserved as-is (managed by check-web-bundle-budget.mjs).
+  try {
+    const medianReport = JSON.parse(readFileSync(medianRun.reportPath, "utf8"));
+    const lcpMs = medianReport.audits?.["largest-contentful-paint"]?.numericValue;
+    const cls = medianReport.audits?.["cumulative-layout-shift"]?.numericValue;
+    const fetchTime = medianReport.fetchTime;
+
+    let previous = {};
+    try {
+      previous = JSON.parse(readFileSync(PERF_CACHE_PATH, "utf8"));
+    } catch {
+      previous = {};
+    }
+
+    const next = {
+      ...previous,
+      lastUpdated: new Date().toISOString(),
+      lighthouse: {
+        ...(typeof previous.lighthouse === "object" && previous.lighthouse !== null ? previous.lighthouse : {}),
+        ...(typeof fetchTime === "string" ? { fetchTime } : {}),
+        ...(typeof lcpMs === "number" ? { lcpMs } : {}),
+        ...(typeof cls === "number" ? { cls } : {}),
+        ttiMs: medianTti,
+      },
+    };
+
+    writeFileSync(PERF_CACHE_PATH, `${JSON.stringify(next, null, 2)}\n`);
+  } catch (error) {
+    console.error(`WARN could not write perf cache at ${PERF_CACHE_PATH}: ${error.message}`);
+  }
 
   const pass = medianTti <= TTI_BUDGET_MS;
   console.log(`MEDIAN TTI ${formatMs(medianTti)} / budget ${formatMs(TTI_BUDGET_MS)} => ${pass ? "PASS" : "FAIL"}`);

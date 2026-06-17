@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
+import React from "react";
 
 export type BottomNavItem = {
   key: string;
   label: string;
   icon: ReactNode;
   active?: boolean;
-  badge?: string;
+  badge?: string | number;
   testId?: string;
   onPress: () => void;
 };

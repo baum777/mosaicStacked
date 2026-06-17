@@ -7,7 +7,6 @@ import {
   type MatrixWorkspaceStatus,
 } from "./components/MatrixWorkspace.js";
 import {
-  SettingsWorkspace,
   type DiagnosticEntry,
   type SettingsTruthSnapshot,
 } from "./components/SettingsWorkspace.js";
@@ -52,11 +51,13 @@ import {
 import { BottomNav } from "./components/navigation/BottomNav.js";
 import { ContextStrip, type MobileContextStatus } from "./components/mobile/layout/ContextStrip.js";
 import { TopContextBar } from "./components/mobile/layout/TopContextBar.js";
+import { DesktopSidebarTabs } from "./components/navigation/DesktopSidebarTabs.js";
 import { useRuntimeStatus } from "./hooks/useRuntimeStatus.js";
 import { useWorkspaceSessions } from "./hooks/useWorkspaceSessions.js";
 import { useCrossTabCommands } from "./hooks/useCrossTabCommands.js";
 import type { CrossTabCommand } from "./lib/cross-tab-commands.js";
 import { useReviewState } from "./hooks/useReviewState.js";
+import { useConsoleTheme, type ConsoleTheme } from "./hooks/useConsoleTheme.js";
 import { deriveShellFreshness, type ShellFreshness } from "./lib/shell-freshness.js";
 import type { NavigationPaletteEntry } from "./lib/navigation-palette.js";
 
@@ -64,14 +65,15 @@ const loadChatWorkspace = () => import("./components/ChatWorkspace.js");
 const loadGitHubWorkspace = () => import("./components/GitHubWorkspace.js");
 const loadMatrixWorkspace = () => import("./components/MatrixWorkspace.js");
 const loadPerformanceWorkspace = () => import("./components/PerformanceWorkspace.js");
+const loadSettingsWorkspace = () => import("./components/SettingsWorkspace.js");
 
 const ChatWorkspace = lazy(() => loadChatWorkspace().then((module) => ({ default: module.ChatWorkspace })));
 const GitHubWorkspace = lazy(() => loadGitHubWorkspace().then((module) => ({ default: module.GitHubWorkspace })));
 const MatrixWorkspace = lazy(() => loadMatrixWorkspace().then((module) => ({ default: module.MatrixWorkspace })));
 const PerformanceWorkspace = lazy(() => loadPerformanceWorkspace().then((module) => ({ default: module.PerformanceWorkspace })));
+const SettingsWorkspace = lazy(() => loadSettingsWorkspace().then((module) => ({ default: module.SettingsWorkspace })));
 
 type WorkspaceMode = "chat" | "workbench" | "matrix" | "settings" | "perf";
-type ConsoleTheme = "tokyo" | "darkula" | "muted-light";
 
 type TelemetryEntry = {
   id: string;
@@ -435,17 +437,6 @@ export default function App() {
   }
 
   return surface === "readme" ? <ReadmeLandingPage /> : <PublicPreview />;
-}
-
-function useDarkOnlyTheme() {
-  useEffect(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
-
-    document.documentElement.dataset.theme = "dark";
-    document.body.classList.remove("light-mode");
-  }, []);
 }
 
 function useIsMobileViewport() {
@@ -1137,7 +1128,6 @@ function RouteStatusLadder({
 function ConsoleShell() {
   const persisted = readPersistedShellState();
   const { locale, setLocale, copy: ui } = useLocalization();
-  useDarkOnlyTheme();
   const isMobileViewport = useIsMobileViewport();
   const appText = useMemo(
     () => locale === "de"
@@ -1250,6 +1240,7 @@ function ConsoleShell() {
   );
   const [workMode, setWorkMode] = useState<WorkMode>(() => resolvePersistedWorkMode(persisted));
   const [consoleTheme, setConsoleTheme] = useState<ConsoleTheme>(() => readPersistedConsoleTheme());
+  useConsoleTheme(consoleTheme);
   const expertMode = isExpertMode(workMode);
   const workModeCopy = getWorkModeCopy(locale, workMode);
   const [telemetry, setTelemetry] = useState<TelemetryEntry[]>([]);
@@ -1397,6 +1388,11 @@ function ConsoleShell() {
   const handleMobileContextToggle = useCallback(() => {
     setMobileContextOpen((current) => !current);
   }, []);
+
+  const handleMobileSettingsPress = useCallback(() => {
+    setMobileContextOpen(false);
+    handleWorkspaceTabSelect("settings");
+  }, [handleWorkspaceTabSelect]);
 
   const handleMobileBrandPointerDown = useCallback(() => {
     if (!isMobileViewport) {
@@ -2370,8 +2366,10 @@ function ConsoleShell() {
       onIntegrationAction: handleIntegrationAction,
       verificationResults: settingsVerificationResults,
       onVerifyConnection: handleSettingsVerifyConnection,
+      matrixHierarchyEnabled: MATRIX_HIERARCHY_ENABLED,
     }),
     [
+      MATRIX_HIERARCHY_ENABLED,
       buildSettingsIntegrationStartUrl,
       clearTelemetry,
       handleIntegrationAction,
@@ -2644,6 +2642,7 @@ function ConsoleShell() {
           languageAriaLabel={ui.shell.languageLabel}
           languageOptionEnglish={ui.shell.languageOptionEnglish}
           languageOptionGerman={ui.shell.languageOptionGerman}
+          settingsAriaLabel={locale === "de" ? "Einstellungen öffnen" : "Open settings"}
           onBrandClick={handleMobileBrandClick}
           onBrandPointerDown={handleMobileBrandPointerDown}
           onBrandPointerUp={clearMobileBrandLongPress}
@@ -2651,6 +2650,7 @@ function ConsoleShell() {
           onBrandPointerLeave={clearMobileBrandLongPress}
           onModelPress={() => handleWorkspaceTabSelect("settings")}
           onLocaleChange={setLocale}
+          onSettingsPress={handleMobileSettingsPress}
         />
         <section className="shell-truth-top shell-truth-top-mobile" aria-label={locale === "de" ? "Systemstatus" : "System status"}>
           <div className="shell-truth-top-left">
@@ -2763,6 +2763,9 @@ function ConsoleShell() {
             label: workspaceTabLabels[workspaceMode],
             icon: <WorkspaceIcon mode={workspaceMode} />,
             active: activeMobileNav === workspaceMode,
+            badge: workspaceMode === "workbench" && approvalSummary.pending > 0
+              ? approvalSummary.pending
+              : undefined,
             onPress: () => handleMobileNavSelect(workspaceMode),
             testId: `tab-${workspaceMode}`,
           }))}
@@ -2849,25 +2852,12 @@ function ConsoleShell() {
         <aside className="workspace-sidebar shell-left-rail">
           <ShellCard variant="rail" className="shell-nav-card">
             <SectionLabel>{ui.shell.workspacesLabel}</SectionLabel>
-            <nav className="sidebar-nav" aria-label={ui.shell.workspacesLabel}>
-              {WORKSPACE_MODES.map((workspaceMode) => (
-                <button
-                  key={workspaceMode}
-                  type="button"
-                  className={mode === workspaceMode
-                    ? "workspace-tab workspace-tab-active workspace-tab-vertical workspace-tab-shell-active workspace-tab-icon-rail"
-                    : "workspace-tab workspace-tab-vertical workspace-tab-icon-rail"}
-                  onClick={() => handleWorkspaceTabSelect(workspaceMode)}
-                  aria-label={workspaceTabLabels[workspaceMode]}
-                  aria-current={mode === workspaceMode ? "page" : undefined}
-                  data-testid={`tab-${workspaceMode}`}
-                  title={workspaceTabLabels[workspaceMode]}
-                >
-                  <WorkspaceIcon mode={workspaceMode} />
-                  <span className="sr-only">{workspaceTabLabels[workspaceMode]}</span>
-                </button>
-              ))}
-            </nav>
+            <DesktopSidebarTabs
+              active={mode}
+              labels={workspaceTabLabels}
+              ariaLabel={ui.shell.workspacesLabel}
+              onSelect={handleWorkspaceTabSelect}
+            />
           </ShellCard>
 
           <ShellCard variant="muted" className="shell-session-identity-card shell-controls-card">

@@ -94,6 +94,7 @@ flowchart TB
 - Zeigt lokale Performance- und Qualitätsgates wie `npm run perf:bundle:web`, `npm run perf:lighthouse:tti`, Web-Typecheck, Web-Tests und Browser-Suite.
 - Behandelt Lighthouse-/Bundle-Werte als lokale Evidenz, nicht als Live-CI-, Scheduler-, Deployment- oder Produktions-Telemetrie.
 - Bleibt browserseitige Review-/Workflow-Fläche und führt keine GitHub-, Matrix- oder Provider-Writes aus.
+- Liest `web/src/lib/perf-cache.json` als lokalen Snapshot mit `lastUpdated`-Stempel und fällt auf `unknown` zurück, wenn der Cache fehlt — der Browser behauptet damit nie eine frischere Telemetrie als die vorhandene Evidenz.
 
 ## Approval-Flow
 

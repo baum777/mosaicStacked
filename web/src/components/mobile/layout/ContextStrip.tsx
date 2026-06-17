@@ -1,3 +1,5 @@
+import React from "react";
+
 export type MobileContextStatus = "idle" | "streaming" | "pending" | "error";
 
 export function ContextStrip({
@@ -25,7 +27,7 @@ export function ContextStrip({
       <span className="mobile-context-path">
         <span>{repoLabel}</span>
         <span>{branchLabel}</span>
-        <span>{fileLabel}</span>
+        <span data-ellipsis="true">{fileLabel}</span>
       </span>
       <span className={`mobile-context-live mobile-context-live-${status}`}>
         {status}

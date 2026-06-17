@@ -129,6 +129,7 @@ type SettingsWorkspaceProps = {
   ) => void;
   verificationResults: Record<SettingsVerificationTarget, SettingsVerificationState>;
   onVerifyConnection: (target: SettingsVerificationTarget) => void;
+  matrixHierarchyEnabled: boolean;
 };
 
 function getIntegrationNodeStatus(status: SettingsLoginAdapter["status"]): SystemNodeStatus {
@@ -321,81 +322,14 @@ export function SettingsWorkspace({
   onIntegrationAction,
   verificationResults,
   onVerifyConnection,
+  matrixHierarchyEnabled,
 }: SettingsWorkspaceProps) {
   const { locale, copy: ui } = useLocalization();
   const expertMode = isExpertMode(workMode);
   const beginnerCopy = getWorkModeCopy(locale, "beginner");
   const expertCopy = getWorkModeCopy(locale, "expert");
   const activeCopy = getWorkModeCopy(locale, workMode);
-  const adapterCopy = locale === "de"
-    ? {
-        accessTitle: "Zugänge",
-        actionLabel: "Aktion",
-        requirementsLabel: "Voraussetzungen",
-        noRequirements: "Keine offenen Voraussetzungen",
-        credentialSourceLabel: "Credential Source",
-        capabilitiesLabel: "Capabilities",
-        lastVerifiedLabel: "Last verified",
-        lastErrorLabel: "Last error",
-        status: {
-          not_connected: "Nicht verbunden",
-          connect_available: "Verbinden verfügbar",
-          connected: "Verbunden",
-          auth_expired: "Auth abgelaufen",
-          missing_server_config: "Server-Konfig fehlt",
-          scope_denied: "Scope verweigert",
-          upstream_unreachable: "Upstream nicht erreichbar",
-          disabled_by_policy: "Policy deaktiviert",
-          checking: "Wird geprüft",
-          error: "Fehler",
-        },
-        source: {
-          instance_configured: "Instance configured",
-          user_connected: "User connected",
-          user_connected_stub: "Legacy stub connection",
-          not_connected: "Not connected",
-        },
-        action: {
-          connect: "Verbinden",
-          reconnect: "Neu verbinden",
-          disconnect: "Trennen",
-          reverify: "Erneut prüfen",
-        },
-      }
-    : {
-        accessTitle: "Access",
-        actionLabel: "Action",
-        requirementsLabel: "Requirements",
-        noRequirements: "No open requirements",
-        credentialSourceLabel: "Credential source",
-        capabilitiesLabel: "Capabilities",
-        lastVerifiedLabel: "Last verified",
-        lastErrorLabel: "Last error",
-        status: {
-          not_connected: "Not connected",
-          connect_available: "Connect available",
-          connected: "Connected",
-          auth_expired: "Auth expired",
-          missing_server_config: "Missing server config",
-          scope_denied: "Scope denied",
-          upstream_unreachable: "Upstream unreachable",
-          disabled_by_policy: "Disabled by policy",
-          checking: "Checking",
-          error: "Error",
-        },
-        source: {
-          instance_configured: "Instance configured",
-          user_connected: "User connected",
-          user_connected_stub: "Legacy stub connection",
-          not_connected: "Not connected",
-        },
-        action: {
-          connect: "Connect",
-          reconnect: "Reconnect",
-          disconnect: "Disconnect",
-          reverify: "Reverify",
-        },
-      };
+  const adapterCopy = ui.settings.adapter;
 
   function getActionLabel(adapter: SettingsLoginAdapter, action: "connect" | "reconnect" | "disconnect" | "reverify") {
     if (adapter.id === "github" && (action === "connect" || action === "reconnect")) {
@@ -409,63 +343,7 @@ export function SettingsWorkspace({
     return adapterCopy.action[action];
   }
 
-  const openRouterCopy = locale === "de"
-    ? {
-        title: "OpenRouter Modelle",
-        subtitle: "Speichere deinen eigenen OpenRouter API Key backend-seitig. Der Browser zeigt danach nur einen maskierten Status.",
-        keyLabel: "OpenRouter API Key",
-        inputLabel: "OpenRouter Modell-ID",
-        validation: `OpenRouter API Key braucht mindestens ${OPENROUTER_API_KEY_MIN_LENGTH} Zeichen; die Modell-ID muss provider/model verwenden.`,
-        keyPlaceholder: "sk-or-v1-...",
-        placeholder: "provider/model",
-        showKey: "Key anzeigen",
-        hideKey: "Key verbergen",
-        save: "Speichern",
-        saving: "Speichert",
-        test: "Verbindung testen",
-        testing: "Test läuft",
-        manualConfigLabel: "Local diagnostic (not sent to backend)",
-        manualConfigPlaceholder: "{\"chat\":30,\"auth_login\":8,\"github_propose\":10,\"github_execute\":6,\"matrix_execute\":6}",
-        defaultLimitsLabel: "Default-Limits",
-        appliedLimitsLabel: "Aktive Limits",
-        manualConfigHint: "Nur lokale UI-Konfiguration; wird nicht an das Backend gesendet.",
-        manualConfigError: "Ungültige JSON-Config. Erlaubte Keys: chat, auth_login, github_propose, github_execute, matrix_execute. Werte müssen positive Ganzzahlen sein.",
-        configured: "OpenRouter key configured",
-        empty: "Noch kein OpenRouter-Key für dieses lokale Profil gespeichert.",
-        defaultFreeStatusLabel: "Default-Free-Status",
-        statusConfigured: "configured",
-        statusMissingKey: "missing key",
-        statusMissingModel: "missing model",
-        statusUnavailable: "unavailable",
-      }
-    : {
-        title: "OpenRouter models",
-        subtitle: "Store your own OpenRouter API key on the backend. The browser only shows masked status after save.",
-        keyLabel: "OpenRouter API key",
-        inputLabel: "OpenRouter model ID",
-        validation: `OpenRouter API key must have at least ${OPENROUTER_API_KEY_MIN_LENGTH} characters; model ID must use provider/model.`,
-        keyPlaceholder: "sk-or-v1-...",
-        placeholder: "provider/model",
-        showKey: "Show key",
-        hideKey: "Hide key",
-        save: "Save",
-        saving: "Saving",
-        test: "Test connection",
-        testing: "Testing",
-        manualConfigLabel: "Local diagnostic (not sent to backend)",
-        manualConfigPlaceholder: "{\"chat\":30,\"auth_login\":8,\"github_propose\":10,\"github_execute\":6,\"matrix_execute\":6}",
-        defaultLimitsLabel: "Default limits",
-        appliedLimitsLabel: "Applied limits",
-        manualConfigHint: "Local UI config only; it is not sent to the backend.",
-        manualConfigError: "Invalid JSON config. Allowed keys: chat, auth_login, github_propose, github_execute, matrix_execute. Values must be positive integers.",
-        configured: "OpenRouter key configured",
-        empty: "No OpenRouter key is configured for this local profile yet.",
-        defaultFreeStatusLabel: "Default-free status",
-        statusConfigured: "configured",
-        statusMissingKey: "missing key",
-        statusMissingModel: "missing model",
-        statusUnavailable: "unavailable",
-      };
+  const openRouterCopy = ui.settings.openRouter;
   const openRouterCredentialInputsValid = areOpenRouterCredentialInputsValid(openRouterApiKeyInput, openRouterModelInput);
   const openRouterControlsDisabled = !openRouterCredentialInputsValid;
   const openRouterMessageTone = openRouterCredentialMessage
@@ -763,7 +641,7 @@ export function SettingsWorkspace({
           </p>
         ) : null}
         <p id={validationId} className="settings-openrouter-validation" data-testid={`${prefix}-validation`}>
-          {openRouterCopy.validation}
+          {openRouterCopy.validation(OPENROUTER_API_KEY_MIN_LENGTH)}
         </p>
         {showMessage && openRouterCredentialMessage ? (
           <p className={`status-pill status-${openRouterMessageTone}`} data-testid={`${prefix}-message`}>
@@ -1274,7 +1152,14 @@ export function SettingsWorkspace({
               <span>{ui.settings.rateLimitBlockedLabel}</span>
               <strong>{truthSnapshot.diagnostics.rateLimitBlocked}</strong>
             </div>
+            <div>
+              <span>{ui.settings.matrixHierarchy}</span>
+              <strong data-testid="settings-matrix-hierarchy-status">
+                {matrixHierarchyEnabled ? ui.settings.matrixHierarchyEnabledValue : ui.settings.matrixHierarchyDisabledValue}
+              </strong>
+            </div>
           </div>
+          <p className="muted-copy">{ui.settings.matrixHierarchyHelp}</p>
           <p className="muted-copy">{ui.settings.diagnosticsSafetyNote}</p>
         </article>
         ) : null}
