@@ -339,7 +339,10 @@ button:disabled {
   height: calc(52px + env(safe-area-inset-bottom));
   padding: 4px 8px calc(env(safe-area-inset-bottom) + 4px);
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(56px, 1fr);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
   gap: 4px;
   border-top: 1px solid var(--ms-border2);
   background: var(--ms-bg2);
@@ -354,7 +357,7 @@ button:disabled {
   font-size: 9px;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  min-width: 0;
+  min-width: 56px;
   overflow: hidden;
 }
 

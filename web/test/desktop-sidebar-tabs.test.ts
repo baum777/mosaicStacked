@@ -24,6 +24,10 @@ import { DesktopSidebarTabs } from "../src/components/navigation/DesktopSidebarT
 const workspaceLabels = {
   chat: "Chat",
   workbench: "Workbench",
+  review: "Review Queue",
+  community: "Community",
+  models: "Models & Providers",
+  evidence: "Evidence Log",
   matrix: "Matrix",
   settings: "Settings",
   perf: "Performance",
@@ -45,6 +49,10 @@ function renderSidebar(active: keyof typeof workspaceLabels) {
   );
 }
 
+function htmlEscape(value: string) {
+  return value.replaceAll("&", "&amp;");
+}
+
 test("DesktopSidebarTabs renders one button per workspace with class workspace-tab-vertical", () => {
   const markup = renderSidebar("chat");
 
@@ -60,9 +68,10 @@ test("DesktopSidebarTabs renders a visible label span for every tab (not sr-only
   const markup = renderSidebar("workbench");
 
   for (const label of Object.values(workspaceLabels)) {
+    const renderedLabel = htmlEscape(label);
     assert.match(
       markup,
-      new RegExp(`<span[^>]*class="[^"]*sidebar-tab-label[^"]*"[^>]*>${label}</span>`),
+      new RegExp(`<span[^>]*class="[^"]*sidebar-tab-label[^"]*"[^>]*>${renderedLabel}</span>`),
       `expected a visible <span class="sidebar-tab-label">${label}</span> for every tab`,
     );
   }
@@ -110,8 +119,9 @@ test("DesktopSidebarTabs keeps aria-label and title on every tab for screen-read
     const match = markup.match(tabRegex);
     assert.ok(match, `expected a tab button for ${mode}`);
     const tag = match[0];
-    assert.match(tag, new RegExp(`aria-label="${label}"`));
-    assert.match(tag, new RegExp(`title="${label}"`));
+    const renderedLabel = htmlEscape(label);
+    assert.match(tag, new RegExp(`aria-label="${renderedLabel}"`));
+    assert.match(tag, new RegExp(`title="${renderedLabel}"`));
   }
 });
 

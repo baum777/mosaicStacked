@@ -660,32 +660,6 @@ function validatePlanResponse(payload: unknown, operation: string, path: string)
   };
 }
 
-function validateExecutionResponse(payload: unknown, operation: string, path: string): MatrixExecuteResult {
-  const response = requireRecord(payload, operation, path, "execution response");
-  requireBooleanField(response, "ok", operation, path, true);
-  const result = requireRecord(requireField(response, "result", operation, path), operation, path, "execution result");
-  const executionId = requireStringField(result, "executionId", operation, path);
-  const planId = requireStringField(result, "planId", operation, path);
-  const status = requireOneOfField(result, "status", ["success", "failed"], operation, path);
-  requireBooleanField(result, "verified", operation, path, true);
-  const verificationSummary = requireStringField(result, "verificationSummary", operation, path);
-  const before = requireRecord(requireField(result, "before", operation, path), operation, path, "execution result.before");
-  const after = requireRecord(requireField(result, "after", operation, path), operation, path, "execution result.after");
-
-  return {
-    ok: true,
-    result: {
-      executionId,
-      planId,
-      status,
-      verified: true,
-      verificationSummary,
-      before,
-      after
-    }
-  };
-}
-
 function validateRoomTopicPlanResponse(payload: unknown, operation: string, path: string): MatrixRoomTopicPlan {
   const response = requireRecord(payload, operation, path, "room topic plan response");
   requireBooleanField(response, "ok", operation, path, true);

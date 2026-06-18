@@ -6,7 +6,7 @@ export type SessionStatus = "draft" | "in_progress" | "review_required" | "done"
 export type ReviewStatus = "pending_review" | "approved" | "failed" | "rejected" | "stale" | "executed";
 export type ApprovalOutcome = "executed" | "failed" | "rejected" | "unverifiable";
 export type ConnectionState = "idle" | "submitting" | "streaming" | "completed" | "error";
-export type WorkspaceMode = "chat" | "workbench" | "matrix" | "settings" | "perf";
+export type WorkspaceMode = "chat" | "workbench" | "review" | "community" | "models" | "evidence" | "matrix" | "settings" | "perf";
 
 type WorkspaceTabCopy = {
   label: string;
@@ -520,6 +520,10 @@ const EN_COPY: LocalizationCopy = {
     workspaceTabs: {
       chat: { label: "Chat", description: "Ask questions and inspect responses" },
       workbench: { label: "Workbench", description: "Review branch work, summary log, and handoff actions" },
+      review: { label: "Review Queue", description: "Pending approvals across workspaces" },
+      community: { label: "Community", description: "Matrix rooms, questions, and knowledge discovery" },
+      models: { label: "Models & Providers", description: "Active model, provider health, and routing" },
+      evidence: { label: "Evidence Log", description: "Audit trail of decisions and actions" },
       matrix: { label: "Matrix", description: "Scope, provenance, and topic updates" },
       settings: { label: "Settings", description: "View settings and diagnostics" },
       perf: { label: "Perf", description: "Review local performance gates and workflow evidence" },
@@ -978,6 +982,10 @@ const DE_COPY: LocalizationCopy = {
     workspaceTabs: {
       chat: { label: "Chat", description: "Fragen stellen und Antworten prüfen" },
       workbench: { label: "Workbench", description: "Branch-Arbeit, Summary-Log und Übergabe-Aktionen prüfen" },
+      review: { label: "Freigabewarteschlange", description: "Ausstehende Freigaben über alle Workspaces" },
+      community: { label: "Gemeinschaft", description: "Matrix-Räume, Fragen und Wissensentdeckung" },
+      models: { label: "Modelle & Anbieter", description: "Aktives Modell, Provider-Status und Routing" },
+      evidence: { label: "Nachvollziehbarkeitsprotokoll", description: "Audit-Trail von Entscheidungen und Aktionen" },
       matrix: { label: "Matrix", description: "Scope, Provenienz und Topic-Updates" },
       settings: { label: "Einstellungen", description: "Ansicht und Diagnostik prüfen" },
       perf: { label: "Perf", description: "Lokale Performance-Gates und Workflow-Evidenz prüfen" },

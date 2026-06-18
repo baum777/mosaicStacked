@@ -95,6 +95,7 @@ flowchart TB
 - Behandelt Lighthouse-/Bundle-Werte als lokale Evidenz, nicht als Live-CI-, Scheduler-, Deployment- oder Produktions-Telemetrie.
 - Bleibt browserseitige Review-/Workflow-Fläche und führt keine GitHub-, Matrix- oder Provider-Writes aus.
 - Liest `web/src/lib/perf-cache.json` als lokalen Snapshot mit `lastUpdated`-Stempel und fällt auf `unknown` zurück, wenn der Cache fehlt — der Browser behauptet damit nie eine frischere Telemetrie als die vorhandene Evidenz.
+- Performance & bundle (Blocks F, G): 9 lazy boundaries (5 workspaces + MarkdownMessage + GuideOverlay + LandingPage + ErrorBoundary), `useRuntimeStatus` split into shell + Settings-only hooks, `useVirtualScroll` on long lists (>20 sessions, >30 rooms), 40+ new tests covering matrix-api validators, redaction property tests, shell-freshness truth table, and ErrorBoundary around the 3 Suspense boundaries. See CHANGELOG.md for the full Block F/G ledger.
 
 ## Approval-Flow
 

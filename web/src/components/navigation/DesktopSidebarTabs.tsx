@@ -1,6 +1,6 @@
 import React from "react";
 
-export type DesktopSidebarTabMode = "chat" | "workbench" | "matrix" | "settings" | "perf";
+export type DesktopSidebarTabMode = "chat" | "workbench" | "review" | "community" | "models" | "evidence" | "matrix" | "settings" | "perf";
 
 export type DesktopSidebarTabLabels = Record<DesktopSidebarTabMode, string>;
 
@@ -14,6 +14,10 @@ type DesktopSidebarTabsProps = {
 const TAB_ORDER: DesktopSidebarTabMode[] = [
   "chat",
   "workbench",
+  "review",
+  "community",
+  "models",
+  "evidence",
   "matrix",
   "settings",
   "perf",

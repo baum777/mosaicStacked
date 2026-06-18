@@ -7,6 +7,9 @@ const DEFERRED_PRELOAD_CHUNK_PREFIXES = [
   "SettingsWorkspace",
   "chunk-github",
   "chunk-matrix",
+  "MarkdownMessage",
+  "GuideOverlay",
+  "LandingPage",
 ];
 
 export default defineConfig({

@@ -7,15 +7,25 @@ import { BottomNav, type BottomNavItem } from "../src/components/navigation/Bott
 
 const criticalSource = () => readFileSync("web/src/critical.css", "utf8");
 
-test("mobile bottom nav declares five equal tracks for five tabs", () => {
+test("mobile bottom nav scrolls horizontally for nine workspace tabs", () => {
   const css = criticalSource();
   const match = css.match(/\.app-shell-mobile\s+\.mobile-bottom-nav\s*\{([\s\S]*?)\}/);
 
   assert.ok(match, "expected .app-shell-mobile .mobile-bottom-nav rule in critical.css");
   assert.match(
     match[1],
-    /grid-template-columns:\s*repeat\(\s*5\s*,\s*minmax\(\s*0\s*,\s*1fr\s*\)\s*\)/,
-    "grid-template-columns must declare 5 tracks",
+    /grid-auto-flow:\s*column/,
+    "bottom nav must flow tabs horizontally",
+  );
+  assert.match(
+    match[1],
+    /grid-auto-columns:\s*minmax\(\s*56px\s*,\s*1fr\s*\)/,
+    "bottom nav must keep each tab tappable",
+  );
+  assert.match(
+    match[1],
+    /overflow-x:\s*auto/,
+    "bottom nav must allow overflow scrolling for nine tabs",
   );
 });
 

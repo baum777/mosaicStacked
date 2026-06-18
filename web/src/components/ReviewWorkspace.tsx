@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ApprovalTransitionCard,
+  DecisionZone,
   ExecutionReceiptCard,
   ProposalCard,
 } from "./ApprovalPrimitives.js";
 import { GuideOverlay, getWorkspaceGuide } from "./GuideOverlay.js";
 import { StatusPanel } from "./StatusPanel.js";
-import { getReviewStatusLabel, useLocalization, type Locale } from "../lib/localization.js";
+import { getReviewStatusLabel, useLocalization, type Locale, type WorkspaceMode } from "../lib/localization.js";
+import type { WorkMode } from "../lib/work-mode.js";
 
 export type ReviewItemStatus = "pending_review" | "approved" | "failed" | "rejected" | "stale" | "executed";
 
@@ -27,6 +29,10 @@ export type ReviewItem = {
 type ReviewWorkspaceProps = {
   items: ReviewItem[];
   expertMode: boolean;
+  workMode?: WorkMode;
+  locale?: Locale;
+  onTelemetry?: (kind: "info" | "warning" | "error", label: string, detail?: string) => void;
+  onNavigateToWorkspace?: (mode: WorkspaceMode) => void;
 };
 
 const REVIEW_STATUS_PRIORITY: Record<ReviewItemStatus, number> = {
@@ -108,9 +114,44 @@ export function describeReviewNextStep(items: ReviewItem[], locale: Locale = "en
   return labels.ready;
 }
 
-export function ReviewWorkspace({ items, expertMode }: ReviewWorkspaceProps) {
+function getReviewWorkspaceCopy(locale: Locale) {
+  return locale === "de"
+    ? {
+        approveIntent: "Freigabeabsicht setzen",
+        rejectIntent: "Ablehnungsabsicht setzen",
+        approvedIntent: "Freigabeabsicht lokal markiert",
+        rejectedIntent: "Ablehnungsabsicht lokal markiert",
+        decisionHelper: "Browser markiert nur Review-Intent. Backend-Ausführung bleibt im Ursprungsworkspace.",
+        backendBoundary: "Backend-Ausführung bleibt im Ursprungsworkspace.",
+        openWorkbench: "Workbench öffnen",
+        openMatrix: "Matrix öffnen",
+        openEvidence: "Evidence öffnen",
+        decision: "Entscheidung",
+      }
+    : {
+        approveIntent: "Approve intent",
+        rejectIntent: "Reject intent",
+        approvedIntent: "Approval intent marked locally",
+        rejectedIntent: "Rejection intent marked locally",
+        decisionHelper: "Browser marks review intent only. Backend execution stays in the originating workspace.",
+        backendBoundary: "Backend execution stays in the originating workspace.",
+        openWorkbench: "Open Workbench",
+        openMatrix: "Open Matrix",
+        openEvidence: "Open Evidence",
+        decision: "Decision",
+      };
+}
+
+export function ReviewWorkspace({
+  items,
+  expertMode,
+  onTelemetry,
+  onNavigateToWorkspace,
+}: ReviewWorkspaceProps) {
   const { locale, copy: ui } = useLocalization();
-  const prioritizedItems = prioritizeReviewItems(items);
+  const localCopy = getReviewWorkspaceCopy(locale);
+  const [localDecisions, setLocalDecisions] = useState<Record<string, "approved" | "rejected">>({});
+  const prioritizedItems = useMemo(() => prioritizeReviewItems(items), [items]);
   const primaryItem = prioritizedItems[0] ?? null;
   const countLabel =
     items.length === 0 ? ui.common.none : String(items.length);
@@ -124,6 +165,51 @@ export function ReviewWorkspace({ items, expertMode }: ReviewWorkspaceProps) {
         ...provenanceRowsFor(primaryItem),
       ]
     : [];
+
+  const markDecision = useCallback((item: ReviewItem, decision: "approved" | "rejected") => {
+    setLocalDecisions((current) => ({ ...current, [item.id]: decision }));
+    onTelemetry?.(
+      decision === "approved" ? "info" : "warning",
+      decision === "approved" ? localCopy.approvedIntent : localCopy.rejectedIntent,
+      `${item.source}:${item.id}`,
+    );
+  }, [localCopy.approvedIntent, localCopy.rejectedIntent, onTelemetry]);
+
+  const navigateToOrigin = useCallback((item: ReviewItem) => {
+    onNavigateToWorkspace?.(item.source === "github" ? "workbench" : "matrix");
+  }, [onNavigateToWorkspace]);
+
+  const renderReviewActions = (item: ReviewItem) => {
+    const localDecision = localDecisions[item.id] ?? null;
+    const canDecide = item.status === "pending_review" || item.status === "stale";
+    return (
+      <div className="review-workspace-actions">
+        {canDecide ? (
+          <DecisionZone
+            approveLabel={localCopy.approveIntent}
+            rejectLabel={localCopy.rejectIntent}
+            onApprove={() => markDecision(item, "approved")}
+            onReject={() => markDecision(item, "rejected")}
+            helperText={localDecision === "approved"
+              ? localCopy.approvedIntent
+              : localDecision === "rejected"
+                ? localCopy.rejectedIntent
+                : localCopy.decisionHelper}
+            testId={`review-decision-zone-${item.id}`}
+          />
+        ) : null}
+        <div className="action-row">
+          <button type="button" className="secondary-button" onClick={() => navigateToOrigin(item)}>
+            {item.source === "github" ? localCopy.openWorkbench : localCopy.openMatrix}
+          </button>
+          <button type="button" className="secondary-button" onClick={() => onNavigateToWorkspace?.("evidence")}>
+            {localCopy.openEvidence}
+          </button>
+        </div>
+        <p className="shell-muted-copy">{localCopy.backendBoundary}</p>
+      </div>
+    );
+  };
 
   return (
     <section className="workspace-panel review-workspace" data-testid="review-workspace">
@@ -230,7 +316,9 @@ export function ReviewWorkspace({ items, expertMode }: ReviewWorkspaceProps) {
                 statusLabel={primaryItem.stale ? ui.review.warning : ui.review.approvalNeeded}
                 statusTone={primaryItem.stale ? "error" : "partial"}
                 metadata={primaryMetadata}
-              />
+              >
+                {renderReviewActions(primaryItem)}
+              </ProposalCard>
             )
           ) : null}
 
@@ -266,6 +354,20 @@ export function ReviewWorkspace({ items, expertMode }: ReviewWorkspaceProps) {
                     </div>
                   ) : null}
                   {item.stale ? <p className="warning-banner" role="status">{ui.review.warning}</p> : null}
+                  <div className="review-queue-item-actions">
+                    <button type="button" className="secondary-button" onClick={() => navigateToOrigin(item)}>
+                      {item.source === "github" ? localCopy.openWorkbench : localCopy.openMatrix}
+                    </button>
+                    <button type="button" className="secondary-button" onClick={() => onNavigateToWorkspace?.("evidence")}>
+                      {localCopy.openEvidence}
+                    </button>
+                    {localDecisions[item.id] ? (
+                      <p className="shell-muted-copy">
+                        <span>{localCopy.decision}: </span>
+                        <strong>{localDecisions[item.id] === "approved" ? localCopy.approvedIntent : localCopy.rejectedIntent}</strong>
+                      </p>
+                    ) : null}
+                  </div>
                 </article>
               ))}
             </div>

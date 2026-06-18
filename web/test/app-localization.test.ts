@@ -86,15 +86,28 @@ test("Workbench navigation guard only triggers when leaving Workbench with local
   }), false);
 });
 
-test("legacy workspace URL modes normalize to workbench and shell tabs include perf", () => {
+test("legacy workspace URL modes normalize to workbench and shell tabs include all nine workspaces", () => {
   const source = readFileSync("web/src/App.tsx", "utf8");
 
-  assert.match(source, /if \(value === "github" \|\| value === "review" \|\| value === "context"\) \{\s*return "workbench";\s*\}/);
-  assert.match(source, /const WORKSPACE_MODES: WorkspaceMode\[\] = \["chat", "workbench", "matrix", "settings", "perf"\]/);
-  assert.match(source, /const MOBILE_NAV_MODES: WorkspaceMode\[\] = \["chat", "workbench", "matrix", "settings", "perf"\]/);
+  assert.match(source, /if \(value === "github" \|\| value === "context"\) \{\s*return "workbench";\s*\}/);
+  assert.match(source, /const WORKSPACE_MODES: WorkspaceMode\[\] = \["chat", "workbench", "review", "community", "models", "evidence", "matrix", "settings", "perf"\]/);
+  assert.match(source, /const MOBILE_NAV_MODES: WorkspaceMode\[\] = \["chat", "workbench", "review", "community", "models", "evidence", "matrix", "settings", "perf"\]/);
   assert.match(source, /handleWorkspaceTabSelect\("perf"\)/);
-  assert.match(source, /LANDING_ENTRY_GUIDE_KEY = "landing-entry"/);
-  assert.match(source, /window\.location\.replace\(["']\/console["']\)/);
+  // The landing-page surfaces moved to web/src/landing/LandingPage.tsx
+  // in Block F (F5). The shell still routes to them via the
+  // re-exported `LandingReadmePage` / `LandingPublicPreview` aliases.
+  assert.match(source, /["'][^"']*landing\/LandingPage\.js["']/);
+  assert.match(source, /surface === "readme" \? <(?:Lazy)?LandingReadmePage \/> : <(?:Lazy)?LandingPublicPreview \/>/);
+});
+
+// Companion check: the landing entry-gate redirect to /console is
+// owned by web/src/landing/LandingPage.tsx (Block F F5 extraction).
+// It used to live in App.tsx.
+test("landing entry gate redirects to /console (now lives in web/src/landing/LandingPage.tsx)", () => {
+  const landingSource = readFileSync("web/src/landing/LandingPage.tsx", "utf8");
+  assert.match(landingSource, /window\.location\.replace\(["']\/console["']\)/);
+  assert.match(landingSource, /LANDING_ENTRY_GUIDE_KEY\s*=\s*["']landing-entry["']/);
+  assert.match(landingSource, /markGuideKeySeen\(LANDING_ENTRY_GUIDE_KEY\)/);
 });
 
 test("persisted shell state expires after the local restore TTL", () => {

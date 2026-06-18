@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState, type FormEvent } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useReducer, useRef, useState, type FormEvent } from "react";
 import { streamChatCompletion, type ChatRouteMetadata } from "../lib/api.js";
 import {
   buildGovernedChatProposal,
@@ -26,8 +26,8 @@ import {
   ExecutionReceiptCard,
   ProposalCard,
 } from "./ApprovalPrimitives.js";
-import { MarkdownMessage, hasRichTextContent } from "./MarkdownMessage.js";
-import { GuideOverlay, getWorkspaceGuide } from "./GuideOverlay.js";
+import { hasRichTextContent } from "./MarkdownMessage.js";
+import { getWorkspaceGuide } from "./GuideOverlay.js";
 import { SectionLabel, ShellCard, StatusBadge } from "./ShellPrimitives.js";
 import { GuideCTAInline } from "./GuideCTAInline.js";
 import { EmptyStateCTA } from "./EmptyStateCTA.js";
@@ -52,6 +52,9 @@ import {
 } from "../lib/guide-state.js";
 import { ComposeZone } from "./mobile/chat/ComposeZone.js";
 import { InlineDiff } from "./mobile/chat/InlineDiff.js";
+
+const LazyMarkdownMessage = lazy(() => import("./MarkdownMessage.js").then((module) => ({ default: module.MarkdownMessage })));
+const LazyGuideOverlay = lazy(() => import("./GuideOverlay.js").then((module) => ({ default: module.GuideOverlay })));
 
 type PublicModelEntry = {
   alias: string;
@@ -531,7 +534,9 @@ const ThreadMessageCard = React.memo(function ThreadMessageCard(props: ThreadMes
         <SectionLabel>{roleLabel}</SectionLabel>
         {props.expertMode && props.message.modelAlias ? <StatusBadge tone="muted">{props.message.modelAlias}</StatusBadge> : null}
       </header>
-      <MarkdownMessage content={props.message.content} />
+      <Suspense fallback={<p className="empty-state" role="status">…</p>}>
+        <LazyMarkdownMessage content={props.message.content} />
+      </Suspense>
       {isAssistant ? <InlineDiff content={props.message.content} /> : null}
       {isAssistant ? (
         <div
@@ -1501,7 +1506,9 @@ export function ChatWorkspace(props: ChatWorkspaceProps) {
           {beginnerMode ? <span className="chat-stream-status">{workModeCopy.controlHint}</span> : null}
         </div>
         <div className="runtime-actions chat-toolbar-actions chat-toolbar-primary-actions">
-          <GuideOverlay content={getWorkspaceGuide(locale, "chat")} testId="guide-chat" />
+          <Suspense fallback={<span className="empty-state" role="status">…</span>}>
+            <LazyGuideOverlay content={getWorkspaceGuide(locale, "chat")} testId="guide-chat" />
+          </Suspense>
           {executionRunning ? (
             <button type="button" className="ghost-button" onClick={stopExecution}>
               {ui.chat.stopExecution}
@@ -1813,7 +1820,9 @@ export function ChatWorkspace(props: ChatWorkspaceProps) {
                 {expertMode ? <StatusBadge tone="partial">{draft.model ?? "pending"}</StatusBadge> : null}
               </header>
               <div className="streaming-work-block">
-                <MarkdownMessage content={draft.text || ui.chat.composerLocked.approval} />
+                <Suspense fallback={<p className="empty-state" role="status">…</p>}>
+                  <LazyMarkdownMessage content={draft.text || ui.chat.composerLocked.approval} />
+                </Suspense>
                 <span className="streaming-cursor" aria-hidden="true">|</span>
               </div>
             </ShellCard>
@@ -1835,7 +1844,9 @@ export function ChatWorkspace(props: ChatWorkspaceProps) {
               )}
             >
               {hasRichTextContent(receipt.detail) ? (
-                <MarkdownMessage content={receipt.detail} />
+                <Suspense fallback={<p className="empty-state" role="status">…</p>}>
+                  <LazyMarkdownMessage content={receipt.detail} />
+                </Suspense>
               ) : null}
             </ExecutionReceiptCard>
           ))}
@@ -2057,7 +2068,9 @@ export function ChatWorkspace(props: ChatWorkspaceProps) {
                     : "Excerpt is handed over to the GitHub workspace and opened there as local context."}
                 </p>
                 <div className="chat-action-sheet-preview">
-                  <MarkdownMessage content={githubDispatchContent} />
+                  <Suspense fallback={<p className="empty-state" role="status">…</p>}>
+                    <LazyMarkdownMessage content={githubDispatchContent} />
+                  </Suspense>
                 </div>
                 <div className="chat-action-sheet-actions">
                   <button

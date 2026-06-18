@@ -7,10 +7,6 @@ import {
   fetchJournalRecent,
   fetchModels,
   fetchOpenRouterCredentialStatus,
-  postIntegrationControlAction,
-  saveOpenRouterCredentials,
-  testOpenRouterCredentials,
-  testSettingsConnection,
   type DiagnosticsResponse,
   type IntegrationsStatusResponse,
   type JournalEntry,
@@ -20,9 +16,7 @@ import {
   fetchGitHubCapabilities,
   type GitHubCapabilitiesResponse,
 } from "../lib/github-api.js";
-import { areOpenRouterCredentialInputsValid } from "../lib/openrouter-inputs.js";
 import { createRequestDedupCache, type RequestDedupCache } from "../lib/request-dedup-cache.js";
-import type { SettingsVerificationState, SettingsVerificationTarget } from "../components/SettingsWorkspace.js";
 
 const OPENROUTER_CREDENTIAL_STATUS_EMPTY: OpenRouterCredentialStatusResponse = {
   configured: false,
@@ -59,24 +53,6 @@ function normalizeOpenRouterCredentialStatus(
     },
   };
 }
-
-const SETTINGS_VERIFICATION_INITIAL: Record<SettingsVerificationTarget, SettingsVerificationState> = {
-  backend: {
-    status: "idle",
-    detail: "",
-    checkedAt: null,
-  },
-  github: {
-    status: "idle",
-    detail: "",
-    checkedAt: null,
-  },
-  matrix: {
-    status: "idle",
-    detail: "",
-    checkedAt: null,
-  },
-};
 
 const STATUS_CACHE_TTL_MS = 60_000;
 
@@ -121,7 +97,7 @@ function createStatusCache(): RequestDedupCache {
 }
 
 export function useRuntimeStatus(options: {
-  mode: "chat" | "workbench" | "matrix" | "settings" | "perf";
+  mode: "chat" | "workbench" | "review" | "community" | "models" | "evidence" | "matrix" | "settings" | "perf";
   locale: "de" | "en";
   appText: {
     telemetryHealthLoaded: string;
@@ -148,15 +124,9 @@ export function useRuntimeStatus(options: {
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [modelRegistry, setModelRegistry] = useState<ModelRegistryEntry[]>([]);
   const [openRouterCredentialStatus, setOpenRouterCredentialStatus] = useState<OpenRouterCredentialStatusResponse>(OPENROUTER_CREDENTIAL_STATUS_EMPTY);
-  const [openRouterApiKeyInput, setOpenRouterApiKeyInput] = useState("");
-  const [openRouterModelInput, setOpenRouterModelInput] = useState("");
-  const [isSavingOpenRouterCredentials, setIsSavingOpenRouterCredentials] = useState(false);
-  const [isTestingOpenRouterCredentials, setIsTestingOpenRouterCredentials] = useState(false);
-  const [openRouterCredentialMessage, setOpenRouterCredentialMessage] = useState<string | null>(null);
   const [runtimeDiagnostics, setRuntimeDiagnostics] = useState<DiagnosticsResponse | null>(null);
   const [integrationsStatus, setIntegrationsStatus] = useState<IntegrationsStatusResponse | null>(null);
   const [githubCapabilities, setGitHubCapabilities] = useState<GitHubCapabilitiesResponse | null>(null);
-  const [settingsVerificationResults, setSettingsVerificationResults] = useState(SETTINGS_VERIFICATION_INITIAL);
   const [runtimeJournalEntries, setRuntimeJournalEntries] = useState<JournalEntry[]>([]);
 
   const statusCacheRef = useRef<RequestDedupCache>(createStatusCache());
@@ -441,146 +411,6 @@ export function useRuntimeStatus(options: {
     void loadConsoleState(false);
   }, [abortStatusRequests, loadConsoleState, mode]);
 
-  const handleSaveOpenRouterCredentials = useCallback(async () => {
-    const modelId = openRouterModelInput.trim();
-    const apiKey = openRouterApiKeyInput.trim();
-
-    if (!areOpenRouterCredentialInputsValid(apiKey, modelId)) {
-      setOpenRouterCredentialMessage("OpenRouter credential input does not match the backend contract.");
-      return;
-    }
-
-    setIsSavingOpenRouterCredentials(true);
-    setOpenRouterCredentialMessage(null);
-
-    try {
-      const result = await saveOpenRouterCredentials({ apiKey, modelId });
-      setOpenRouterApiKeyInput("");
-      setOpenRouterCredentialMessage(result.status);
-      await refreshOpenRouterCredentialStatus();
-      onTelemetry("info", "OpenRouter credentials saved", `Backend public alias ${result.model.alias} is selectable.`);
-    } catch (error) {
-      const message = toErrorDetail(error, "Unable to save OpenRouter credentials.");
-      setOpenRouterCredentialMessage(message);
-      onTelemetry("error", "OpenRouter credential save failed", message);
-    } finally {
-      setIsSavingOpenRouterCredentials(false);
-    }
-  }, [onTelemetry, openRouterApiKeyInput, openRouterModelInput, refreshOpenRouterCredentialStatus]);
-
-  const handleTestOpenRouterCredentials = useCallback(async () => {
-    const modelId = openRouterModelInput.trim();
-    const apiKey = openRouterApiKeyInput.trim();
-
-    if (!areOpenRouterCredentialInputsValid(apiKey, modelId)) {
-      setOpenRouterCredentialMessage("OpenRouter credential input does not match the backend contract.");
-      return;
-    }
-
-    setIsTestingOpenRouterCredentials(true);
-    setOpenRouterCredentialMessage(null);
-
-    try {
-      const result = await testOpenRouterCredentials({ apiKey, modelId });
-      setOpenRouterCredentialMessage(`Test passed for ${result.model.alias}`);
-      onTelemetry("info", "OpenRouter credential test passed", `Backend tested alias ${result.model.alias} without saving credentials.`);
-    } catch (error) {
-      const message = toErrorDetail(error, "Unable to test OpenRouter credentials.");
-      setOpenRouterCredentialMessage(message);
-      onTelemetry("error", "OpenRouter credential test failed", message);
-    } finally {
-      setIsTestingOpenRouterCredentials(false);
-    }
-  }, [onTelemetry, openRouterApiKeyInput, openRouterModelInput]);
-
-  const handleSettingsVerifyConnection = useCallback(async (target: SettingsVerificationTarget) => {
-    setSettingsVerificationResults((current) => ({
-      ...current,
-      [target]: {
-        ...current[target],
-        status: "checking",
-        detail: "",
-      },
-    }));
-
-    try {
-      const result = await testSettingsConnection(target);
-      const checkedAt = new Date().toISOString();
-
-      if (target === "backend") {
-        setBackendHealthy(true);
-      } else {
-        await refreshIntegrationsStatus();
-        await refreshGitHubCapabilities();
-      }
-
-      setSettingsVerificationResults((current) => ({
-        ...current,
-        [target]: {
-          status: "passed",
-          detail: result.detail,
-          checkedAt,
-        },
-      }));
-      onTelemetry(
-        "info",
-        locale === "de" ? "Verbindung geprüft" : "Connection verified",
-        `${target}: ${result.detail}`,
-      );
-    } catch (error) {
-      const detail = toErrorDetail(error, "Connection check failed");
-
-      if (target === "backend") {
-        setBackendHealthy(false);
-      } else {
-        await refreshIntegrationsStatus();
-        await refreshGitHubCapabilities();
-      }
-
-      setSettingsVerificationResults((current) => ({
-        ...current,
-        [target]: {
-          status: "failed",
-          detail,
-          checkedAt: new Date().toISOString(),
-        },
-      }));
-      onTelemetry(
-        "warning",
-        locale === "de" ? "Verbindungsprüfung fehlgeschlagen" : "Connection verification failed",
-        `${target}: ${detail}`,
-      );
-    }
-  }, [locale, onTelemetry, refreshGitHubCapabilities, refreshIntegrationsStatus]);
-
-  const handleIntegrationAction = useCallback(async (
-    provider: "github" | "matrix",
-    action: "connect" | "reconnect" | "disconnect" | "reverify",
-  ) => {
-    if (action === "connect" || action === "reconnect") {
-      window.location.assign(buildIntegrationConnectStartUrl(provider, "/console?mode=settings"));
-      return;
-    }
-
-    try {
-      await postIntegrationControlAction(provider, action);
-      statusCacheRef.current.clear();
-    } catch (error) {
-      onTelemetry(
-        "warning",
-        locale === "de" ? "Integrationsaktion fehlgeschlagen" : "Integration action failed",
-        error instanceof Error ? error.message : undefined,
-      );
-    } finally {
-      await refreshIntegrationsStatus();
-      await refreshGitHubCapabilities();
-    }
-  }, [locale, onTelemetry, refreshGitHubCapabilities, refreshIntegrationsStatus]);
-
-  const buildSettingsIntegrationStartUrl = useCallback((provider: "github" | "matrix") => (
-    buildIntegrationConnectStartUrl(provider, "/console?mode=settings")
-  ), []);
-
   const routingStatus = useMemo(
     () => ({
       fallbackAllowed: runtimeDiagnostics?.routing.allowFallback ?? null,
@@ -590,6 +420,7 @@ export function useRuntimeStatus(options: {
 
   return {
     backendHealthy,
+    setBackendHealthy,
     activeModelAlias,
     setActiveModelAlias,
     availableModels,
@@ -599,21 +430,10 @@ export function useRuntimeStatus(options: {
     githubCapabilities,
     runtimeJournalEntries,
     openRouterCredentialStatus,
-    openRouterApiKeyInput,
-    setOpenRouterApiKeyInput,
-    openRouterModelInput,
-    setOpenRouterModelInput,
-    isSavingOpenRouterCredentials,
-    isTestingOpenRouterCredentials,
-    openRouterCredentialMessage,
-    settingsVerificationResults,
     routingStatus,
     refreshIntegrationsStatus,
+    refreshGitHubCapabilities,
     refreshOpenRouterCredentialStatus,
-    handleSaveOpenRouterCredentials,
-    handleTestOpenRouterCredentials,
-    handleSettingsVerifyConnection,
-    handleIntegrationAction,
-    buildSettingsIntegrationStartUrl,
+    clearStatusCache: () => statusCacheRef.current.clear(),
   };
 }

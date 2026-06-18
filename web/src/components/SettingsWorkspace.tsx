@@ -22,6 +22,9 @@ import {
 } from "./system-visuals/index.js";
 import { BottomSheet } from "./mobile/shared/BottomSheet.js";
 import { SettingsRow } from "./mobile/shared/SettingsRow.js";
+import type { SettingsVerificationState, SettingsVerificationTarget } from "../lib/settings-types.js";
+
+export type { SettingsVerificationState, SettingsVerificationTarget } from "../lib/settings-types.js";
 
 export type DiagnosticEntry = {
   kind: "info" | "warning" | "error";
@@ -81,14 +84,6 @@ export type SettingsTruthSnapshot = {
     recentCount: string;
     entries: JournalEntry[];
   };
-};
-
-export type SettingsVerificationTarget = "backend" | "github" | "matrix";
-
-export type SettingsVerificationState = {
-  status: "idle" | "checking" | "passed" | "failed";
-  detail: string;
-  checkedAt: string | null;
 };
 
 type SettingsWorkspaceProps = {

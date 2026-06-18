@@ -676,3 +676,248 @@ test("chat routing status summarizes alias, backend, fallback policy, and route 
   ]);
   assert.equal(items.some((item) => item.value.includes("openrouter")), false);
 });
+
+test("createTokenBatcher cancel clears the buffer so subsequent flush is a no-op", () => {
+  const flushed: string[] = [];
+  const batcher = createTokenBatcher({
+    onFlush: (delta) => {
+      flushed.push(delta);
+    },
+    schedule: () => 1,
+    cancel: () => {
+      // no-op
+    }
+  });
+
+  batcher.push("Hel");
+  batcher.push("lo");
+  batcher.push(" ");
+  batcher.push("world");
+  assert.equal(flushed.length, 0, "buffered tokens are not flushed until the scheduler fires");
+
+  batcher.cancel();
+  batcher.flush();
+  assert.deepEqual(flushed, [], "cancel clears the buffer; subsequent flush must be a no-op");
+
+  // After cancel, a fresh push + scheduled flush should still emit only
+  // the new tokens, not the cancelled ones.
+  const callbacks: Array<() => void> = [];
+  const scheduled: string[] = [];
+  const batcher2 = createTokenBatcher({
+    onFlush: (delta) => {
+      scheduled.push(delta);
+    },
+    schedule: (callback) => {
+      callbacks.push(callback);
+      return callbacks.length;
+    },
+    cancel: () => {
+      // no-op
+    }
+  });
+  batcher2.push("old");
+  batcher2.cancel();
+  batcher2.push("new");
+  callbacks[0]?.();
+  assert.deepEqual(scheduled, ["new"]);
+});
+
+test("createInitialChatState appends a recovery notice when reloading a submitting session without a draft", () => {
+  const userMessage = {
+    id: "user-recover",
+    role: "user" as const,
+    content: "Previous user prompt",
+    createdAt: "2026-04-21T08:00:00.000Z"
+  };
+
+  const recovered = createInitialChatState({
+    connectionState: "submitting",
+    currentAssistantDraft: null,
+    messages: [userMessage]
+  });
+
+  assert.equal(recovered.connectionState, "error");
+  assert.equal(recovered.currentAssistantDraft, null);
+  assert.equal(recovered.lastStreamWarning, "A chat stream was interrupted before completion and was not resumed.");
+  assert.equal(recovered.streamState.interrupted, true);
+
+  // The user message is preserved.
+  const recoveredUser = recovered.messages.find((message) => message.id === "user-recover");
+  assert.ok(recoveredUser);
+  assert.equal(recoveredUser?.content, "Previous user prompt");
+
+  // A system-level recovery notice is appended.
+  const lastNotice = recovered.notices.at(-1);
+  assert.ok(lastNotice);
+  assert.equal(lastNotice?.level, "system");
+  assert.equal(lastNotice?.message, "A chat stream was interrupted before completion and was not resumed.");
+});
+
+test("createInitialChatState caps the recovery notice ring at 8 entries (oldest dropped)", () => {
+  const seedNotices = Array.from({ length: 7 }, (_, index) => ({
+    id: `notice-prior-${index}`,
+    level: "system" as const,
+    message: `prior notice ${index}`,
+    createdAt: new Date(2026, 0, 1, 0, 0, index).toISOString()
+  }));
+
+  const recovered = createInitialChatState({
+    connectionState: "streaming",
+    currentAssistantDraft: null,
+    notices: seedNotices
+  });
+
+  assert.equal(recovered.notices.length, 8);
+  // The 7 prior notices survive (oldest is preserved at index 0).
+  for (let index = 0; index < 7; index += 1) {
+    assert.equal(recovered.notices[index]?.id, `notice-prior-${index}`);
+  }
+  // The new recovery notice is at index 7.
+  const lastNotice = recovered.notices.at(-1);
+  assert.ok(lastNotice);
+  assert.equal(lastNotice?.message, "A chat stream was interrupted before completion and was not resumed.");
+  assert.match(lastNotice?.id ?? "", /^notice-stream-recover-/);
+});
+
+test("chatReducer action matrix: every documented action type produces a deterministic next state", () => {
+  let state = createInitialChatState();
+
+  // set_input
+  state = chatReducer(state, { type: "set_input", input: "Hello world" });
+  assert.equal(state.input, "Hello world");
+
+  // set_auto_scroll
+  state = chatReducer(state, { type: "set_auto_scroll", enabled: false });
+  assert.equal(state.autoScrollEnabled, false);
+  state = chatReducer(state, { type: "set_auto_scroll", enabled: true });
+  assert.equal(state.autoScrollEnabled, true);
+
+  // submit_message
+  state = chatReducer(state, {
+    type: "submit_message",
+    message: { id: "u-1", role: "user", content: "Hello" }
+  });
+  assert.equal(state.input, "");
+  assert.equal(state.connectionState, "submitting");
+  assert.equal(state.messages.at(-1)?.content, "Hello");
+
+  // stream_start
+  state = chatReducer(state, { type: "stream_start", model: "default" });
+  assert.equal(state.connectionState, "streaming");
+  assert.equal(state.currentAssistantDraft?.model, "default");
+  assert.equal(state.currentAssistantDraft?.started, true);
+
+  // stream_route
+  state = chatReducer(state, {
+    type: "stream_route",
+    route: {
+      selectedAlias: "default",
+      taskClass: "dialog",
+      fallbackUsed: false,
+      degraded: false,
+      streaming: true
+    }
+  });
+  assert.equal(state.activeRoute?.selectedAlias, "default");
+  assert.equal(state.streamState.routeReceived, true);
+
+  // stream_token
+  state = chatReducer(state, { type: "stream_token", delta: "Hel" });
+  state = chatReducer(state, { type: "stream_token", delta: "lo" });
+  assert.equal(state.currentAssistantDraft?.text, "Hello");
+  assert.equal(state.streamState.tokenCount, 5);
+
+  // stream_done
+  state = chatReducer(state, {
+    type: "stream_done",
+    model: "default",
+    text: "Hello",
+    route: {
+      selectedAlias: "default",
+      taskClass: "dialog",
+      fallbackUsed: false,
+      degraded: false,
+      streaming: true
+    }
+  });
+  assert.equal(state.connectionState, "completed");
+  assert.equal(state.currentAssistantDraft, null);
+  assert.equal(state.activeRoute?.selectedAlias, "default");
+  assert.equal(state.messages.at(-1)?.role, "assistant");
+  assert.equal(state.messages.at(-1)?.content, "Hello");
+
+  // reset_stream_warning
+  state = chatReducer(state, { type: "reset_stream_warning" });
+  assert.equal(state.lastStreamWarning, null);
+
+  // clear_notices
+  state = chatReducer(state, { type: "clear_notices" });
+  assert.equal(state.notices.length, 0);
+
+  // start_proposal_execution
+  state = chatReducer(state, {
+    type: "create_proposal",
+    proposal: {
+      id: "p-1",
+      prompt: "Do work",
+      modelAlias: "default",
+      consequence: "approve",
+      createdAt: "2026-04-21T08:00:00.000Z",
+      status: "pending"
+    }
+  });
+  state = chatReducer(state, { type: "start_proposal_execution" });
+  assert.equal(state.pendingProposal?.status, "executing");
+
+  // reject_proposal
+  state = chatReducer(state, { type: "reject_proposal", reason: "operator aborted" });
+  assert.equal(state.pendingProposal, null);
+  assert.equal(state.receipts.at(-1)?.outcome, "rejected");
+
+  // clear_pending_proposal
+  state = chatReducer(state, {
+    type: "create_proposal",
+    proposal: {
+      id: "p-2",
+      prompt: "Do other work",
+      modelAlias: "default",
+      consequence: "approve",
+      createdAt: "2026-04-21T08:01:00.000Z",
+      status: "pending"
+    }
+  });
+  state = chatReducer(state, { type: "clear_pending_proposal" });
+  assert.equal(state.pendingProposal, null);
+
+  // stream_error
+  state = chatReducer(state, {
+    type: "submit_message",
+    message: { id: "u-2", role: "user", content: "trigger error" }
+  });
+  state = chatReducer(state, { type: "stream_start", model: "default" });
+  state = chatReducer(state, { type: "stream_error", message: "boom" });
+  assert.equal(state.connectionState, "error");
+  assert.equal(state.lastError, "boom");
+  assert.equal(state.currentAssistantDraft, null);
+  assert.equal(state.streamState.terminalKind, "error");
+  assert.equal(state.notices.at(-1)?.level, "error");
+  assert.equal(state.notices.at(-1)?.message, "boom");
+
+  // stream_malformed
+  state = chatReducer(state, {
+    type: "submit_message",
+    message: { id: "u-3", role: "user", content: "trigger malformed" }
+  });
+  state = chatReducer(state, { type: "stream_start", model: "default" });
+  state = chatReducer(state, { type: "stream_malformed", message: "garbled frame" });
+  assert.equal(state.connectionState, "error");
+  assert.equal(state.streamState.malformed, true);
+  assert.equal(state.streamState.terminalKind, "malformed");
+  assert.equal(state.lastStreamWarning, "garbled frame");
+  assert.equal(state.notices.at(-1)?.level, "error");
+  assert.equal(state.notices.at(-1)?.message, "garbled frame");
+
+  // mark_stream_cancelled
+  state = chatReducer(state, { type: "mark_stream_cancelled" });
+  assert.equal(state.streamState.cancelled, true);
+});

@@ -1,8 +1,9 @@
-import React, { useMemo, type ReactNode } from "react";
+import React, { useMemo, useRef, type ReactNode } from "react";
 import type { SessionStatus, WorkspaceKind, WorkspaceSession } from "../lib/workspace-state.js";
 import { sortSessionsByUpdatedAt, workspaceLabel } from "../lib/workspace-state.js";
 import { SectionLabel, StatusBadge } from "./ShellPrimitives.js";
 import { getSessionStatusLabel, useLocalization } from "../lib/localization.js";
+import { useVirtualScroll } from "../hooks/useVirtualScroll.js";
 
 export type SessionListItemProps<TMetadata> = {
   session: WorkspaceSession<TMetadata>;
@@ -99,6 +100,9 @@ function formatRelativeTime(locale: "en" | "de", isoTimestamp: string) {
   return getDateTimeFormatter(locale).format(new Date(isoTimestamp));
 }
 
+const VIRTUAL_SCROLL_THRESHOLD = 20;
+const SESSION_LIST_ITEM_ESTIMATE_HEIGHT = 92;
+
 export function SessionList<TMetadata>({
   workspace,
   sessions,
@@ -113,6 +117,18 @@ export function SessionList<TMetadata>({
   const { locale, copy: ui } = useLocalization();
   const sortedSessions = useMemo(() => sortSessionsByUpdatedAt(sessions), [sessions]);
   const workspaceName = workspaceLabel(workspace);
+  const shouldVirtualize = sortedSessions.length > VIRTUAL_SCROLL_THRESHOLD;
+  const virtualContainerRef = useRef<HTMLDivElement | null>(null);
+  const {
+    virtualItems,
+    topSpacerHeight,
+    bottomSpacerHeight,
+    totalHeight,
+  } = useVirtualScroll({
+    items: shouldVirtualize ? sortedSessions : [],
+    containerRef: virtualContainerRef,
+    estimateItemHeight: SESSION_LIST_ITEM_ESTIMATE_HEIGHT,
+  });
 
   return (
     <section
@@ -142,6 +158,76 @@ export function SessionList<TMetadata>({
           <p className="empty-state" role="status">
             {ui.sessionList.noSessions}
           </p>
+        ) : shouldVirtualize ? (
+          <div
+            ref={virtualContainerRef}
+            className="session-list-virtual-container"
+            style={{ height: totalHeight }}
+            data-testid="session-list-virtual-scroll"
+          >
+            <div style={{ height: topSpacerHeight }} aria-hidden="true" />
+            {virtualItems.map(({ item: session }) => {
+              const active = session.id === activeSessionId;
+              return (
+                <article
+                  key={session.id}
+                  className={`session-list-item ${active ? "session-list-item-active" : ""} ${session.archived ? "session-list-item-archived" : ""}`}
+                  data-testid={`workspace-session-item-${session.id}`}
+                >
+                  <button
+                    type="button"
+                    className={`session-list-select ${active ? "session-list-select-active" : ""}`}
+                    onClick={() => onSelect(session.id)}
+                    data-testid={`workspace-session-select-${session.id}`}
+                    aria-current={active ? "page" : undefined}
+                  >
+                    <div className="session-list-copy">
+                      <div className="session-list-title-row">
+                        <strong>{session.title}</strong>
+                        <StatusBadge
+                          tone={statusTone(session.status)}
+                          className={`session-status-badge session-status-${statusTone(session.status)}`}
+                        >
+                          {getSessionStatusLabel(locale, session.status)}
+                        </StatusBadge>
+                      </div>
+                      <span className="session-list-subtitle">
+                        {session.archived ? ui.sessionList.archived : ui.sessionList.active}
+                      </span>
+                    </div>
+                    {showManagement ? (
+                      <small className="session-list-meta">
+                        {ui.sessionList.updated} {formatRelativeTime(locale, session.updatedAt)} · {session.lastOpenedAt === session.updatedAt ? ui.sessionList.openedJustNow : ui.sessionList.openedRecently(formatRelativeTime(locale, session.lastOpenedAt))}
+                      </small>
+                    ) : null}
+                  </button>
+
+                  {showManagement ? (
+                    <div className="session-list-actions inline-quick-actions" aria-label={`${session.title} quick actions`}>
+                      <button
+                        type="button"
+                        className="ghost-button inline-quick-action inline-quick-action-neutral"
+                        onClick={() => onArchive(session.id)}
+                        disabled={session.archived}
+                        data-testid={`workspace-session-archive-${session.id}`}
+                      >
+                        {ui.sessionList.archive}
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost-button inline-quick-action inline-quick-action-danger"
+                        onClick={() => onDelete(session.id)}
+                        data-testid={`workspace-session-delete-${session.id}`}
+                      >
+                        {ui.sessionList.delete}
+                      </button>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+            <div style={{ height: bottomSpacerHeight }} aria-hidden="true" />
+          </div>
         ) : (
           sortedSessions.map((session) => {
             const active = session.id === activeSessionId;

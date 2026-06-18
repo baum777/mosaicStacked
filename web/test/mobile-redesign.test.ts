@@ -27,11 +27,11 @@ const styles = () => [
 const criticalSource = () => readFileSync("web/src/critical.css", "utf8");
 const uiAdaptationSource = () => readFileSync("web/src/ui-adaptation.css", "utf8");
 
-test("mobile shell exposes five tabs with Workbench as fused review center and Perf as evidence surface", () => {
+test("mobile shell exposes nine routable workspace tabs with scrollable overflow", () => {
   const source = mobileLayoutSource();
 
-  assert.match(source, /type WorkspaceMode = "chat" \| "workbench" \| "matrix" \| "settings" \| "perf"/);
-  assert.match(source, /const MOBILE_NAV_MODES: WorkspaceMode\[\] = \["chat", "workbench", "matrix", "settings", "perf"\]/);
+  assert.match(source, /type WorkspaceMode = "chat" \| "workbench" \| "review" \| "community" \| "models" \| "evidence" \| "matrix" \| "settings" \| "perf"/);
+  assert.match(source, /const MOBILE_NAV_MODES: WorkspaceMode\[\] = \["chat", "workbench", "review", "community", "models", "evidence", "matrix", "settings", "perf"\]/);
   assert.doesNotMatch(source, /tab-context-browser/);
   assert.doesNotMatch(source, /ContextBrowserPanel/);
 });

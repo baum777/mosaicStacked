@@ -1,4 +1,4 @@
-export type CompanionWorkspace = "chat" | "workbench" | "matrix" | "settings" | "perf";
+export type CompanionWorkspace = "chat" | "workbench" | "review" | "community" | "models" | "evidence" | "matrix" | "settings" | "perf";
 export type CompanionWorkMode = "beginner" | "expert";
 export type CompanionFreshness = "backend-fresh" | "local-restored" | "stale";
 

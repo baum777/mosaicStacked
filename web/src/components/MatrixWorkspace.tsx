@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useVirtualScroll } from "../hooks/useVirtualScroll.js";
 import {
   ApprovalTransitionCard,
   DecisionZone,
@@ -43,10 +44,12 @@ import {
   mergeMetadataRows,
 } from "../lib/governance-metadata.js";
 import { useLocalization, type Locale } from "../lib/localization.js";
-import { GuideOverlay, getWorkspaceGuide } from "./GuideOverlay.js";
+import { getWorkspaceGuide } from "./GuideOverlay.js";
 import { EmptyStateCTA } from "./EmptyStateCTA.js";
 import { getWorkModeCopy, type WorkMode } from "../lib/work-mode.js";
 import { computeMatrixGates } from "../lib/matrix-gates.js";
+
+const LazyGuideOverlay = lazy(() => import("./GuideOverlay.js").then((module) => ({ default: module.GuideOverlay })));
 
 type WorkflowStatus = "loading" | "partial" | "ready" | "error";
 type LoadStatus = "idle" | "loading" | "ready" | "error";
@@ -445,6 +448,18 @@ export function MatrixWorkspace(props: MatrixWorkspaceProps) {
     () => joinedRooms.slice(0, MATRIX_VISIBLE_LIST_LIMIT),
     [joinedRooms],
   );
+  const shouldVirtualizeJoinedRooms = joinedRooms.length > 30;
+  const joinedRoomsVirtualContainerRef = useRef<HTMLDivElement | null>(null);
+  const {
+    virtualItems: virtualJoinedRoomItems,
+    topSpacerHeight: joinedRoomsTopSpacer,
+    bottomSpacerHeight: joinedRoomsBottomSpacer,
+    totalHeight: joinedRoomsTotalHeight,
+  } = useVirtualScroll({
+    items: shouldVirtualizeJoinedRooms ? joinedRooms : [],
+    containerRef: joinedRoomsVirtualContainerRef,
+    estimateItemHeight: 48,
+  });
   const visibleScopeSummaryItems = useMemo(
     () => scopeSummary?.items.slice(0, MATRIX_VISIBLE_LIST_LIMIT) ?? [],
     [scopeSummary],
@@ -1539,7 +1554,9 @@ export function MatrixWorkspace(props: MatrixWorkspaceProps) {
             <p className="hero-copy">{workModeCopy.controlHint}</p>
           )}{" "}
           <div className="workspace-hero-actions">
-            <GuideOverlay content={getWorkspaceGuide(locale, "matrix")} testId="guide-matrix" />
+            <Suspense fallback={<span className="empty-state" role="status">…</span>}>
+              <LazyGuideOverlay content={getWorkspaceGuide(locale, "matrix")} testId="guide-matrix" />
+            </Suspense>
           </div>{" "}
           {props.expertMode ? (
             <div className="chip-row" aria-label={ui.matrix.scopeNotice}>
@@ -1956,6 +1973,52 @@ export function MatrixWorkspace(props: MatrixWorkspaceProps) {
                 {" "}
                 {joinedRooms.length === 0 ? (
                   <p className="empty-state">{ui.matrix.roomPickerEmpty}</p>
+                ) : shouldVirtualizeJoinedRooms ? (
+                  <div
+                    ref={joinedRoomsVirtualContainerRef}
+                    className="room-picker-virtual-container"
+                    style={{ height: joinedRoomsTotalHeight }}
+                    data-testid="matrix-rooms-virtual-scroll"
+                  >
+                    <div style={{ height: joinedRoomsTopSpacer }} aria-hidden="true" />
+                    {virtualJoinedRoomItems.map(({ item: room }) => {
+                      const active = selectedRoomIdSet.has(room.roomId);
+                      return (
+                        <button
+                          key={room.roomId}
+                          type="button"
+                          className={`room-picker-item ${active ? "room-picker-item-active" : ""}`}
+                          onClick={() =>
+                            setSelectedRoomIds((current) =>
+                              current.includes(room.roomId)
+                                ? current.filter((value) => value !== room.roomId)
+                                : [...current, room.roomId],
+                            )
+                          }
+                          onMouseUp={() => {
+                            if (!active) {
+                              setTopicRoomId((current) =>
+                                current.trim().length > 0 ? current : room.roomId,
+                              );
+                            }
+                          }}
+                        >
+                          {" "}
+                          <span className="room-picker-title">
+                            {props.expertMode
+                              ? room.name ?? room.canonicalAlias ?? room.roomId
+                              : room.name ?? ui.matrix.roomPickerRoom}
+                          </span>{" "}
+                          <span className="room-picker-meta">
+                            {props.expertMode
+                              ? `${room.roomType ?? localText.roomTypeFallback} · ${room.roomId}`
+                              : ui.matrix.roomPickerChoose}
+                          </span>{" "}
+                        </button>
+                      );
+                    })}
+                    <div style={{ height: joinedRoomsBottomSpacer }} aria-hidden="true" />
+                  </div>
                 ) : (
                   visibleJoinedRooms.map((room) => {
                     const active = selectedRoomIdSet.has(room.roomId);
@@ -1994,7 +2057,7 @@ export function MatrixWorkspace(props: MatrixWorkspaceProps) {
                     );
                   })
                 )}{" "}
-                {joinedRooms.length > visibleJoinedRooms.length ? (
+                {joinedRooms.length > visibleJoinedRooms.length && !shouldVirtualizeJoinedRooms ? (
                   <p className="muted-copy">+{joinedRooms.length - visibleJoinedRooms.length}</p>
                 ) : null}{" "}
               </div>{" "}

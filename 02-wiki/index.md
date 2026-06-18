@@ -53,3 +53,19 @@ Format: `[[link]] | summary | #tags | YYYY-MM-DD`
 [[../web/src/components/SettingsWorkspace.tsx]] | Mobile Settings als Control Center mit kompakteren Listen-Rows und Detailfokus im Bottom-Sheet | #ui #settings #mobile #derived | 2026-05-18
 [[../web/src/components/mobile/shared/SettingsRow.tsx]] | Mobile Settings-Row Primitive mit optionalem Detail-Track und Tone-Varianten | #ui #settings #mobile #derived | 2026-05-18
 [[../docs/smoke-test-matrix.md]] | Holistische Smoke-Matrix mit lokaler Default-Orchestrierung (`smoke`) und klarer Abgrenzung zu opt-in Live-Smokes | #docs #smoke #verification #derived | 2026-05-18
+[[../ops/agent-team/README.md]] | 3-Agent-Swarm Governance (OrchestrAI_Labs-Prinzip) als repo-lokale Contract-Slice, additiv zu AGENTS.md/WORKFLOW.md/00-schema | #governance #swarm #proposed | 2026-06-08
+[[../ops/agent-team/swarm_roles.md]] | Rollendefinition Orchestrator / Builder / Reviewer mit Verantwortung, Modi und Verboten | #governance #swarm #roles #proposed | 2026-06-08
+[[../ops/agent-team/swarm_policy.md]] | Tier-Modell (0-4), immer blockieren / review-pflichtig / freely allowed, repo-spezifische Mappings | #governance #swarm #policy #proposed | 2026-06-08
+[[../ops/agent-team/swarm_task_routing.md]] | Variable Routing-Logik Task-Klasse -> Owner + Tier + Review, mit mosaicStack-spezifischen Pfad-Mappings | #governance #swarm #routing #proposed | 2026-06-08
+[[../ops/agent-team/swarm_review_gate.md]] | Review-Gate: pass / needs_rework / blocked / approval_required, Scorecard und Failure-Mode | #governance #swarm #review #proposed | 2026-06-08
+[[../ops/agent-team/agent_teamplan.md]] | Aktive Workstreams mit Owner, Tier, Status, Next Action; additiv zur bestehenden Workstream-Schicht | #governance #swarm #teamplan #proposed | 2026-06-08
+[[../ops/agent-team/agent_memory.md]] | Working / Repo / Semantic Memory in drei Ebenen, additiv zu 02-wiki und 03-mspr | #governance #swarm #memory #proposed | 2026-06-08
+[[../ops/agent-team/mspr_logbook.md]] | MSPR-Logbuch (Memory, Scope, Progress, Review), additiv zu 03-mspr/packets/ | #governance #swarm #mspr #proposed | 2026-06-08
+[[../03-mspr/packets/2026-06-08-swarm-governance-bootstrap.yml]] | MSPR-Packet für den Swarm-Governance Bootstrap (governance_bootstrap_review) | #mspr #governance #swarm #proposed | 2026-06-08
+[[../ops/agent-team/swarm_roles]] | Erweiterung v1: optionale opt-in Adoption der Shared-Core-Rollenbibliothek (11 Spezialrollen, 5 Presets); 3-Agent-Core bleibt kanonisch | #governance #swarm #roles #proposed | 2026-06-08
+[[../ops/agent-team/agent_memory]] | Role-Typed-Memory-Section hinzugefügt (Extended Roles v1) | #governance #swarm #memory #proposed | 2026-06-08
+[[../ops/agent-team/mspr_logbook]] | MSPR-20260608-002 (Extended Roles v1 Adoption) hinzugefügt | #governance #swarm #mspr #proposed | 2026-06-08
+[[../web/src/components/ErrorBoundary.tsx]] | React class ErrorBoundary with getDerivedStateFromError + componentDidCatch, wraps the 3 Suspense boundaries in App.tsx to prevent chunk-load failures from unmounting the whole console | #ui #error #react #derived | 2026-06-18
+[[../web/src/landing/LandingPage.tsx]] | Extracted LandingPage + LandingEntryGate + useLandingEntryGate + PublicPreview + ReadmeLandingPage; lazy-loaded via React.lazy, in DEFERRED_PRELOAD_CHUNK_PREFIXES | #ui #landing #refactor #derived | 2026-06-18
+[[../web/src/hooks/useSettingsWorkspaceStatus.ts]] | Settings-only hook split from useRuntimeStatus in Block F; owns 5 Settings-only callbacks + 8 state slots; lives in hooks/ for clean ownership | #hooks #settings #refactor #derived | 2026-06-18
+[[../web/src/hooks/useVirtualScroll.ts]] | 176-line virtualization hook now wired into SessionList (>20) and Matrix joinedRooms (>30); consumed in Block F after being dead code | #hooks #virtualization #refactor #derived | 2026-06-18

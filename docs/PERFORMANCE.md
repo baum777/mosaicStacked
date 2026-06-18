@@ -46,6 +46,8 @@ Rationale:
 - A `lastUpdated` timestamp is required on the snapshot; the workspace renders `unknown` when the file is missing or the field is absent, so the page can never claim a fresher value than the evidence actually carries.
 - The console keeps a "local evidence only" disclaimer next to the timestamp, mirroring the bundle/lighthouse postured caveats in this document.
 
+Block F and Block G added 3 new lazy chunks (`MarkdownMessage`, `GuideOverlay`, `LandingPage`) all in `DEFERRED_PRELOAD_CHUNK_PREFIXES`. The shell `index-…js` shrank from 188.64 kB to 177.42 kB. See `CHANGELOG.md` for the per-block test count and the 3 BLOCKED items (pinned-chat-context redaction, shell-freshness case-3, dead `validateExecutionResponse`).
+
 ## Phase 2 GitHub Surface Guardrails
 
 - Mobile GitHub review UI enters through `web/src/pages/GitHubPage.tsx` and is loaded with `React.lazy()` from `web/src/App.tsx`.

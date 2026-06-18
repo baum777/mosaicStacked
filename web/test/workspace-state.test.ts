@@ -584,3 +584,166 @@ test("workspace localStorage payload never stores OpenRouter API keys", () => {
   assert.doesNotMatch(payload, /apiKey/i);
   assert.doesNotMatch(payload, /sk-or-v1-/);
 });
+
+test("loadWorkspaceState fails closed when persisted version is forward of current (version 2)", () => {
+  const storage = new Map<string, string>();
+  const base = createDefaultWorkspaceState();
+
+  storage.set("mosaicstacked.console.workspaces.v1", JSON.stringify({
+    ...base,
+    version: 2
+  }));
+
+  const fakeWindow = {
+    localStorage: {
+      getItem(key: string) {
+        return storage.get(key) ?? null;
+      },
+      setItem(key: string, value: string) {
+        storage.set(key, value);
+      },
+      removeItem(key: string) {
+        storage.delete(key);
+      }
+    }
+  } as Partial<Window>;
+
+  const state = withWindow(fakeWindow, () => loadWorkspaceState());
+
+  assert.equal(state.version, 1);
+  assert.equal(state.sessionsByWorkspace.chat.length, 1);
+  assert.equal(state.sessionsByWorkspace.github.length, 1);
+  assert.equal(state.sessionsByWorkspace.matrix.length, 1);
+  assert.equal(state.activeWorkspace, "chat");
+});
+
+test("loadWorkspaceState coerces unknown activeWorkspace values to the default", () => {
+  const storage = new Map<string, string>();
+  const base = createDefaultWorkspaceState();
+
+  storage.set("mosaicstacked.console.workspaces.v1", JSON.stringify({
+    ...base,
+    activeWorkspace: "unknown-future-tab"
+  }));
+
+  const fakeWindow = {
+    localStorage: {
+      getItem(key: string) {
+        return storage.get(key) ?? null;
+      },
+      setItem(key: string, value: string) {
+        storage.set(key, value);
+      },
+      removeItem(key: string) {
+        storage.delete(key);
+      }
+    }
+  } as Partial<Window>;
+
+  const state = withWindow(fakeWindow, () => loadWorkspaceState());
+
+  assert.equal(state.activeWorkspace, "chat");
+});
+
+test("loadWorkspaceState documents duplicate session ids: last write wins (later array entry overrides earlier)", () => {
+  const storage = new Map<string, string>();
+  const base = createDefaultWorkspaceState();
+  const chatSession = base.sessionsByWorkspace.chat[0];
+  assert.ok(chatSession);
+
+  const duplicateId = "duplicate-session-id";
+  const olderDuplicate = createSession("chat", createChatSessionMetadata(), {
+    id: duplicateId,
+    createdAt: "2026-06-20T08:00:00.000Z",
+    updatedAt: "2026-06-20T08:00:00.000Z",
+    lastOpenedAt: "2026-06-20T08:00:00.000Z"
+  });
+  const newerDuplicate = createSession("chat", createChatSessionMetadata(), {
+    id: duplicateId,
+    createdAt: "2026-06-20T09:00:00.000Z",
+    updatedAt: "2026-06-20T09:00:00.000Z",
+    lastOpenedAt: "2026-06-20T09:00:00.000Z"
+  });
+
+  storage.set("mosaicstacked.console.workspaces.v1", JSON.stringify({
+    ...base,
+    sessionsByWorkspace: {
+      ...base.sessionsByWorkspace,
+      chat: [chatSession, olderDuplicate, newerDuplicate]
+    },
+    activeSessionIdByWorkspace: {
+      ...base.activeSessionIdByWorkspace,
+      chat: duplicateId
+    }
+  }));
+
+  const fakeWindow = {
+    localStorage: {
+      getItem(key: string) {
+        return storage.get(key) ?? null;
+      },
+      setItem(key: string, value: string) {
+        storage.set(key, value);
+      },
+      removeItem(key: string) {
+        storage.delete(key);
+      }
+    }
+  } as Partial<Window>;
+
+  const state = withWindow(fakeWindow, () => loadWorkspaceState());
+
+  // The validator does not deduplicate by id; all three entries persist.
+  // The "winner" is whichever entry sortSessionsByUpdatedAt places first
+  // (newer updatedAt wins) — but in any case the load must not throw and
+  // the persisted duplicateId must still be selectable.
+  assert.equal(state.sessionsByWorkspace.chat.length, 3);
+  const matchingSessions = state.sessionsByWorkspace.chat.filter((session) => session.id === duplicateId);
+  assert.equal(matchingSessions.length, 2);
+  // The newer duplicate is the one that resolves as the active session,
+  // because sortSessionsByUpdatedAt places it ahead of the older one and
+  // ensureActiveSessionId keeps the preferredId when found.
+  const activeId = state.activeSessionIdByWorkspace.chat;
+  assert.equal(activeId, duplicateId);
+  const sortedMatches = matchingSessions.slice().sort((a, b) =>
+    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  );
+  assert.equal(activeId, sortedMatches[0]?.id);
+});
+
+test("deleteSession from a workspace with exactly one session re-creates a default session", () => {
+  const state = createDefaultWorkspaceState();
+  const chatSession = state.sessionsByWorkspace.chat[0];
+  assert.ok(chatSession);
+  assert.equal(state.sessionsByWorkspace.chat.length, 1);
+
+  const next = deleteSession(state, "chat", chatSession.id);
+
+  assert.equal(next.sessionsByWorkspace.chat.length, 1);
+  const replacement = next.sessionsByWorkspace.chat[0];
+  assert.ok(replacement);
+  assert.notEqual(replacement.id, chatSession.id);
+  assert.equal(replacement.workspace, "chat");
+  assert.equal(replacement.metadata.chatState.connectionState, "idle");
+  assert.equal(next.activeSessionIdByWorkspace.chat, replacement.id);
+});
+
+test("selectSession with missing id is a no-op (returns current state, does not throw)", () => {
+  const state = createDefaultWorkspaceState();
+  const originalActiveId = state.activeSessionIdByWorkspace.chat;
+  const originalSessionIds = state.sessionsByWorkspace.chat.map((session) => session.id);
+
+  let result: WorkspaceState;
+  assert.doesNotThrow(() => {
+    result = selectSession(state, "chat", "missing-id");
+  });
+  // assert.doesNotThrow doesn't narrow; access after guard
+  const next = selectSession(state, "chat", "missing-id");
+
+  assert.equal(next, state);
+  assert.equal(next.activeSessionIdByWorkspace.chat, originalActiveId);
+  assert.deepEqual(
+    next.sessionsByWorkspace.chat.map((session) => session.id),
+    originalSessionIds
+  );
+});

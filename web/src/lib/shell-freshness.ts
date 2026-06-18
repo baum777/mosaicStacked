@@ -8,9 +8,9 @@ export function deriveShellFreshness(options: {
     return "backend-fresh";
   }
 
-  if (options.backendHealthy === false) {
-    return "stale";
+  if (options.restoredSession) {
+    return "local-restored";
   }
 
-  return options.restoredSession ? "local-restored" : "stale";
+  return "stale";
 }

@@ -1,0 +1,51 @@
+id: MSPR-20260608-001
+date: 2026-06-08
+status: proposed
+trigger: governance_bootstrap_review
+scope:
+  paths:
+    - ops/agent-team/README.md
+    - ops/agent-team/swarm_roles.md
+    - ops/agent-team/swarm_policy.md
+    - ops/agent-team/swarm_task_routing.md
+    - ops/agent-team/swarm_review_gate.md
+    - ops/agent-team/agent_teamplan.md
+    - ops/agent-team/agent_memory.md
+    - ops/agent-team/mspr_logbook.md
+    - 03-mspr/packets/2026-06-08-swarm-governance-bootstrap.yml
+authority:
+  observed:
+    - AGENTS.md
+    - WORKFLOW.md
+    - 00-schema/AGENTS.md
+    - 00-schema/mspr-spec.md
+    - 02-wiki/index.md
+    - 02-wiki/log.md
+  inferred:
+    - swarm_contracts_extend_existing_governance_without_overriding_authority
+risk:
+  level: low
+  statement: new_swarm_contracts_introduce_5_tier_model_and_mspr_logbook_overlay_on_top_of_existing_governance
+decision_needed: accept_or_adjust_swarm_governance_bootstrap
+review:
+  owner: human
+  state: pending
+verification:
+  proof:
+    - "rg --files -g 'ops/agent-team/**' -g '03-mspr/packets/2026-06-08-*' -g '02-wiki/**'"
+    - "manual-readback: 8 contract files under ops/agent-team/ exist and use frontmatter per 00-schema/AGENTS.md"
+    - "manual-check: no existing file overwritten; 02-wiki/index.md and 02-wiki/log.md append-only updated"
+links:
+  - ops/agent-team/README.md
+  - ops/agent-team/swarm_roles.md
+  - ops/agent-team/swarm_policy.md
+  - ops/agent-team/swarm_task_routing.md
+  - ops/agent-team/swarm_review_gate.md
+  - ops/agent-team/agent_teamplan.md
+  - ops/agent-team/agent_memory.md
+  - ops/agent-team/mspr_logbook.md
+  - AGENTS.md
+  - WORKFLOW.md
+  - 00-schema/AGENTS.md
+  - 00-schema/mspr-spec.md
+next_gate: human_review

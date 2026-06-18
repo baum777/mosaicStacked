@@ -22,6 +22,8 @@ import {
   TruthRailSection,
 } from "./components/ShellPrimitives.js";
 import { FloatingCompanion } from "./components/FloatingCompanion.js";
+import { ErrorBoundary } from "./components/ErrorBoundary.js";
+import { recordShellTelemetry, registerShellTelemetrySink } from "./lib/shell-telemetry.js";
 import { buildCompanionContext } from "./lib/companion-context.js";
 import {
   validateCompanionIntent,
@@ -53,6 +55,7 @@ import { ContextStrip, type MobileContextStatus } from "./components/mobile/layo
 import { TopContextBar } from "./components/mobile/layout/TopContextBar.js";
 import { DesktopSidebarTabs } from "./components/navigation/DesktopSidebarTabs.js";
 import { useRuntimeStatus } from "./hooks/useRuntimeStatus.js";
+import { useSettingsWorkspaceStatus } from "./hooks/useSettingsWorkspaceStatus.js";
 import { useWorkspaceSessions } from "./hooks/useWorkspaceSessions.js";
 import { useCrossTabCommands } from "./hooks/useCrossTabCommands.js";
 import type { CrossTabCommand } from "./lib/cross-tab-commands.js";
@@ -60,20 +63,38 @@ import { useReviewState } from "./hooks/useReviewState.js";
 import { useConsoleTheme, type ConsoleTheme } from "./hooks/useConsoleTheme.js";
 import { deriveShellFreshness, type ShellFreshness } from "./lib/shell-freshness.js";
 import type { NavigationPaletteEntry } from "./lib/navigation-palette.js";
+// The landing-page surfaces are split into their own chunk so the
+// preview/readme routes do not bloat the console shell. The
+// `LandingPage` chunk prefix is in the deferred-preload whitelist
+// so the chunk is not preloaded.
+const LazyLandingReadmePage = lazy(() =>
+  import("./landing/LandingPage.js").then((module) => ({ default: module.LandingPage })),
+);
+const LazyLandingPublicPreview = lazy(() =>
+  import("./landing/LandingPage.js").then((module) => ({ default: module.PublicPreview })),
+);
 
 const loadChatWorkspace = () => import("./components/ChatWorkspace.js");
 const loadGitHubWorkspace = () => import("./components/GitHubWorkspace.js");
+const loadReviewWorkspace = () => import("./components/ReviewWorkspace.js");
+const loadCommunityWorkspace = () => import("./components/CommunityWorkspace.js");
+const loadModelsWorkspace = () => import("./components/ModelsWorkspace.js");
+const loadEvidenceWorkspace = () => import("./components/EvidenceWorkspace.js");
 const loadMatrixWorkspace = () => import("./components/MatrixWorkspace.js");
 const loadPerformanceWorkspace = () => import("./components/PerformanceWorkspace.js");
 const loadSettingsWorkspace = () => import("./components/SettingsWorkspace.js");
 
 const ChatWorkspace = lazy(() => loadChatWorkspace().then((module) => ({ default: module.ChatWorkspace })));
 const GitHubWorkspace = lazy(() => loadGitHubWorkspace().then((module) => ({ default: module.GitHubWorkspace })));
+const ReviewWorkspace = lazy(() => loadReviewWorkspace().then((module) => ({ default: module.ReviewWorkspace })));
+const CommunityWorkspace = lazy(() => loadCommunityWorkspace().then((module) => ({ default: module.CommunityWorkspace })));
+const ModelsWorkspace = lazy(() => loadModelsWorkspace().then((module) => ({ default: module.ModelsWorkspace })));
+const EvidenceWorkspace = lazy(() => loadEvidenceWorkspace().then((module) => ({ default: module.EvidenceWorkspace })));
 const MatrixWorkspace = lazy(() => loadMatrixWorkspace().then((module) => ({ default: module.MatrixWorkspace })));
 const PerformanceWorkspace = lazy(() => loadPerformanceWorkspace().then((module) => ({ default: module.PerformanceWorkspace })));
 const SettingsWorkspace = lazy(() => loadSettingsWorkspace().then((module) => ({ default: module.SettingsWorkspace })));
 
-type WorkspaceMode = "chat" | "workbench" | "matrix" | "settings" | "perf";
+type WorkspaceMode = "chat" | "workbench" | "review" | "community" | "models" | "evidence" | "matrix" | "settings" | "perf";
 
 type TelemetryEntry = {
   id: string;
@@ -92,13 +113,16 @@ type PersistedShellState = {
 const SHELL_STORAGE_KEY = "mosaicstacked.console.shell.v2";
 const SHELL_STATE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const CONSOLE_THEME_STORAGE_KEY = "mosaicstacked.console.theme.v1";
-const LANDING_ENTRY_GUIDE_KEY = "landing-entry";
 const DEFAULT_FREE_MODEL_ALIAS = "default-free";
 const CONSOLE_THEMES: ConsoleTheme[] = ["tokyo", "darkula", "muted-light"];
 
 function isWorkspaceMode(value: string | null): value is WorkspaceMode {
   return value === "chat"
     || value === "workbench"
+    || value === "review"
+    || value === "community"
+    || value === "models"
+    || value === "evidence"
     || value === "matrix"
     || value === "settings"
     || value === "perf";
@@ -113,7 +137,7 @@ function normalizeWorkspaceMode(value: string | null | undefined): WorkspaceMode
     return value;
   }
 
-  if (value === "github" || value === "review" || value === "context") {
+  if (value === "github" || value === "context") {
     return "workbench";
   }
 
@@ -254,8 +278,8 @@ function appendTelemetry(current: TelemetryEntry[], entry: TelemetryEntry) {
   return [...current, entry].slice(-8);
 }
 
-const WORKSPACE_MODES: WorkspaceMode[] = ["chat", "workbench", "matrix", "settings", "perf"];
-const MOBILE_NAV_MODES: WorkspaceMode[] = ["chat", "workbench", "matrix", "settings", "perf"];
+const WORKSPACE_MODES: WorkspaceMode[] = ["chat", "workbench", "review", "community", "models", "evidence", "matrix", "settings", "perf"];
+const MOBILE_NAV_MODES: WorkspaceMode[] = ["chat", "workbench", "review", "community", "models", "evidence", "matrix", "settings", "perf"];
 const MOBILE_BREAKPOINT_QUERY = "(max-width: 760px)";
 const MATRIX_HIERARCHY_ENABLED = ((import.meta as { env?: { VITE_MATRIX_HIERARCHY?: string } }).env?.VITE_MATRIX_HIERARCHY ?? "false") === "true";
 
@@ -268,6 +292,37 @@ function WorkspaceIcon({ mode }: { mode: WorkspaceMode }) {
           <path d="M15 4v3h3" />
           <path d="M8.5 11.25h7" />
           <path d="M8.5 14.5h7" />
+        </svg>
+      );
+    case "review":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M5 10l3 3 8-8" />
+          <circle cx="12" cy="12" r="9" />
+        </svg>
+      );
+    case "community":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M9 12a3 3 0 1 1 6 0 3 3 0 0 1-6 0Z" />
+          <path d="M3 18a6 6 0 0 1 12 0" />
+          <path d="M18 18a6 6 0 0 1 6 0" />
+          <path d="M19 12a3 3 0 1 1 6 0 3 3 0 0 1-6 0Z" />
+        </svg>
+      );
+    case "models":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M12 2 2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5Z" />
+          <path d="M12 12l-3-3m0 6l3-3m0 0l3 3m-3-3v4" />
+        </svg>
+      );
+    case "evidence":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M9 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9" />
+          <path d="M9 4h6v5H9V4Z" />
+          <path d="M8 14h8M8 10h8" />
         </svg>
       );
     case "matrix":
@@ -436,7 +491,13 @@ export default function App() {
     return <ConsoleShell />;
   }
 
-  return surface === "readme" ? <ReadmeLandingPage /> : <PublicPreview />;
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<main className="app-shell landing-shell" aria-busy="true" />}>
+        {surface === "readme" ? <LazyLandingReadmePage /> : <LazyLandingPublicPreview />}
+      </Suspense>
+    </ErrorBoundary>
+  );
 }
 
 function useIsMobileViewport() {
@@ -467,639 +528,6 @@ function useIsMobileViewport() {
   }, []);
 
   return isMobile;
-}
-
-const LANDING_COPY = {
-  de: {
-    kicker: "Backend-owned Console",
-    heroTitle: "MosaicStacked Konsole",
-    heroBody: "Chat, Workbench, Matrix und Settings liegen in einem kontrollierten Interface mit klarer Backend-Autorität.",
-    heroPrimaryCta: "Konsole öffnen",
-    heroSecondaryCta: "Interface sehen",
-    workspaceTabsKicker: "Arbeitsflächen",
-    workspaceTabsTitle: "Vier klare Eintrittspunkte",
-    openSuffix: "öffnen",
-    modelKicker: "Modell verbinden",
-    modelTitle: "Modellzugang in drei Schritten",
-    modelBody: "Du bringst den Zugang mit, die App hält Routing, Status und Freigaben serverseitig zusammen.",
-    modelHintLabel: "Hinweis:",
-    modelHintBody: "Die UI zeigt Modell-Aliase. Provider-Details bleiben Backend-/Config-Sache.",
-    modelSecretNote: "gehört in Settings/Backend, nie in Prompt-Text.",
-    actionsKicker: "Aktionen",
-    actionsTitle: "Von einer Antwort zur nächsten Aktion",
-    actionsBody: "Die Oberfläche ist auf Weitergabe, Review und Freigabe gebaut - nicht auf Copy-Paste.",
-    actionsExamplePrefix: "Beispiel:",
-    actionsExampleBody: "Lade eine Datei -> prüfe Risiken -> übergib an Workbench mit",
-    actionsExampleTail: "-> bereite einen Matrix-Entwurf mit",
-    beginnerKicker: "Erste Sitzung",
-    beginnerTitle: "Dein erster Ablauf",
-    powerKicker: "Power User Recipes",
-    powerTitle: "Abläufe für echte Projektarbeit",
-    safetyLabel: "Safety-Hinweis",
-    safetyLines: [
-      "Browser ist Review Surface, Backend hält Autorität.",
-      "Keine direkten Writes ohne Approval Gate.",
-      "Matrix-Composer Submit bleibt fail-closed, bis ein Write-Contract aktiv ist.",
-      "Secrets nie in Prompts posten.",
-    ],
-    enterLabel: "ENTER",
-    enterHint: "Zur App wechseln",
-    entryGateTitle: "Einmal bestätigen, dann direkt zur Konsole",
-    entryGateBody: "Akzeptiere diesen Pfad einmal. Danach öffnet MosaicStacked die Konsole direkt und lässt die Landingpage aus.",
-    entryGatePrimary: "Akzeptieren und öffnen",
-    entryGateSecondary: "Später",
-    entryGatePathLabel: "Pfad",
-  },
-  en: {
-    kicker: "Backend-owned Console",
-    heroTitle: "MosaicStacked Console",
-    heroBody: "Chat, Workbench, Matrix, and Settings live in one controlled interface with backend authority.",
-    heroPrimaryCta: "Open console",
-    heroSecondaryCta: "See the interface",
-    workspaceTabsKicker: "Workspaces",
-    workspaceTabsTitle: "Four clear entry points",
-    openSuffix: "open",
-    modelKicker: "Connect Models",
-    modelTitle: "Connect model access in three steps",
-    modelBody: "You bring the access; the app keeps routing, status, and approvals server-owned.",
-    modelHintLabel: "Note:",
-    modelHintBody: "The UI shows model aliases. Provider details stay a backend/config concern.",
-    modelSecretNote: "belongs in settings/backend, never in prompt text.",
-    actionsKicker: "Actions",
-    actionsTitle: "From one answer to the next action",
-    actionsBody: "The surface is built for handoff, review, and approval - not for copy-paste.",
-    actionsExamplePrefix: "Example:",
-    actionsExampleBody: "Load a file -> review risks -> hand off to Workbench with",
-    actionsExampleTail: "-> prepare a Matrix draft with",
-    beginnerKicker: "First session",
-    beginnerTitle: "Your first flow",
-    powerKicker: "Power User Recipes",
-    powerTitle: "Flows for real project work",
-    safetyLabel: "Safety Note",
-    safetyLines: [
-      "The browser is a review surface; the backend remains authoritative.",
-      "No direct writes without an approval gate.",
-      "Matrix composer submit stays fail-closed until a write contract is active.",
-      "Never post secrets in prompts.",
-    ],
-    enterLabel: "ENTER",
-    enterHint: "Open the app",
-    entryGateTitle: "Confirm once, then open the console directly",
-    entryGateBody: "Accept this path once. After that, MosaicStacked opens the console directly and skips the landing page.",
-    entryGatePrimary: "Accept and open",
-    entryGateSecondary: "Later",
-    entryGatePathLabel: "Path",
-  },
-} as const;
-
-const LANDING_FEATURES = [
-  {
-    key: "chat",
-    icon: <WorkspaceIcon mode="chat" />,
-    href: "/console?mode=chat",
-    title: {
-      de: "Chat",
-      en: "Chat",
-    },
-    description: {
-      de: "Frage Modelle, plane Tasks und lass dir Code oder Entscheidungen erklären.",
-      en: "Ask models, plan tasks, and get code or decisions explained.",
-    },
-    useCase: {
-      de: "Kurz starten: Idee eintippen und den nächsten Schritt ableiten.",
-      en: "Quick start: type an idea and derive the next step.",
-    },
-  },
-  {
-    key: "workbench",
-    icon: <WorkspaceIcon mode="workbench" />,
-    href: "/console?mode=workbench",
-    title: {
-      de: "Workbench",
-      en: "Workbench",
-    },
-    description: {
-      de: "Lade Repo-Kontext, prüfe Änderungen und steuere Review, Übergabe und PR-Vorbereitung.",
-      en: "Load repository context, review changes, and control handoff and PR preparation.",
-    },
-    useCase: {
-      de: "Arbeitszusammenfassung prüfen und nur bei Bedarf den Raw Diff öffnen.",
-      en: "Review the work summary first and open raw diff only when needed.",
-    },
-  },
-  {
-    key: "matrix",
-    icon: <WorkspaceIcon mode="matrix" />,
-    href: "/console?mode=matrix",
-    title: {
-      de: "Matrix",
-      en: "Matrix",
-    },
-    description: {
-      de: "Prüfe Scope, Provenienz und Topic-Update-Pläne im Backend-Flow.",
-      en: "Review scope, provenance, and topic-update plans through backend flows.",
-    },
-    useCase: {
-      de: "Scope auflösen, Plan prüfen, dann mit Freigabe ausführen und verifizieren.",
-      en: "Resolve scope, review plan, then execute and verify with approval.",
-    },
-  },
-  {
-    key: "settings",
-    icon: <WorkspaceIcon mode="settings" />,
-    href: "/console?mode=settings",
-    title: {
-      de: "Settings",
-      en: "Settings",
-    },
-    description: {
-      de: "Verbinde Modellzugang, GitHub und Matrix kontrolliert.",
-      en: "Connect model access, GitHub, and Matrix in a controlled way.",
-    },
-    useCase: {
-      de: "OpenRouter-Credentials prüfen und GitHub-/Matrix-Integrationen kontrolliert verbinden.",
-      en: "Verify OpenRouter credentials and connect GitHub/Matrix integrations in a controlled flow.",
-    },
-  },
-] as const;
-
-const LANDING_MODEL_STEPS = [
-  {
-    title: {
-      de: "API-Key holen",
-      en: "Get API key",
-    },
-    text: {
-      de: "Erstelle einen OpenRouter-Key und nutze ihn als Zugang zu mehreren Modellen.",
-      en: "Create an OpenRouter key and use it as access to multiple models.",
-    },
-  },
-  {
-    title: {
-      de: "In Mosaic eintragen",
-      en: "Connect in Mosaic",
-    },
-    text: {
-      de: "Füge den Key im Setup oder in den Settings hinzu. Secrets gehören nie in Chat-Nachrichten.",
-      en: "Add the key in setup or settings. Secrets never belong in chat messages.",
-    },
-  },
-  {
-    title: {
-      de: "Modell wählen",
-      en: "Switch model",
-    },
-    text: {
-      de: "Wechsle je nach Aufgabe: schnell lesen, tief prüfen oder strukturiert planen.",
-      en: "Switch by task: read fast, review deeply, or plan with structure.",
-    },
-  },
-] as const;
-
-const LANDING_ACTION_BUTTONS = [
-  {
-    title: "⊛",
-    headline: {
-      de: "Matrix-Entwurf vorbereiten",
-      en: "Prepare Matrix draft",
-    },
-    text: {
-      de: "Übernimmt eine Antwort in den Matrix-Workspace als Entwurf. Submit bleibt derzeit fail-closed.",
-      en: "Moves a response into the Matrix workspace as a draft. Submit currently stays fail-closed.",
-    },
-  },
-  {
-    title: "↯",
-    headline: {
-      de: "Für GitHub vorbereiten",
-      en: "Prepare for GitHub",
-    },
-    text: {
-      de: "Übergibt einen Ausschnitt in den Workbench-Flow für Review, Vorschlag und freigabegesteuerte Ausführung.",
-      en: "Hands off an excerpt into the Workbench flow for review, proposal, and approval-gated execution.",
-    },
-  },
-  {
-    title: "⊡",
-    headline: {
-      de: "Kontext laden",
-      en: "Load context",
-    },
-    text: {
-      de: "Ziehe Repo, Datei oder Branch in den Chat, bevor du nach Details fragst.",
-      en: "Pull repo, file, or branch into chat before asking for details.",
-    },
-  },
-  {
-    title: "⎘",
-    headline: {
-      de: "Kopieren",
-      en: "Copy",
-    },
-    text: {
-      de: "Nutze Outputs außerhalb der App oder kombiniere sie mit Matrix und GitHub.",
-      en: "Use outputs outside the app or combine them with Matrix and GitHub.",
-    },
-  },
-] as const;
-
-const LANDING_ACTION_RECIPES = [
-  {
-    title: {
-      de: "Chat → Matrix",
-      en: "Chat → Matrix",
-    },
-    text: {
-      de: "Lass dir eine Zusammenfassung erstellen, tippe ⊛ und übernimm sie als Matrix-Entwurf.",
-      en: "Generate a summary, tap ⊛, and adopt it as a Matrix draft.",
-    },
-  },
-  {
-    title: {
-      de: "Chat → GitHub",
-      en: "Chat → GitHub",
-    },
-    text: {
-      de: "Lass dir Review-Hinweise erstellen, tippe ↯ und bereite daraus Issue oder PR-Kommentar vor.",
-      en: "Generate review hints, tap ↯, and prepare an issue or PR comment.",
-    },
-  },
-  {
-    title: {
-      de: "GitHub → Chat",
-      en: "GitHub → Chat",
-    },
-    text: {
-      de: "Lade eine Datei in den Kontext und frage gezielt nach Risiken, Bugs oder Refactor-Optionen.",
-      en: "Load a file into context and ask directly about risks, bugs, or refactor options.",
-    },
-  },
-  {
-    title: {
-      de: "Matrix → Chat",
-      en: "Matrix → Chat",
-    },
-    text: {
-      de: "Nutze Scope-Zusammenfassung und Provenienz als Orientierung für neue Prompts und Entscheidungen.",
-      en: "Use scope summaries and provenance as guidance for new prompts and decisions.",
-    },
-  },
-] as const;
-
-const LANDING_BEGINNER_FLOW = {
-  de: [
-    "Modellzugang verbinden",
-    "Erste Frage stellen",
-    "Repo oder Datei als Kontext laden",
-    "Output in Workbench weiterreichen",
-    "Matrix-Scope prüfen und Topic-Plan freigeben",
-  ],
-  en: [
-    "Connect model access",
-    "Ask your first question",
-    "Load repo or file context",
-    "Review the output",
-    "Save or dispatch the result",
-  ],
-} as const;
-
-const LANDING_POWER_RECIPES = [
-  {
-    title: {
-      de: "Review Sprint",
-      en: "Review Sprint",
-    },
-    text: {
-      de: "Datei laden, Risiken prüfen, Kommentar vorbereiten.",
-      en: "Load file, check risks, prepare comment.",
-    },
-  },
-  {
-    title: {
-      de: "Knowledge Capture",
-      en: "Knowledge Capture",
-    },
-    text: {
-      de: "Antwort verdichten, als Matrix-Entwurf übergeben und im Scope verankern.",
-      en: "Condense response, pass it as a Matrix draft, and anchor it in scope.",
-    },
-  },
-  {
-    title: {
-      de: "Model Switch",
-      en: "Model Switch",
-    },
-    text: {
-      de: "Schnelles Modell für Reads, starkes Modell für Reviews.",
-      en: "Fast model for reads, stronger model for reviews.",
-    },
-  },
-  {
-    title: {
-      de: "Team Handoff",
-      en: "Team Handoff",
-    },
-    text: {
-      de: "Projektstand zusammenfassen, teilen, nächste Aktion ableiten.",
-      en: "Summarize project status, share it, derive next action.",
-    },
-  },
-] as const;
-
-function LandingEntryGate({
-  locale,
-  open,
-  onAccept,
-  onDismiss,
-}: {
-  locale: "de" | "en";
-  open: boolean;
-  onAccept: () => void;
-  onDismiss: () => void;
-}) {
-  if (!open) {
-    return null;
-  }
-
-  const copy = LANDING_COPY[locale];
-
-  return (
-    <div className="landing-entry-backdrop" role="presentation" onPointerDown={onDismiss}>
-      <section
-        className="landing-entry-dialog shell-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="landing-entry-title"
-        aria-describedby="landing-entry-body"
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        <header className="landing-entry-dialog-header">
-          <div className="landing-entry-dialog-copy">
-            <p className="landing-entry-dialog-kicker">{copy.kicker}</p>
-            <h2 id="landing-entry-title">{copy.entryGateTitle}</h2>
-          </div>
-          <button
-            type="button"
-            className="ghost-button landing-entry-dismiss"
-            aria-label={locale === "de" ? "Dialog schließen" : "Close dialog"}
-            onClick={onDismiss}
-          >
-            ×
-          </button>
-        </header>
-        <p id="landing-entry-body" className="landing-entry-dialog-body">
-          {copy.entryGateBody}
-        </p>
-        <div className="landing-entry-path">
-          <span>{copy.entryGatePathLabel}</span>
-          <code>/console</code>
-        </div>
-        <div className="landing-entry-actions">
-          <button type="button" className="landing-cta-primary" onClick={onAccept}>
-            {copy.entryGatePrimary}
-          </button>
-          <button type="button" className="landing-cta-secondary" onClick={onDismiss}>
-            {copy.entryGateSecondary}
-          </button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function useLandingEntryGate() {
-  const [open, setOpen] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-
-    return !hasSeenGuideKey(LANDING_ENTRY_GUIDE_KEY);
-  });
-  const [redirecting, setRedirecting] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-
-    return hasSeenGuideKey(LANDING_ENTRY_GUIDE_KEY);
-  });
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    if (hasSeenGuideKey(LANDING_ENTRY_GUIDE_KEY)) {
-      setRedirecting(true);
-      window.location.replace("/console");
-      return;
-    }
-
-    setOpen(true);
-  }, []);
-
-  const accept = useCallback(() => {
-    setRedirecting(true);
-    markGuideKeySeen(LANDING_ENTRY_GUIDE_KEY);
-    window.location.replace("/console");
-  }, []);
-
-  return {
-    open,
-    setOpen,
-    accept,
-    redirecting,
-  };
-}
-
-function LandingPage() {
-  const { locale, setLocale, copy: ui } = useLocalization();
-  const landingCopy = LANDING_COPY[locale];
-
-  return (
-    <main className="app-shell landing-shell" data-testid="readme-landing">
-      <section className="landing-hero" aria-labelledby="landing-hero-title">
-        <div className="landing-hero-top">
-          <div className="landing-brand-row">
-            <span className="mosaicstacked-mark" aria-hidden="true">
-              <MosaicStackedIcon />
-            </span>
-            <span>MosaicStacked</span>
-          </div>
-          <div className="shell-language-toggle landing-language-toggle" role="group" aria-label={ui.shell.languageLabel}>
-            <button
-              type="button"
-              className={locale === "en" ? "secondary-button shell-language-button shell-language-button-active" : "secondary-button shell-language-button"}
-              onClick={() => setLocale("en")}
-              aria-pressed={locale === "en"}
-              aria-label={locale === "de" ? "Sprache: Englisch" : "Language: English"}
-              data-testid="landing-locale-en"
-            >
-              {ui.shell.languageOptionEnglish}
-            </button>
-            <button
-              type="button"
-              className={locale === "de" ? "secondary-button shell-language-button shell-language-button-active" : "secondary-button shell-language-button"}
-              onClick={() => setLocale("de")}
-              aria-pressed={locale === "de"}
-              aria-label={locale === "de" ? "Sprache: Deutsch" : "Language: German"}
-              data-testid="landing-locale-de"
-            >
-              {ui.shell.languageOptionGerman}
-            </button>
-          </div>
-        </div>
-        <p className="landing-kicker">{landingCopy.kicker}</p>
-        <h1 id="landing-hero-title">{landingCopy.heroTitle}</h1>
-        <p className="landing-hero-copy">
-          {landingCopy.heroBody}
-        </p>
-        <div className="landing-hero-actions">
-          <a className="landing-cta-primary" href="/console">
-            {landingCopy.heroPrimaryCta}
-          </a>
-          <a className="landing-cta-secondary" href="#so-funktionierts">
-            {landingCopy.heroSecondaryCta}
-          </a>
-        </div>
-      </section>
-
-      <section className="landing-section" id="so-funktionierts" aria-labelledby="landing-features-title">
-        <header className="landing-section-header">
-          <p className="landing-section-kicker">{landingCopy.workspaceTabsKicker}</p>
-          <h2 id="landing-features-title">{landingCopy.workspaceTabsTitle}</h2>
-        </header>
-        <div className="landing-feature-grid">
-          {LANDING_FEATURES.map((feature) => (
-            <article className="landing-card" key={feature.key}>
-              <div className="landing-card-icon" aria-hidden="true">
-                {feature.icon}
-              </div>
-              <h3>{feature.title[locale]}</h3>
-              <p>{feature.description[locale]}</p>
-              <p className="landing-card-note">{feature.useCase[locale]}</p>
-              <a href={feature.href}>{feature.title[locale]} {landingCopy.openSuffix}</a>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="landing-section" aria-labelledby="landing-model-title">
-        <header className="landing-section-header">
-          <p className="landing-section-kicker">{landingCopy.modelKicker}</p>
-          <h2 id="landing-model-title">{landingCopy.modelTitle}</h2>
-          <p>
-            {landingCopy.modelBody}
-          </p>
-        </header>
-        <div className="landing-step-grid">
-          {LANDING_MODEL_STEPS.map((step, index) => (
-            <article className="landing-step-card" key={step.title[locale]}>
-              <span className="landing-step-index">{String(index + 1).padStart(2, "0")}</span>
-              <h3>{step.title[locale]}</h3>
-              <p>{step.text[locale]}</p>
-            </article>
-          ))}
-        </div>
-        <p className="landing-inline-note">
-          <strong>{landingCopy.modelHintLabel}</strong> {landingCopy.modelHintBody}
-        </p>
-        <p className="landing-inline-note">
-          <code>OPENROUTER_API_KEY</code> {landingCopy.modelSecretNote}
-        </p>
-      </section>
-
-      <section className="landing-section" aria-labelledby="landing-actions-title">
-        <header className="landing-section-header">
-          <p className="landing-section-kicker">{landingCopy.actionsKicker}</p>
-          <h2 id="landing-actions-title">{landingCopy.actionsTitle}</h2>
-          <p>{landingCopy.actionsBody}</p>
-        </header>
-        <div className="landing-action-grid">
-          {LANDING_ACTION_BUTTONS.map((action) => (
-            <article className="landing-card landing-card-cheatsheet" key={`${action.title}-${locale}`}>
-              <h3>{action.title} {action.headline[locale]}</h3>
-              <p>{action.text[locale]}</p>
-            </article>
-          ))}
-        </div>
-        <div className="landing-mini-cheatsheet">
-          {LANDING_ACTION_RECIPES.map((recipe) => (
-            <article className="landing-cheat-row" key={recipe.title[locale]}>
-              <strong>{recipe.title[locale]}</strong>
-              <p>{recipe.text[locale]}</p>
-            </article>
-          ))}
-        </div>
-        <p className="landing-inline-note">
-          {landingCopy.actionsExamplePrefix} {landingCopy.actionsExampleBody} <code>⊛</code> {landingCopy.actionsExampleTail} <code>↯</code> {locale === "de" ? "vor." : "."}
-        </p>
-      </section>
-
-      <section className="landing-section" aria-labelledby="landing-beginner-title">
-        <header className="landing-section-header">
-          <p className="landing-section-kicker">{landingCopy.beginnerKicker}</p>
-          <h2 id="landing-beginner-title">{landingCopy.beginnerTitle}</h2>
-        </header>
-        <ol className="landing-stepper">
-          {LANDING_BEGINNER_FLOW[locale].map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="landing-section" aria-labelledby="landing-power-title">
-        <header className="landing-section-header">
-          <p className="landing-section-kicker">{landingCopy.powerKicker}</p>
-          <h2 id="landing-power-title">{landingCopy.powerTitle}</h2>
-        </header>
-        <div className="landing-recipe-grid">
-          {LANDING_POWER_RECIPES.map((recipe) => (
-            <article className="landing-card" key={recipe.title[locale]}>
-              <h3>{recipe.title[locale]}</h3>
-              <p>{recipe.text[locale]}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="landing-safety-note" aria-label={landingCopy.safetyLabel}>
-        {landingCopy.safetyLines.map((line) => (
-          <p key={line}>{line}</p>
-        ))}
-      </section>
-
-      <section className="landing-enter-section" aria-label={landingCopy.enterHint}>
-        <a className="landing-cta-primary landing-enter-cta" href="/console">
-          {landingCopy.enterLabel}
-        </a>
-      </section>
-    </main>
-  );
-}
-
-function PublicPreview() {
-  const { locale } = useLocalization();
-  const { open, setOpen, accept, redirecting } = useLandingEntryGate();
-
-  if (redirecting) {
-    return null;
-  }
-
-  return (
-    <>
-      <LandingPage />
-      <LandingEntryGate
-        locale={locale}
-        open={open}
-        onAccept={accept}
-        onDismiss={() => setOpen(false)}
-      />
-    </>
-  );
-}
-
-function ReadmeLandingPage() {
-  return <LandingPage />;
 }
 
 function RouteStatusLadder({
@@ -1266,8 +694,17 @@ function ConsoleShell() {
     },
     [],
   );
+  useEffect(() => {
+    registerShellTelemetrySink((entry) => {
+      recordTelemetry(entry.kind, entry.label, entry.detail);
+    });
+    return () => {
+      registerShellTelemetrySink(null);
+    };
+  }, [recordTelemetry]);
   const {
     backendHealthy,
+    setBackendHealthy,
     activeModelAlias,
     setActiveModelAlias,
     availableModels,
@@ -1277,22 +714,11 @@ function ConsoleShell() {
     githubCapabilities,
     runtimeJournalEntries,
     openRouterCredentialStatus,
-    openRouterApiKeyInput,
-    setOpenRouterApiKeyInput,
-    openRouterModelInput,
-    setOpenRouterModelInput,
-    isSavingOpenRouterCredentials,
-    isTestingOpenRouterCredentials,
-    openRouterCredentialMessage,
-    settingsVerificationResults,
     routingStatus,
     refreshIntegrationsStatus,
+    refreshGitHubCapabilities,
     refreshOpenRouterCredentialStatus,
-    handleSaveOpenRouterCredentials,
-    handleTestOpenRouterCredentials,
-    handleSettingsVerifyConnection,
-    handleIntegrationAction,
-    buildSettingsIntegrationStartUrl,
+    clearStatusCache,
   } = useRuntimeStatus({
     mode,
     locale,
@@ -1309,6 +735,29 @@ function ConsoleShell() {
       telemetryDiagnosticsFailedDetail: appText.telemetryDiagnosticsFailedDetail,
     },
     onTelemetry: recordTelemetry,
+  });
+  const {
+    openRouterApiKeyInput,
+    setOpenRouterApiKeyInput,
+    openRouterModelInput,
+    setOpenRouterModelInput,
+    isSavingOpenRouterCredentials,
+    isTestingOpenRouterCredentials,
+    openRouterCredentialMessage,
+    settingsVerificationResults,
+    handleSaveOpenRouterCredentials,
+    handleTestOpenRouterCredentials,
+    handleSettingsVerifyConnection,
+    handleIntegrationAction,
+    buildSettingsIntegrationStartUrl,
+  } = useSettingsWorkspaceStatus({
+    locale,
+    onTelemetry: recordTelemetry,
+    refreshOpenRouterCredentialStatus,
+    refreshIntegrationsStatus,
+    refreshGitHubCapabilities,
+    setBackendHealthy,
+    clearStatusCache,
   });
   const {
     workspaceState,
@@ -1475,11 +924,23 @@ function ConsoleShell() {
         handleWorkspaceTabSelect("workbench");
       } else if (key === "3") {
         event.preventDefault();
-        handleWorkspaceTabSelect("matrix");
+        handleWorkspaceTabSelect("review");
       } else if (key === "4") {
         event.preventDefault();
-        handleWorkspaceTabSelect("settings");
+        handleWorkspaceTabSelect("community");
       } else if (key === "5") {
+        event.preventDefault();
+        handleWorkspaceTabSelect("models");
+      } else if (key === "6") {
+        event.preventDefault();
+        handleWorkspaceTabSelect("evidence");
+      } else if (key === "7") {
+        event.preventDefault();
+        handleWorkspaceTabSelect("matrix");
+      } else if (key === "8") {
+        event.preventDefault();
+        handleWorkspaceTabSelect("settings");
+      } else if (key === "9") {
         event.preventDefault();
         handleWorkspaceTabSelect("perf");
       }
@@ -1579,7 +1040,7 @@ function ConsoleShell() {
           : appText.chatGovernanceLastExecutionFailed
       : appText.chatGovernanceNoOpenProposal;
 
-  const chatRows: StatusPanelRow[] = [
+  const chatRows = useMemo<StatusPanelRow[]>(() => [
     { label: ui.github.modelLabel, value: activeModelAlias ?? ui.common.none },
     { label: ui.review.rowClassification, value: chatGovernanceState },
     {
@@ -1591,7 +1052,7 @@ function ConsoleShell() {
             ? ui.shell.healthUnavailable
             : ui.shell.healthChecking,
     },
-  ];
+  ], [activeModelAlias, backendHealthy, chatGovernanceState, ui.github.modelLabel, ui.review.rowClassification, ui.shell.healthChecking, ui.shell.healthReady, ui.shell.healthTitle, ui.shell.healthUnavailable]);
   const githubConfigured = runtimeDiagnostics?.github.configured ?? null;
   const githubReady = runtimeDiagnostics?.github.ready ?? null;
   const githubAccountLabel = githubConfigured === false || githubReady === false
@@ -1603,16 +1064,16 @@ function ConsoleShell() {
     ? ui.settings.notConfigured
     : githubContext.accessLabel;
 
-  const githubRows: StatusPanelRow[] = [
+  const githubRows = useMemo<StatusPanelRow[]>(() => [
     { label: ui.github.connectedRepo, value: githubContext.repositoryLabel },
     { label: ui.settings.githubConnection, value: githubContext.connectionLabel },
     { label: ui.github.readOnly, value: githubAccessLabel },
     ...(githubContext.approvalLabel !== ui.common.none
       ? [{ label: ui.review.approvalNeeded, value: githubContext.approvalLabel }]
       : []),
-  ];
+  ], [githubAccessLabel, githubContext.approvalLabel, githubContext.connectionLabel, githubContext.repositoryLabel, ui.common.none, ui.github.connectedRepo, ui.github.readOnly, ui.review.approvalNeeded, ui.settings.githubConnection]);
 
-  const matrixRows: StatusPanelRow[] = [
+  const matrixRows = useMemo<StatusPanelRow[]>(() => [
     { label: ui.settings.matrixIdentity, value: matrixContext.identityLabel },
     { label: ui.settings.matrixConnection, value: matrixContext.connectionLabel },
     { label: ui.matrix.scopeSelectedLabel, value: matrixContext.scopeLabel },
@@ -1620,7 +1081,7 @@ function ConsoleShell() {
     ...(matrixContext.approvalLabel !== ui.common.none
       ? [{ label: ui.review.approvalNeeded, value: matrixContext.approvalLabel }]
       : []),
-  ];
+  ], [matrixContext.approvalLabel, matrixContext.connectionLabel, matrixContext.identityLabel, matrixContext.scopeLabel, matrixContext.summaryLabel, ui.common.none, ui.matrix.scopeSelectedLabel, ui.matrix.scopeSummaryTitle, ui.review.approvalNeeded, ui.settings.matrixConnection, ui.settings.matrixIdentity]);
   const routeOwnershipRows = mode === "workbench"
     ? [
         {
@@ -1782,111 +1243,220 @@ function ConsoleShell() {
     ui.shell.healthUnavailable
   ]);
 
-  const settingsRows: StatusPanelRow[] = [
+  const settingsRows = useMemo<StatusPanelRow[]>(() => [
     { label: ui.settings.backend, value: settingsTruthSnapshot.backend.label },
     { label: ui.shell.workspaceTabs.workbench.label, value: `${settingsTruthSnapshot.github.sessionLabel} · ${settingsTruthSnapshot.github.accessLabel}` },
     { label: ui.shell.workspaceTabs.matrix.label, value: `${settingsTruthSnapshot.matrix.identityLabel} · ${settingsTruthSnapshot.matrix.connectionLabel}` },
     { label: ui.settings.modelCardTitle, value: settingsTruthSnapshot.models.activeAlias },
-  ];
-  const performanceRows: StatusPanelRow[] = [
+  ], [settingsTruthSnapshot.backend.label, settingsTruthSnapshot.github.accessLabel, settingsTruthSnapshot.github.sessionLabel, settingsTruthSnapshot.matrix.connectionLabel, settingsTruthSnapshot.matrix.identityLabel, settingsTruthSnapshot.models.activeAlias, ui.settings.backend, ui.settings.modelCardTitle, ui.shell.workspaceTabs.matrix.label, ui.shell.workspaceTabs.workbench.label]);
+  const performanceRows = useMemo<StatusPanelRow[]>(() => [
     { label: "LCP", value: "1.1 s · local evidence" },
     { label: "CLS", value: "0.03 · local evidence" },
     { label: "Gate", value: "npm run perf:bundle:web" },
-  ];
+  ], []);
 
-  const currentRows = useMemo(() => {
+  const currentSurfaceState = useMemo<{
+    rows: StatusPanelRow[];
+    statusTone: "ready" | "partial" | "error";
+    helperText: string;
+    statusBadge: string;
+  }>(() => {
     switch (mode) {
       case "workbench":
-        return githubRows;
+        return {
+          rows: githubRows,
+          statusTone: (
+            githubContext.connectionLabel !== ui.shell.statusReady
+              ? (githubContext.connectionLabel === ui.shell.statusError ? "error" : "partial")
+              : (githubContext.approvalLabel !== ui.common.none || githubContext.repositoryLabel === ui.github.noRepoSelected
+                ? "partial"
+                : "ready")
+          ),
+          helperText: (
+            githubContext.approvalLabel !== ui.common.none
+              ? ui.github.approveHelper
+              : githubContext.repositoryLabel === ui.github.noRepoSelected
+                ? ui.github.workspaceNoticeSelection
+                : ui.github.actionReadBody
+          ),
+          statusBadge: (
+            githubContext.connectionLabel !== ui.shell.statusReady
+              ? githubContext.connectionLabel
+              : githubContext.approvalLabel !== ui.common.none && githubContext.approvalLabel !== ui.github.nextStepReadOnly
+                ? ui.review.approvalNeeded
+                : githubContext.repositoryLabel === ui.github.noRepoSelected
+                  ? ui.github.repoSelectLabel
+                  : githubContext.connectionLabel
+          ),
+        };
       case "matrix":
-        return matrixRows;
+        return {
+          rows: matrixRows,
+          statusTone: (
+            matrixContext.connectionLabel === ui.shell.statusError
+              ? "error"
+              : matrixContext.connectionLabel !== ui.shell.statusReady
+                ? "partial"
+                : (matrixContext.approvalLabel !== ui.common.none || matrixContext.scopeLabel === ui.matrix.scopeUnresolved || matrixContext.summaryLabel === ui.matrix.scopeSummaryUnavailable
+                  ? "partial"
+                  : "ready")
+          ),
+          helperText: (
+            matrixContext.scopeLabel === ui.matrix.scopeSelected
+              ? ui.matrix.scopeSummaryInfo
+              : matrixContext.approvalLabel !== ui.common.none
+                ? ui.matrix.topicStatusApproval
+                : matrixContext.summaryLabel === ui.matrix.scopeSummaryUnavailable
+                  ? ui.matrix.scopeSummaryInfo
+                  : ui.matrix.scopeNotice
+          ),
+          statusBadge: (
+            matrixContext.connectionLabel !== ui.shell.statusReady
+              ? matrixContext.connectionLabel
+              : matrixContext.approvalLabel !== ui.common.none && matrixContext.approvalLabel !== ui.shell.statusReady
+                ? ui.review.approvalNeeded
+                : matrixContext.scopeLabel === ui.matrix.scopeUnresolved
+                  ? ui.matrix.scopeSelected
+                  : matrixContext.summaryLabel === ui.matrix.scopeSummaryUnavailable
+                    ? ui.matrix.scopeSummaryReady
+                    : ui.shell.statusReady
+          ),
+        };
       case "settings":
-        return settingsRows;
+        return {
+          rows: settingsRows,
+          statusTone: (
+            backendHealthy === false
+              ? "error"
+              : matrixContext.connectionLabel === ui.shell.healthChecking
+                ? "partial"
+                : matrixContext.connectionLabel === ui.shell.statusError
+                  ? "error"
+                  : !activeModelAlias
+                    ? "partial"
+                    : "ready"
+          ),
+          helperText: (
+            backendHealthy === false
+              ? ui.shell.healthUnavailableDetail
+              : matrixContext.connectionLabel === ui.shell.statusError
+                ? ui.matrix.topicStatusUnavailable
+                : expertMode
+                  ? ui.settings.connectionTruthNote
+                  : ui.shell.diagnosticsHidden
+          ),
+          statusBadge: (
+            backendHealthy === false
+              ? ui.shell.statusError
+              : matrixContext.connectionLabel === ui.shell.statusError
+                ? ui.shell.statusError
+                : !activeModelAlias
+                  ? ui.shell.statusPartial
+                  : ui.shell.statusReady
+          ),
+        };
       case "perf":
-        return performanceRows;
+        return {
+          rows: performanceRows,
+          statusTone: "partial",
+          helperText: locale === "de"
+            ? "Performance zeigt lokale Evidenz und Repo-Gates; Live-CI oder Deployment werden hier nicht behauptet."
+            : "Performance shows local evidence and repo gates; live CI or deployment are not claimed here.",
+          statusBadge: ui.shell.statusPartial,
+        };
       default:
-        return chatRows;
-    }
-  }, [chatRows, githubRows, matrixRows, mode, performanceRows, settingsRows]);
-
-  const currentStatusBadge = useMemo(() => {
-    switch (mode) {
-      case "workbench":
-        if (githubContext.connectionLabel !== ui.shell.statusReady) {
-          return githubContext.connectionLabel;
-        }
-
-        if (githubContext.approvalLabel !== ui.common.none && githubContext.approvalLabel !== ui.github.nextStepReadOnly) {
-          return ui.review.approvalNeeded;
-        }
-
-        if (githubContext.repositoryLabel === ui.github.noRepoSelected) {
-          return ui.github.repoSelectLabel;
-        }
-
-        return githubContext.connectionLabel;
-      case "matrix":
-        if (matrixContext.connectionLabel !== ui.shell.statusReady) {
-          return matrixContext.connectionLabel;
-        }
-
-        if (matrixContext.approvalLabel !== ui.common.none && matrixContext.approvalLabel !== ui.shell.statusReady) {
-          return ui.review.approvalNeeded;
-        }
-
-        if (matrixContext.scopeLabel === ui.matrix.scopeUnresolved) {
-          return ui.matrix.scopeSelected;
-        }
-
-        if (matrixContext.summaryLabel === ui.matrix.scopeSummaryUnavailable) {
-          return ui.matrix.scopeSummaryReady;
-        }
-
-        return ui.shell.statusReady;
-      case "settings":
-        if (backendHealthy === false) {
-          return ui.shell.statusError;
-        }
-
-        if (matrixContext.connectionLabel === ui.shell.statusError) {
-          return ui.shell.statusError;
-        }
-
-        if (!activeModelAlias) {
-          return ui.shell.statusPartial;
-        }
-
-        return ui.shell.statusReady;
-      case "perf":
-        return ui.shell.statusPartial;
-      default:
-        if (chatPendingProposal?.status === "pending") {
-          return ui.review.approvalNeeded;
-        }
-
-        if (chatPendingProposal?.status === "executing") {
-          return ui.chat.executingTitle;
-        }
-
-        if (chatLatestReceipt?.outcome === "failed" || chatLatestReceipt?.outcome === "unverifiable") {
-          return ui.shell.statusError;
-        }
-
-        return backendHealthy === false ? ui.shell.healthUnavailable : backendHealthy === true ? ui.shell.healthReady : ui.shell.healthChecking;
+        return {
+          rows: chatRows,
+          statusTone: (
+            chatPendingProposal?.status === "pending" || chatPendingProposal?.status === "executing"
+              ? "partial"
+              : chatLatestReceipt?.outcome === "failed" || chatLatestReceipt?.outcome === "unverifiable"
+                ? "error"
+                : backendHealthy === false
+                  ? "error"
+                  : backendHealthy === true
+                    ? "ready"
+                    : "partial"
+          ),
+          helperText: (
+            chatPendingProposal?.status === "pending"
+              ? ui.chat.proposalHelper
+              : chatPendingProposal?.status === "executing"
+                ? ui.chat.composerLocked.execution
+                : chatLatestReceipt?.outcome === "failed" || chatLatestReceipt?.outcome === "unverifiable"
+                  ? ui.chat.composerLocked.backend
+                  : backendHealthy === false
+                    ? ui.chat.composerLocked.backend
+                    : ui.chat.intro
+          ),
+          statusBadge: (
+            chatPendingProposal?.status === "pending"
+              ? ui.review.approvalNeeded
+              : chatPendingProposal?.status === "executing"
+                ? ui.chat.executingTitle
+                : chatLatestReceipt?.outcome === "failed" || chatLatestReceipt?.outcome === "unverifiable"
+                  ? ui.shell.statusError
+                  : backendHealthy === false
+                    ? ui.shell.healthUnavailable
+                    : backendHealthy === true
+                      ? ui.shell.healthReady
+                      : ui.shell.healthChecking
+          ),
+        };
     }
   }, [
+    activeModelAlias,
     backendHealthy,
+    chatGovernanceState,
     chatLatestReceipt?.outcome,
     chatPendingProposal?.status,
+    chatRows,
+    expertMode,
     githubContext.approvalLabel,
     githubContext.connectionLabel,
     githubContext.repositoryLabel,
-    activeModelAlias,
+    githubRows,
+    locale,
     matrixContext.approvalLabel,
     matrixContext.connectionLabel,
     matrixContext.scopeLabel,
     matrixContext.summaryLabel,
+    matrixRows,
     mode,
+    performanceRows,
+    settingsRows,
+    ui.chat.composerLocked.backend,
+    ui.chat.composerLocked.execution,
+    ui.chat.executingTitle,
+    ui.chat.intro,
+    ui.chat.proposalHelper,
+    ui.common.none,
+    ui.github.actionReadBody,
+    ui.github.approveHelper,
+    ui.github.modelLabel,
+    ui.github.nextStepReadOnly,
+    ui.github.noRepoSelected,
+    ui.github.repoSelectLabel,
+    ui.github.workspaceNoticeSelection,
+    ui.matrix.scopeNotice,
+    ui.matrix.scopeSelected,
+    ui.matrix.scopeSummaryInfo,
+    ui.matrix.scopeSummaryReady,
+    ui.matrix.scopeSummaryUnavailable,
+    ui.matrix.scopeUnresolved,
+    ui.matrix.topicStatusApproval,
+    ui.matrix.topicStatusUnavailable,
+    ui.review.approvalNeeded,
+    ui.review.rowClassification,
+    ui.settings.connectionTruthNote,
+    ui.settings.diagnosticsHidden,
+    ui.shell.healthChecking,
+    ui.shell.healthReady,
+    ui.shell.healthUnavailable,
+    ui.shell.healthUnavailableDetail,
+    ui.shell.statusError,
+    ui.shell.statusPartial,
+    ui.shell.statusReady,
   ]);
 
   const healthState = useMemo(() => getShellHealthCopy(locale, backendHealthy), [backendHealthy, locale]);
@@ -1903,11 +1473,19 @@ function ConsoleShell() {
   const workspaceTabLabels = useMemo(() => ({
     chat: ui.shell.workspaceTabs.chat.label,
     workbench: workbenchTabLabel,
+    review: ui.shell.workspaceTabs.review.label,
+    community: ui.shell.workspaceTabs.community.label,
+    models: ui.shell.workspaceTabs.models.label,
+    evidence: ui.shell.workspaceTabs.evidence.label,
     matrix: ui.shell.workspaceTabs.matrix.label,
     settings: ui.shell.workspaceTabs.settings.label,
     perf: ui.shell.workspaceTabs.perf.label,
   }), [
     ui.shell.workspaceTabs.chat.label,
+    ui.shell.workspaceTabs.review.label,
+    ui.shell.workspaceTabs.community.label,
+    ui.shell.workspaceTabs.models.label,
+    ui.shell.workspaceTabs.evidence.label,
     ui.shell.workspaceTabs.matrix.label,
     ui.shell.workspaceTabs.perf.label,
     ui.shell.workspaceTabs.settings.label,
@@ -1929,7 +1507,15 @@ function ConsoleShell() {
       kind: "tab",
       group: locale === "de" ? "Navigation" : "Navigate",
       label: workspaceTabLabels[workspaceMode],
-      detail: workspaceMode === "perf" ? "Ctrl/Cmd+5" : locale === "de" ? "Arbeitsfläche öffnen" : "Open workspace",
+      detail: workspaceMode === "chat" ? "Ctrl/Cmd+1"
+        : workspaceMode === "workbench" ? "Ctrl/Cmd+2"
+        : workspaceMode === "review" ? "Ctrl/Cmd+3"
+        : workspaceMode === "community" ? "Ctrl/Cmd+4"
+        : workspaceMode === "models" ? "Ctrl/Cmd+5"
+        : workspaceMode === "evidence" ? "Ctrl/Cmd+6"
+        : workspaceMode === "matrix" ? "Ctrl/Cmd+7"
+        : workspaceMode === "settings" ? "Ctrl/Cmd+8"
+        : "Ctrl/Cmd+9",
       mode: workspaceMode,
       onSelect: () => {
         handleWorkspaceTabSelect(workspaceMode);
@@ -2087,146 +1673,10 @@ function ConsoleShell() {
     }, []);
   }, [filteredPaletteEntries]);
 
-  const currentStatusTone = useMemo(() => {
-    switch (mode) {
-      case "workbench":
-        if (githubContext.connectionLabel !== ui.shell.statusReady) {
-          return githubContext.connectionLabel === ui.shell.statusError ? "error" : "partial";
-        }
-
-        return githubContext.approvalLabel !== ui.common.none || githubContext.repositoryLabel === ui.github.noRepoSelected
-          ? "partial"
-          : "ready";
-      case "matrix":
-        if (matrixContext.connectionLabel === ui.shell.statusError) {
-          return "error";
-        }
-
-        if (matrixContext.connectionLabel !== ui.shell.statusReady) {
-          return "partial";
-        }
-
-        return matrixContext.approvalLabel !== ui.common.none || matrixContext.scopeLabel === ui.matrix.scopeUnresolved || matrixContext.summaryLabel === ui.matrix.scopeSummaryUnavailable
-          ? "partial"
-          : "ready";
-      case "settings":
-        if (backendHealthy === false) {
-          return "error";
-        }
-
-        if (matrixContext.connectionLabel === ui.shell.healthChecking) {
-          return "partial";
-        }
-
-        if (matrixContext.connectionLabel === ui.shell.statusError) {
-          return "error";
-        }
-
-        if (!activeModelAlias) {
-          return "partial";
-        }
-
-        return "ready";
-      case "perf":
-        return "partial";
-      default:
-        if (chatPendingProposal?.status === "pending" || chatPendingProposal?.status === "executing") {
-          return "partial";
-        }
-
-        if (chatLatestReceipt?.outcome === "failed" || chatLatestReceipt?.outcome === "unverifiable") {
-          return "error";
-        }
-
-        return backendHealthy === false ? "error" : backendHealthy === true ? "ready" : "partial";
-    }
-  }, [
-    backendHealthy,
-    chatLatestReceipt?.outcome,
-    chatPendingProposal?.status,
-    githubContext.approvalLabel,
-    githubContext.connectionLabel,
-    githubContext.repositoryLabel,
-    activeModelAlias,
-    matrixContext.connectionLabel,
-    matrixContext.approvalLabel,
-    matrixContext.scopeLabel,
-    matrixContext.summaryLabel,
-    mode,
-  ]);
-
-  const currentHelperText = useMemo(() => {
-    switch (mode) {
-      case "workbench":
-        if (githubContext.approvalLabel !== ui.common.none) {
-          return ui.github.approveHelper;
-        }
-
-        if (githubContext.repositoryLabel === ui.github.noRepoSelected) {
-          return ui.github.workspaceNoticeSelection;
-        }
-
-        return ui.github.actionReadBody;
-      case "matrix":
-        if (matrixContext.scopeLabel === ui.matrix.scopeSelected) {
-          return ui.matrix.scopeSummaryInfo;
-        }
-
-        if (matrixContext.approvalLabel !== ui.common.none) {
-          return ui.matrix.topicStatusApproval;
-        }
-
-        if (matrixContext.summaryLabel === ui.matrix.scopeSummaryUnavailable) {
-          return ui.matrix.scopeSummaryInfo;
-        }
-
-        return ui.matrix.scopeNotice;
-      case "settings":
-        if (backendHealthy === false) {
-          return ui.shell.healthUnavailableDetail;
-        }
-
-        if (matrixContext.connectionLabel === ui.shell.statusError) {
-          return ui.matrix.topicStatusUnavailable;
-        }
-
-        return expertMode
-          ? ui.settings.connectionTruthNote
-          : ui.shell.diagnosticsHidden;
-      case "perf":
-        return locale === "de"
-          ? "Performance zeigt lokale Evidenz und Repo-Gates; Live-CI oder Deployment werden hier nicht behauptet."
-          : "Performance shows local evidence and repo gates; live CI or deployment are not claimed here.";
-      default:
-        if (chatPendingProposal?.status === "pending") {
-          return ui.chat.proposalHelper;
-        }
-
-        if (chatPendingProposal?.status === "executing") {
-          return ui.chat.composerLocked.execution;
-        }
-
-        if (chatLatestReceipt?.outcome === "failed" || chatLatestReceipt?.outcome === "unverifiable") {
-          return ui.chat.composerLocked.backend;
-        }
-
-        return backendHealthy === false
-          ? ui.chat.composerLocked.backend
-          : ui.chat.intro;
-    }
-  }, [
-    backendHealthy,
-    chatLatestReceipt?.outcome,
-    chatPendingProposal?.status,
-    expertMode,
-    githubContext.approvalLabel,
-    githubContext.repositoryLabel,
-    matrixContext.connectionLabel,
-    matrixContext.approvalLabel,
-    matrixContext.scopeLabel,
-    matrixContext.summaryLabel,
-    mode,
-  ]);
+  const currentStatusTone = currentSurfaceState.statusTone;
+  const currentHelperText = currentSurfaceState.helperText;
+  const currentRows = currentSurfaceState.rows;
+  const currentStatusBadge = currentSurfaceState.statusBadge;
 
   const clearTelemetry = useCallback(() => {
     setTelemetry([]);
@@ -2391,6 +1841,105 @@ function ConsoleShell() {
       workMode,
     ],
   );
+  const reviewWorkspaceProps = useMemo(
+    () => ({
+      items: reviewItems,
+      expertMode,
+      workMode,
+      locale,
+      onTelemetry: recordTelemetry,
+      onNavigateToWorkspace: handleWorkspaceTabSelect,
+    }),
+    [expertMode, handleWorkspaceTabSelect, locale, recordTelemetry, reviewItems, workMode],
+  );
+  const communityWorkspaceProps = useMemo(
+    () => ({
+      matrixSession,
+      matrixReadAvailable,
+      workMode,
+      expertMode,
+      locale,
+      onTelemetry: recordTelemetry,
+      onQueueChatDraft: (content: string) => {
+        handleCrossTabCommand({
+          type: "QueueChatDraft",
+          payload: {
+            content,
+            source: "matrix",
+          },
+        });
+      },
+      landingRoomId: integrationsStatus?.matrix.labels.landingRoomId ?? null,
+      onNavigateToWorkspace: handleWorkspaceTabSelect,
+    }),
+    [
+      expertMode,
+      handleCrossTabCommand,
+      handleWorkspaceTabSelect,
+      integrationsStatus?.matrix.labels.landingRoomId,
+      locale,
+      matrixReadAvailable,
+      matrixSession,
+      recordTelemetry,
+      workMode,
+    ],
+  );
+  const modelsWorkspaceProps = useMemo(
+    () => ({
+      activeModelAlias,
+      availableModels,
+      modelRegistry,
+      onActiveModelAliasChange: setActiveModelAlias,
+      routingStatus,
+      runtimeDiagnostics,
+      integrationsStatus,
+      workMode,
+      expertMode,
+      locale,
+      onTelemetry: recordTelemetry,
+      onNavigateToWorkspace: handleWorkspaceTabSelect,
+    }),
+    [
+      activeModelAlias,
+      availableModels,
+      expertMode,
+      handleWorkspaceTabSelect,
+      integrationsStatus,
+      locale,
+      modelRegistry,
+      recordTelemetry,
+      routingStatus,
+      runtimeDiagnostics,
+      setActiveModelAlias,
+      workMode,
+    ],
+  );
+  const evidenceWorkspaceProps = useMemo(
+    () => ({
+      journalEntries: runtimeJournalEntries,
+      diagnostics: telemetry,
+      runtimeDiagnostics,
+      settingsTruthSnapshot,
+      workMode,
+      expertMode,
+      locale,
+      onTelemetry: recordTelemetry,
+      onClearDiagnostics: clearTelemetry,
+      onNavigateToWorkspace: handleWorkspaceTabSelect,
+    }),
+    [
+      clearTelemetry,
+      expertMode,
+      handleWorkspaceTabSelect,
+      locale,
+      recordTelemetry,
+      runtimeDiagnostics,
+      runtimeJournalEntries,
+      settingsTruthSnapshot,
+      telemetry,
+      workMode,
+    ],
+  );
   const workspaceSurface = mode === "chat" ? (
     <ChatWorkspace
       key={chatSession?.id ?? "chat-session"}
@@ -2401,6 +1950,14 @@ function ConsoleShell() {
       key={githubSession?.id ?? "github-session"}
       {...githubWorkspaceProps}
     />
+  ) : mode === "review" ? (
+    <ReviewWorkspace {...reviewWorkspaceProps} />
+  ) : mode === "community" ? (
+    <CommunityWorkspace {...communityWorkspaceProps} />
+  ) : mode === "models" ? (
+    <ModelsWorkspace {...modelsWorkspaceProps} />
+  ) : mode === "evidence" ? (
+    <EvidenceWorkspace {...evidenceWorkspaceProps} />
   ) : mode === "matrix" ? (
     <MatrixWorkspace
       key={matrixSession?.id ?? "matrix-session"}
@@ -2682,9 +2239,11 @@ function ConsoleShell() {
         <section className="mobile-workspace-surface">
           <ShellCard variant="base" className="workspace-frame-card mobile-workspace-frame">
             <div className="workspace-frame-body">
-              <Suspense fallback={<p className="empty-state" role="status">{ui.shell.healthChecking}</p>}>
-                {mobileWorkspaceSurface}
-              </Suspense>
+              <ErrorBoundary>
+                <Suspense fallback={<p className="empty-state" role="status">{ui.shell.healthChecking}</p>}>
+                  {mobileWorkspaceSurface}
+                </Suspense>
+              </ErrorBoundary>
             </div>
           </ShellCard>
         </section>
@@ -2890,9 +2449,11 @@ function ConsoleShell() {
         <section className="console-main shell-center-main">
           <ShellCard variant="base" className="workspace-frame-card">
             <div className="workspace-frame-body">
-              <Suspense fallback={<p className="empty-state" role="status">{ui.shell.healthChecking}</p>}>
-                {workspaceSurface}
-              </Suspense>
+              <ErrorBoundary>
+                <Suspense fallback={<p className="empty-state" role="status">{ui.shell.healthChecking}</p>}>
+                  {workspaceSurface}
+                </Suspense>
+              </ErrorBoundary>
             </div>
           </ShellCard>
         </section>

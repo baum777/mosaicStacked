@@ -245,6 +245,7 @@ test("smoke: desktop session quick actions are hover and focus reachable", async
       activeTab: "chat",
       workMode: "expert",
       expertMode: true,
+      savedAt: new Date().toISOString(),
     }));
   });
   await page.reload({ waitUntil: "domcontentloaded" });

@@ -56,7 +56,7 @@ test("DEFERRED_PRELOAD_CHUNK_PREFIXES no longer contains the no-op vendor-ui pre
   );
 });
 
-test("DEFERRED_PRELOAD_CHUNK_PREFIXES still carries the four operative page/chunk prefixes plus SettingsWorkspace", () => {
+test("DEFERRED_PRELOAD_CHUNK_PREFIXES still carries the four operative page/chunk prefixes plus SettingsWorkspace, MarkdownMessage, GuideOverlay, and LandingPage", () => {
   const arrayBody = extractArrayBody(readVite());
 
   for (const expected of [
@@ -65,6 +65,9 @@ test("DEFERRED_PRELOAD_CHUNK_PREFIXES still carries the four operative page/chun
     "chunk-github",
     "chunk-matrix",
     "SettingsWorkspace",
+    "MarkdownMessage",
+    "GuideOverlay",
+    "LandingPage",
   ]) {
     assert.match(
       arrayBody,
