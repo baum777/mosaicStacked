@@ -919,6 +919,27 @@ pre, code, .message-meta, .detail-grid span, .scope-summary-meta, .runtime-note,
 .sidebar-nav {
   display: grid;
   gap: 10px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .workspace-tab-vertical {
@@ -4821,6 +4842,10 @@ code {
   .sidebar-nav {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
+    max-height: none;
+    overflow-y: visible;
+    overflow-x: auto;
+    padding-right: 0;
   }
 
   .console-main {
