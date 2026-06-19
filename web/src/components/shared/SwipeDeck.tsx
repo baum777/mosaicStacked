@@ -14,6 +14,10 @@ type SwipeDeckProps = {
   onPanelChange?: (id: string) => void;
 };
 
+function toDomId(id: string) {
+  return id.replace(/[^A-Za-z0-9_-]/g, "-");
+}
+
 export function SwipeDeck({
   panels,
   initialPanel,
@@ -39,33 +43,32 @@ export function SwipeDeck({
     panelEl?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
   }, []);
 
-  useEffect(() => {
+  const updateActiveFromScroll = useCallback(() => {
     const track = trackRef.current;
-    if (!track) {
+    if (!track || track.clientWidth <= 0 || panels.length === 0) {
       return;
     }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-            const idx = Array.from(track.children).indexOf(entry.target as Element);
-            if (idx >= 0 && idx !== activeIndex) {
-              setActiveIndex(idx);
-              onPanelChange?.(panels[idx]?.id ?? "");
-            }
-          }
-        }
-      },
-      { root: track, threshold: 0.5 },
+    const nextIndex = Math.max(
+      0,
+      Math.min(panels.length - 1, Math.round(track.scrollLeft / track.clientWidth)),
     );
+    setActiveIndex((currentIndex) => {
+      if (nextIndex === currentIndex) {
+        return currentIndex;
+      }
+      onPanelChange?.(panels[nextIndex]?.id ?? "");
+      return nextIndex;
+    });
+  }, [onPanelChange, panels]);
 
-    for (const child of Array.from(track.children)) {
-      observer.observe(child);
+  useEffect(() => {
+    if (activeIndex < panels.length) {
+      return;
     }
 
-    return () => observer.disconnect();
-  }, [activeIndex, onPanelChange, panels]);
+    setActiveIndex(Math.max(0, panels.length - 1));
+  }, [activeIndex, panels.length]);
 
   return (
     <div className={["swipe-deck-root", className].filter(Boolean).join(" ")} aria-label={ariaLabel}>
@@ -73,9 +76,12 @@ export function SwipeDeck({
         {panels.map((panel, idx) => (
           <button
             key={panel.id}
+            id={`swipe-deck-tab-${toDomId(panel.id)}`}
             type="button"
             role="tab"
             aria-selected={idx === activeIndex}
+            aria-controls={`swipe-deck-panel-${toDomId(panel.id)}`}
+            tabIndex={idx === activeIndex ? 0 : -1}
             className={idx === activeIndex ? "swipe-deck-tab swipe-deck-tab-active" : "swipe-deck-tab"}
             onClick={() => {
               setActiveIndex(idx);
@@ -90,11 +96,18 @@ export function SwipeDeck({
       <div
         ref={trackRef}
         className="swipe-deck-track"
-        role="tabpanel"
         aria-label={panels[activeIndex]?.label ?? ""}
+        onScroll={updateActiveFromScroll}
       >
         {panels.map((panel) => (
-          <div key={panel.id} className="swipe-deck-panel" role="region" aria-label={panel.label}>
+          <div
+            key={panel.id}
+            id={`swipe-deck-panel-${toDomId(panel.id)}`}
+            className="swipe-deck-panel"
+            role="tabpanel"
+            aria-label={panel.label}
+            aria-labelledby={`swipe-deck-tab-${toDomId(panel.id)}`}
+          >
             {panel.content}
           </div>
         ))}

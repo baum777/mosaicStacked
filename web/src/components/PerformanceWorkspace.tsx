@@ -154,12 +154,12 @@ export function PerformanceWorkspace() {
       content: (
         <DetailPanel
           label="Typecheck web"
-          value={locale === "de" ? "Lokales Gate" : "Local gate"}
-          tone="ready"
+          value={locale === "de" ? "Evidenz offen" : "Evidence pending"}
+          tone="partial"
           command="npm run typecheck:web"
           detail={locale === "de"
-            ? "TypeScript-Typprüfung. Muss vor dem Merge bestehen."
-            : "TypeScript type check. Must pass before merge."}
+            ? "TypeScript-Typprüfung. Erst als pass werten, wenn der lokale Lauf belegt ist."
+            : "TypeScript type check. Treat as pass only when a local run is recorded."}
         />
       ),
     },
@@ -169,12 +169,12 @@ export function PerformanceWorkspace() {
       content: (
         <DetailPanel
           label="Unit web"
-          value={locale === "de" ? "Lokales Gate" : "Local gate"}
-          tone="ready"
+          value={locale === "de" ? "Evidenz offen" : "Evidence pending"}
+          tone="partial"
           command="npm run test:web"
           detail={locale === "de"
-            ? "Web-Unit-Tests. Muss vor dem Merge bestehen."
-            : "Web unit tests. Must pass before merge."}
+            ? "Web-Unit-Tests. Erst als pass werten, wenn der lokale Lauf belegt ist."
+            : "Web unit tests. Treat as pass only when a local run is recorded."}
         />
       ),
     },
@@ -184,12 +184,12 @@ export function PerformanceWorkspace() {
       content: (
         <DetailPanel
           label="Build web"
-          value={locale === "de" ? "Lokales Gate" : "Local gate"}
-          tone="ready"
+          value={locale === "de" ? "Evidenz offen" : "Evidence pending"}
+          tone="partial"
           command="npm run build:web"
           detail={locale === "de"
-            ? "Web-Build-Gate. Muss vor dem Merge bestehen."
-            : "Web build gate. Must pass before merge."}
+            ? "Web-Build-Gate. Erst als pass werten, wenn der lokale Lauf belegt ist."
+            : "Web build gate. Treat as pass only when a local run is recorded."}
         />
       ),
     },

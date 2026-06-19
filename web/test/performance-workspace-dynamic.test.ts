@@ -142,6 +142,22 @@ test("R7: PerformanceWorkspace renders the data-testid=\"performance-last-update
   );
 });
 
+test("PerformanceWorkspace does not mark local command gates as passed without command evidence", () => {
+  const source = readComponent();
+
+  for (const [gate, sourceLabel] of [
+    ["TYPECHECK WEB", "Typecheck web"],
+    ["UNIT WEB", "Unit web"],
+    ["BUILD WEB", "Build web"],
+  ] as const) {
+    assert.doesNotMatch(
+      source,
+      new RegExp(`label="${sourceLabel}"[\\s\\S]{0,220}tone="ready"`),
+      `${gate} must not be hardcoded as ready unless a local evidence source proves the command passed`,
+    );
+  }
+});
+
 test("R7: PerformanceWorkspace falls back to the literal \"unknown\" when the cache file is missing or has no lastUpdated", () => {
   // Render twice — once with the real cache file (if present) and once via
   // the source contract. The source contract is asserted in the prior
