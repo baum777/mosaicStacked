@@ -38,13 +38,14 @@ const sidebarSource = () => readFileSync(
   "utf8",
 );
 
-function renderSidebar(active: keyof typeof workspaceLabels) {
+function renderSidebar(active: keyof typeof workspaceLabels, workMode: "beginner" | "expert" = "expert") {
   return renderToStaticMarkup(
     React.createElement(DesktopSidebarTabs, {
       active,
       labels: workspaceLabels,
       ariaLabel: "Workspaces",
       onSelect: () => undefined,
+      workMode,
     }),
   );
 }

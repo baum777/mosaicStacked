@@ -2478,10 +2478,10 @@ export function MatrixWorkspace(props: MatrixWorkspaceProps) {
 
           <div className="action-row matrix-preview-actions">
             <button type="button" className="secondary-button" onClick={() => { void copyDraftToClipboard(); }} data-testid="matrix-composer-copy-draft">
-              {locale === "de" ? "Copy draft" : "Copy draft"}
+              {ui.matrix.copyDraft}
             </button>
             <button type="button" className="secondary-button" onClick={queueDraftInChat} data-testid="matrix-composer-queue-chat">
-              {locale === "de" ? "Queue in Chat" : "Queue in Chat"}
+              {locale === "de" ? "Im Chat einreihen" : "Queue in Chat"}
             </button>
             <span className="muted-copy">
               {matrixSubmitStatusLabel}

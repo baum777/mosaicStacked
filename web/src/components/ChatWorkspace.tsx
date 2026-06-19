@@ -31,6 +31,7 @@ import { getWorkspaceGuide } from "./GuideOverlay.js";
 import { SectionLabel, ShellCard, StatusBadge } from "./ShellPrimitives.js";
 import { GuideCTAInline } from "./GuideCTAInline.js";
 import { EmptyStateCTA } from "./EmptyStateCTA.js";
+import { SetupPath, type SetupStep } from "./setup/SetupPath.js";
 import { DiscoveryChip } from "./DiscoveryChip.js";
 import {
   BACKEND_TRUTH_UNAVAILABLE,
@@ -1398,6 +1399,47 @@ export function ChatWorkspace(props: ChatWorkspaceProps) {
     executionRunning,
     copy: ui.chat.composerLocked
   });
+  const chatSetupSteps = useMemo<SetupStep[]>(() => {
+    const backendReady = props.backendHealthy === true;
+    const modelReady = !modelUnresolved && openRouterSetupState === "done";
+    return [
+      {
+        id: "backend",
+        label: ui.chat.setupPath.stepBackend,
+        hint: ui.chat.setupPath.stepBackendHint,
+        status: backendReady ? "ready" : "blocked",
+        testId: "setup-step-backend",
+      },
+      {
+        id: "model",
+        label: ui.chat.setupPath.stepModel,
+        hint: ui.chat.setupPath.stepModelHint,
+        status: modelReady ? "ready" : backendReady ? "blocked" : "optional",
+        testId: "setup-step-model",
+      },
+      {
+        id: "chat",
+        label: ui.chat.setupPath.stepChat,
+        hint: ui.chat.setupPath.stepChatHint,
+        status: modelReady ? "ready" : "blocked",
+        testId: "setup-step-chat",
+      },
+      {
+        id: "github",
+        label: ui.chat.setupPath.stepGithub,
+        hint: ui.chat.setupPath.stepGithubHint,
+        status: "optional",
+        testId: "setup-step-github",
+      },
+      {
+        id: "matrix",
+        label: ui.chat.setupPath.stepMatrix,
+        hint: ui.chat.setupPath.stepMatrixHint,
+        status: "optional",
+        testId: "setup-step-matrix",
+      },
+    ];
+  }, [modelUnresolved, openRouterSetupState, props.backendHealthy, ui.chat.setupPath]);
   const modeChipLabel = executionMode === "direct" ? "⚡ direct" : "◎ governed";
   const branchBadgeLabel = workbenchBranch
     ? `branch: ${workbenchBranch} · ${directMainBranch ? (locale === "de" ? "read-only" : "read-only") : (locale === "de" ? "writable" : "writable")}`
@@ -1660,17 +1702,19 @@ export function ChatWorkspace(props: ChatWorkspaceProps) {
 
         <div className="governed-thread" aria-live="polite">
           {showSetupBlockingCta ? (
-            <EmptyStateCTA
-              icon="⚠"
-              title="OpenRouter-Key fehlt"
-              description="Ohne Modellalias kann Chat nicht starten. Verbinde zuerst deinen Modellzugang."
-              primaryLabel="Zu Settings"
-              primaryAction={() => {
+            <SetupPath
+              testId="chat-setup-path"
+              steps={chatSetupSteps}
+              onPrimaryAction={() => {
                 if (typeof window !== "undefined") {
                   window.location.assign("/console?mode=settings");
                 }
               }}
-              footnote="Type A Setup: blockierend bis ein Modellzugang verfügbar ist."
+              onSecondaryAction={() => {
+                if (typeof window !== "undefined") {
+                  window.location.assign("/console?mode=settings");
+                }
+              }}
             />
           ) : null}
 
@@ -1829,6 +1873,7 @@ export function ChatWorkspace(props: ChatWorkspaceProps) {
           ) : null}
 
           {chatState.receipts.map((receipt) => (
+            expertMode ? (
             <ExecutionReceiptCard
               key={receipt.id}
               testId={`chat-receipt-${receipt.outcome}`}
@@ -1849,6 +1894,7 @@ export function ChatWorkspace(props: ChatWorkspaceProps) {
                 </Suspense>
               ) : null}
             </ExecutionReceiptCard>
+            ) : null
           ))}
 
           {notices.map((notice) => {

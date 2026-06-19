@@ -11,7 +11,7 @@ export function deriveShellHealthState(backendHealthy: boolean | null): ShellHea
     return {
       label: "Bereit",
       tone: "ready",
-      detail: "Backend erreichbar. Ausführung bleibt backend-owned.",
+      detail: "Backend erreichbar. Ausführung bleibt nur serverseitig.",
     };
   }
 

@@ -55,6 +55,12 @@ type ShellCopy = {
   healthUnavailableDetail: string;
   modeLabel: string;
   publicAliasLabel: string;
+  routeOwnershipBadge: string;
+  routeOwnershipHelper: string;
+  routeOwnershipTitleWorkbench: string;
+  routeOwnershipTitleMatrix: string;
+  routeOwnershipLadderWorkbench: string;
+  routeOwnershipLadderMatrix: string;
   workspaceTabs: Record<WorkspaceMode, WorkspaceTabCopy>;
 };
 
@@ -300,6 +306,25 @@ type ChatCopy = {
     localState: string;
     clear: string;
   };
+  setupPath: {
+    title: string;
+    intro: string;
+    stepBackend: string;
+    stepBackendHint: string;
+    stepModel: string;
+    stepModelHint: string;
+    stepChat: string;
+    stepChatHint: string;
+    stepGithub: string;
+    stepGithubHint: string;
+    stepMatrix: string;
+    stepMatrixHint: string;
+    primaryAction: string;
+    secondaryAction: string;
+    statusReady: string;
+    statusBlocked: string;
+    statusOptional: string;
+  };
 };
 
 type GitHubCopy = {
@@ -435,6 +460,7 @@ type MatrixCopy = {
   composerModeThread: string;
   composerModeThreadReply: string;
   composerDraftLabel: string;
+  copyDraft: string;
 };
 
 type CommonCopy = {
@@ -462,7 +488,7 @@ type LocalizationCopy = {
   matrix: MatrixCopy;
 };
 
-const EN_COPY: LocalizationCopy = {
+export const EN_COPY: LocalizationCopy = {
   common: {
     na: "n/a",
     none: "None",
@@ -512,11 +538,17 @@ const EN_COPY: LocalizationCopy = {
     healthReady: "Ready",
     healthChecking: "Checking",
     healthUnavailable: "Unavailable",
-    healthReadyDetail: "Backend reachable. Execution stays backend-owned.",
+    healthReadyDetail: "Backend reachable. Execution stays server-only.",
     healthCheckingDetail: "Backend health is loading.",
     healthUnavailableDetail: "Backend unreachable. Surface stays fail-closed.",
     modeLabel: "Mode",
     publicAliasLabel: "Public alias",
+    routeOwnershipBadge: "Backend-only",
+    routeOwnershipHelper: "GitHub and Matrix are not browser integrations. The console sends governed intent; the backend owns credentials, execution, verification, and sanitized errors.",
+    routeOwnershipTitleWorkbench: "Workbench route ownership",
+    routeOwnershipTitleMatrix: "Matrix route ownership",
+    routeOwnershipLadderWorkbench: "Workbench status ladder",
+    routeOwnershipLadderMatrix: "Matrix status ladder",
     workspaceTabs: {
       chat: { label: "Chat", description: "Ask questions and inspect responses" },
       workbench: { label: "Workbench", description: "Review branch work, summary log, and handoff actions" },
@@ -638,7 +670,7 @@ const EN_COPY: LocalizationCopy = {
     diagnosticsSafetyNote: "Diagnostics contain aggregate counters only; no prompts, tokens, cookies, or provider credentials.",
     journalLabel: "Journal",
     journalCardTitle: "Recent events",
-    journalRecentEventsLabel: "Backend-owned receipts",
+    journalRecentEventsLabel: "Recent receipts",
     journalRetentionLabel: "Retention",
     journalRecentCountLabel: "Recent count",
     journalOutcomeLabel: "Outcome",
@@ -700,13 +732,13 @@ const EN_COPY: LocalizationCopy = {
       saving: "Saving",
       test: "Test connection",
       testing: "Testing",
-      manualConfigLabel: "Local diagnostic (not sent to backend)",
+      manualConfigLabel: "Local diagnostic (browser only)",
       manualConfigPlaceholder: "{\"chat\":30,\"auth_login\":8,\"github_propose\":10,\"github_execute\":6,\"matrix_execute\":6}",
       defaultLimitsLabel: "Default limits",
       appliedLimitsLabel: "Applied limits",
       manualConfigHint: "Local UI config only; it is not sent to the backend.",
       manualConfigError: "Invalid JSON config. Allowed keys: chat, auth_login, github_propose, github_execute, matrix_execute. Values must be positive integers.",
-      configured: "OpenRouter key configured",
+      configured: "OpenRouter key saved",
       empty: "No OpenRouter key is configured for this local profile yet.",
       defaultFreeStatusLabel: "Default-free status",
       statusConfigured: "configured",
@@ -788,6 +820,25 @@ const EN_COPY: LocalizationCopy = {
       localState: "Local UI context only. Backend truth is still resolved at execution time.",
       clear: "Clear pinned context",
     },
+    setupPath: {
+      title: "Get started",
+      intro: "Five steps to your first chat. Steps 1-3 are required; 4 and 5 are optional.",
+      stepBackend: "Check backend",
+      stepBackendHint: "Confirm the backend is reachable.",
+      stepModel: "Make a model available",
+      stepModelHint: "Connect OpenRouter or use the default alias.",
+      stepChat: "Start a chat",
+      stepChatHint: "Send a prompt to a public model alias.",
+      stepGithub: "Connect GitHub (optional)",
+      stepGithubHint: "Use repository context for richer answers.",
+      stepMatrix: "Connect Matrix (optional)",
+      stepMatrixHint: "Use room knowledge for governed topics.",
+      primaryAction: "Set up model access",
+      secondaryAction: "Open Settings",
+      statusReady: "Done",
+      statusBlocked: "Next",
+      statusOptional: "Optional",
+    },
   },
   github: {
     title: "GitHub workspace",
@@ -840,7 +891,7 @@ const EN_COPY: LocalizationCopy = {
     modelLabel: "Model",
     pinToChatContext: "Pin to chat context",
     pinToChatContextHint: "Adds a bounded repo excerpt for the next chat request.",
-    reviewDirtyWarning: "Local review progress is not backend-fresh truth. Execute, verify, or reset before leaving this workspace.",
+    reviewDirtyWarning: "Local review progress is not live backend truth. Execute, verify, or reset before leaving this workspace.",
     reviewDirtyConfirmNavigation: "You have unsaved local GitHub review progress. Leave this workspace?",
   },
   matrix: {
@@ -921,10 +972,11 @@ const EN_COPY: LocalizationCopy = {
     composerModeThread: "Thread",
     composerModeThreadReply: "Thread reply",
     composerDraftLabel: "Composer draft",
+    copyDraft: "Copy draft",
   },
 };
 
-const DE_COPY: LocalizationCopy = {
+export const DE_COPY: LocalizationCopy = {
   common: {
     na: "n/a",
     none: "Keine",
@@ -974,11 +1026,17 @@ const DE_COPY: LocalizationCopy = {
     healthReady: "Bereit",
     healthChecking: "Wird geprüft",
     healthUnavailable: "Nicht verfügbar",
-    healthReadyDetail: "Backend erreichbar. Ausführung bleibt backend-owned.",
+    healthReadyDetail: "Backend erreichbar. Ausführung bleibt nur serverseitig.",
     healthCheckingDetail: "Backend-Status wird geladen.",
     healthUnavailableDetail: "Backend nicht erreichbar. Oberfläche bleibt fail-closed.",
     modeLabel: "Modus",
     publicAliasLabel: "Öffentlicher Alias",
+    routeOwnershipBadge: "Nur Backend",
+    routeOwnershipHelper: "GitHub und Matrix sind keine Browser-Integrationen. Die Konsole sendet gobernierte Intention; das Backend besitzt Credentials, Ausführung, Verifikation und bereinigte Fehler.",
+    routeOwnershipTitleWorkbench: "Workbench-Routen-Ownership",
+    routeOwnershipTitleMatrix: "Matrix-Routen-Ownership",
+    routeOwnershipLadderWorkbench: "Workbench-Status-Leiter",
+    routeOwnershipLadderMatrix: "Matrix-Status-Leiter",
     workspaceTabs: {
       chat: { label: "Chat", description: "Fragen stellen und Antworten prüfen" },
       workbench: { label: "Workbench", description: "Branch-Arbeit, Summary-Log und Übergabe-Aktionen prüfen" },
@@ -1100,7 +1158,7 @@ const DE_COPY: LocalizationCopy = {
     diagnosticsSafetyNote: "Diagnostik enthält nur aggregierte Zähler; keine Prompts, Tokens, Cookies oder Provider-Credentials.",
     journalLabel: "Journal",
     journalCardTitle: "Letzte Ereignisse",
-    journalRecentEventsLabel: "Backend-owned Belege",
+    journalRecentEventsLabel: "Letzte Belege",
     journalRetentionLabel: "Aufbewahrung",
     journalRecentCountLabel: "Aktuelle Anzahl",
     journalOutcomeLabel: "Ergebnis",
@@ -1119,10 +1177,10 @@ const DE_COPY: LocalizationCopy = {
       actionLabel: "Aktion",
       requirementsLabel: "Voraussetzungen",
       noRequirements: "Keine offenen Voraussetzungen",
-      credentialSourceLabel: "Credential Source",
-      capabilitiesLabel: "Capabilities",
-      lastVerifiedLabel: "Last verified",
-      lastErrorLabel: "Last error",
+      credentialSourceLabel: "Credential-Quelle",
+      capabilitiesLabel: "Funktionsumfang",
+      lastVerifiedLabel: "Zuletzt geprüft",
+      lastErrorLabel: "Letzter Fehler",
       status: {
         not_connected: "Nicht verbunden",
         connect_available: "Verbinden verfügbar",
@@ -1136,10 +1194,10 @@ const DE_COPY: LocalizationCopy = {
         error: "Fehler",
       },
       source: {
-        instance_configured: "Instance configured",
-        user_connected: "User connected",
-        user_connected_stub: "Legacy stub connection",
-        not_connected: "Not connected",
+        instance_configured: "Vom Server konfiguriert",
+        user_connected: "Vom Nutzer verbunden",
+        user_connected_stub: "Legacy Stub-Verbindung",
+        not_connected: "Nicht verbunden",
       },
       action: {
         connect: "Verbinden",
@@ -1162,19 +1220,19 @@ const DE_COPY: LocalizationCopy = {
       saving: "Speichert",
       test: "Verbindung testen",
       testing: "Test läuft",
-      manualConfigLabel: "Local diagnostic (not sent to backend)",
+      manualConfigLabel: "Lokale Diagnostik (nicht an Backend gesendet)",
       manualConfigPlaceholder: "{\"chat\":30,\"auth_login\":8,\"github_propose\":10,\"github_execute\":6,\"matrix_execute\":6}",
       defaultLimitsLabel: "Default-Limits",
       appliedLimitsLabel: "Aktive Limits",
       manualConfigHint: "Nur lokale UI-Konfiguration; wird nicht an das Backend gesendet.",
       manualConfigError: "Ungültige JSON-Config. Erlaubte Keys: chat, auth_login, github_propose, github_execute, matrix_execute. Werte müssen positive Ganzzahlen sein.",
-      configured: "OpenRouter key configured",
+      configured: "OpenRouter-Key gespeichert",
       empty: "Noch kein OpenRouter-Key für dieses lokale Profil gespeichert.",
       defaultFreeStatusLabel: "Default-Free-Status",
-      statusConfigured: "configured",
-      statusMissingKey: "missing key",
-      statusMissingModel: "missing model",
-      statusUnavailable: "unavailable",
+      statusConfigured: "konfiguriert",
+      statusMissingKey: "Key fehlt",
+      statusMissingModel: "Modell fehlt",
+      statusUnavailable: "nicht verfügbar",
     },
     matrixHierarchy: "Matrix-Hierarchie",
     matrixHierarchyEnabledValue: "Verfügbar",
@@ -1249,6 +1307,25 @@ const DE_COPY: LocalizationCopy = {
       title: "Fixierter GitHub-Kontext",
       localState: "Nur lokaler UI-Kontext. Backend-Wahrheit wird weiter erst bei Ausführung aufgelöst.",
       clear: "Fixierten Kontext entfernen",
+    },
+    setupPath: {
+      title: "Erste Schritte",
+      intro: "Fünf Schritte bis zum ersten Chat. Schritte 1-3 sind nötig, 4 und 5 sind optional.",
+      stepBackend: "Backend prüfen",
+      stepBackendHint: "Bestätige, dass das Backend erreichbar ist.",
+      stepModel: "Modell verfügbar machen",
+      stepModelHint: "OpenRouter verbinden oder Default-Alias nutzen.",
+      stepChat: "Chat starten",
+      stepChatHint: "Sende einen Prompt an einen öffentlichen Modellalias.",
+      stepGithub: "GitHub verbinden (optional)",
+      stepGithubHint: "Repo-Kontext für reichhaltigere Antworten nutzen.",
+      stepMatrix: "Matrix verbinden (optional)",
+      stepMatrixHint: "Raum-Wissen für gouvernierte Themen nutzen.",
+      primaryAction: "Modellzugang einrichten",
+      secondaryAction: "Settings öffnen",
+      statusReady: "Erledigt",
+      statusBlocked: "Als Nächstes",
+      statusOptional: "Optional",
     },
   },
   github: {
@@ -1383,6 +1460,7 @@ const DE_COPY: LocalizationCopy = {
     composerModeThread: "Thread",
     composerModeThreadReply: "Thread-Antwort",
     composerDraftLabel: "Eingabeentwurf",
+    copyDraft: "Entwurf kopieren",
   },
 };
 
@@ -1525,12 +1603,12 @@ export function getShellHealthCopy(locale: Locale, backendHealthy: boolean | nul
       ? {
           tone: "ready" as const,
           label: "Bereit",
-          detail: "Backend erreichbar. Ausführung bleibt backend-owned.",
+          detail: "Backend erreichbar. Ausführung bleibt nur serverseitig.",
         }
       : {
           tone: "ready" as const,
           label: "Ready",
-          detail: "Backend reachable. Execution stays backend-owned.",
+          detail: "Backend reachable. Execution stays server-only.",
         };
   }
 

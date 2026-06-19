@@ -20,7 +20,7 @@
     "typecheck:web": "npm run typecheck --workspace web",
     "typecheck": "npm run typecheck:server && npm run typecheck:web",
     "test:server": "npm run test --workspace server",
-    "test:web": "node --test --import tsx \"web/test/**/*.test.ts\"",
+    "test:web": "node --test --import tsx \"web/test/**/*.test.ts\" \"web/test/**/*.test.tsx\"",
     "test:browser": "node scripts/run-browser-tests.mjs",
     "cypress:open": "cypress open --e2e",
     "cypress:run": "cypress run --e2e",

@@ -62,7 +62,7 @@ const EN_KEYS = [
   "Save",
   "Test connection",
   "Show key",
-  "Local diagnostic (not sent to backend)",
+  "Local diagnostic (browser only)",
   "Default limits",
   "Default-free status",
 ];

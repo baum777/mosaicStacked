@@ -22,6 +22,7 @@ import {
 } from "./system-visuals/index.js";
 import { BottomSheet } from "./mobile/shared/BottomSheet.js";
 import { SettingsRow } from "./mobile/shared/SettingsRow.js";
+import { SetupPath, type SetupStep } from "./setup/SetupPath.js";
 import type { SettingsVerificationState, SettingsVerificationTarget } from "../lib/settings-types.js";
 
 export type { SettingsVerificationState, SettingsVerificationTarget } from "../lib/settings-types.js";
@@ -325,6 +326,53 @@ export function SettingsWorkspace({
   const expertCopy = getWorkModeCopy(locale, "expert");
   const activeCopy = getWorkModeCopy(locale, workMode);
   const adapterCopy = ui.settings.adapter;
+  const settingsSetupSteps = React.useMemo<SetupStep[]>(() => {
+    const backendLabel = truthSnapshot.backend.label;
+    const backendReady = backendLabel === ui.shell.healthReady;
+    const modelReady = truthSnapshot.models.defaultFreeStatus === "configured"
+      || (openRouterCredentialStatus.configured === true);
+    const githubAdapter = loginAdapters.find((adapter) => adapter.id === "github");
+    const matrixAdapter = loginAdapters.find((adapter) => adapter.id === "matrix");
+    const githubConnected = githubAdapter?.status === "connected";
+    const matrixConnected = matrixAdapter?.status === "connected";
+    return [
+      {
+        id: "backend",
+        label: ui.chat.setupPath.stepBackend,
+        hint: ui.chat.setupPath.stepBackendHint,
+        status: backendReady ? "ready" : "blocked",
+        testId: "settings-setup-step-backend",
+      },
+      {
+        id: "model",
+        label: ui.chat.setupPath.stepModel,
+        hint: ui.chat.setupPath.stepModelHint,
+        status: modelReady ? "ready" : backendReady ? "blocked" : "optional",
+        testId: "settings-setup-step-model",
+      },
+      {
+        id: "chat",
+        label: ui.chat.setupPath.stepChat,
+        hint: ui.chat.setupPath.stepChatHint,
+        status: modelReady ? "ready" : "blocked",
+        testId: "settings-setup-step-chat",
+      },
+      {
+        id: "github",
+        label: ui.chat.setupPath.stepGithub,
+        hint: ui.chat.setupPath.stepGithubHint,
+        status: githubConnected ? "ready" : "optional",
+        testId: "settings-setup-step-github",
+      },
+      {
+        id: "matrix",
+        label: ui.chat.setupPath.stepMatrix,
+        hint: ui.chat.setupPath.stepMatrixHint,
+        status: matrixConnected ? "ready" : "optional",
+        testId: "settings-setup-step-matrix",
+      },
+    ];
+  }, [loginAdapters, openRouterCredentialStatus.configured, truthSnapshot.backend.label, truthSnapshot.models.defaultFreeStatus, ui.chat.setupPath, ui.shell.healthReady]);
 
   function getActionLabel(adapter: SettingsLoginAdapter, action: "connect" | "reconnect" | "disconnect" | "reverify") {
     if (adapter.id === "github" && (action === "connect" || action === "reconnect")) {
@@ -730,6 +778,25 @@ export function SettingsWorkspace({
             <GuideOverlay content={getWorkspaceGuide(locale, "settings")} testId="guide-settings" />
           </div>
         </div>
+      </section>
+
+      <section className="settings-wizard" data-testid="settings-wizard" data-mode={workMode}>
+        <SetupPath
+          testId="settings-setup-path"
+          steps={settingsSetupSteps}
+          onPrimaryAction={() => {
+            const openRouterCard = document.getElementById("settings-openrouter-card");
+            if (openRouterCard) {
+              openRouterCard.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }}
+          onSecondaryAction={() => {
+            const adapterCard = document.getElementById("settings-adapters-card");
+            if (adapterCard) {
+              adapterCard.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }}
+        />
       </section>
 
       <div className="settings-grid">

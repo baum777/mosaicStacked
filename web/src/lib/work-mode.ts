@@ -18,6 +18,39 @@ export type WorkModeVisibility = {
   showRawPreview: boolean;
 };
 
+export const PRIMARY_WORKSPACES = [
+  "chat",
+  "workbench",
+  "matrix",
+  "settings",
+  "perf",
+] as const;
+
+export const SECONDARY_WORKSPACES = [
+  "review",
+  "community",
+  "models",
+  "evidence",
+] as const;
+
+export function isPrimaryWorkspace(mode: string): boolean {
+  return (PRIMARY_WORKSPACES as readonly string[]).includes(mode);
+}
+
+export function isSecondaryWorkspace(mode: string): boolean {
+  return (SECONDARY_WORKSPACES as readonly string[]).includes(mode);
+}
+
+export function filterWorkspacesForMode<T extends { mode: string }>(
+  items: readonly T[],
+  workMode: WorkMode,
+): T[] {
+  if (workMode === "expert") {
+    return items.slice();
+  }
+  return items.filter((item) => isPrimaryWorkspace(item.mode));
+}
+
 const COPY: Record<Locale, Record<WorkMode, WorkModeCopy>> = {
   en: {
     beginner: {

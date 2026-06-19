@@ -47,6 +47,7 @@ import {
 import {
   getWorkModeCopy,
   isExpertMode,
+  isPrimaryWorkspace,
   resolvePersistedWorkMode,
   type WorkMode,
 } from "./lib/work-mode.js";
@@ -62,6 +63,11 @@ import type { CrossTabCommand } from "./lib/cross-tab-commands.js";
 import { useReviewState } from "./hooks/useReviewState.js";
 import { useConsoleTheme, type ConsoleTheme } from "./hooks/useConsoleTheme.js";
 import { deriveShellFreshness, type ShellFreshness } from "./lib/shell-freshness.js";
+import {
+  deriveStatusTruth,
+  formatStatusTruthLabel,
+  type StatusTruthState,
+} from "./lib/status-truth.js";
 import type { NavigationPaletteEntry } from "./lib/navigation-palette.js";
 // The landing-page surfaces are split into their own chunk so the
 // preview/readme routes do not bloat the console shell. The
@@ -924,25 +930,25 @@ function ConsoleShell() {
         handleWorkspaceTabSelect("workbench");
       } else if (key === "3") {
         event.preventDefault();
-        handleWorkspaceTabSelect("review");
+        handleWorkspaceTabSelect("matrix");
       } else if (key === "4") {
         event.preventDefault();
-        handleWorkspaceTabSelect("community");
+        handleWorkspaceTabSelect("settings");
       } else if (key === "5") {
         event.preventDefault();
-        handleWorkspaceTabSelect("models");
+        handleWorkspaceTabSelect("perf");
       } else if (key === "6") {
         event.preventDefault();
-        handleWorkspaceTabSelect("evidence");
+        handleWorkspaceTabSelect("review");
       } else if (key === "7") {
         event.preventDefault();
-        handleWorkspaceTabSelect("matrix");
+        handleWorkspaceTabSelect("community");
       } else if (key === "8") {
         event.preventDefault();
-        handleWorkspaceTabSelect("settings");
+        handleWorkspaceTabSelect("models");
       } else if (key === "9") {
         event.preventDefault();
-        handleWorkspaceTabSelect("perf");
+        handleWorkspaceTabSelect("evidence");
       }
     };
 
@@ -958,16 +964,6 @@ function ConsoleShell() {
     backendHealthy,
     restoredSession,
   });
-  const freshnessLabel = freshness === "backend-fresh"
-    ? (locale === "de" ? "backend-fresh" : "backend-fresh")
-    : freshness === "local-restored"
-      ? (locale === "de" ? "local-restored" : "local-restored")
-      : (locale === "de" ? "stale" : "stale");
-  const freshnessHint = freshness === "backend-fresh"
-    ? (locale === "de" ? "Live-Backend-Status" : "Live backend status")
-    : freshness === "local-restored"
-      ? (locale === "de" ? "Aus lokalem Restore geladen" : "Loaded from local restore")
-      : (locale === "de" ? "Veraltet oder nicht erreichbar" : "Stale or unreachable");
   const workbenchTabLabel = `${ui.shell.workspaceTabs.workbench.label}${githubReviewDirty ? " •" : ""}`;
   const matrixDraftDefaultRoomId = matrixSession?.metadata.roomId?.trim()
     || matrixSession?.metadata.topicRoomId?.trim()
@@ -1039,6 +1035,38 @@ function ConsoleShell() {
           ? appText.chatGovernanceProposalRejected
           : appText.chatGovernanceLastExecutionFailed
       : appText.chatGovernanceNoOpenProposal;
+
+  const hasRealErrorReceipt = chatLatestReceipt?.outcome === "failed"
+    || chatLatestReceipt?.outcome === "unverifiable"
+    || chatSession?.metadata.chatState.connectionState === "error";
+  const githubIntegrationStatus = integrationsStatus?.github ?? null;
+  const matrixIntegrationStatus = integrationsStatus?.matrix ?? null;
+  const preferredIntegrationForStatus: { configured: boolean | null; status: string | null } | null = mode === "workbench"
+    ? (githubIntegrationStatus
+      ? {
+          configured: githubIntegrationStatus.status === "connected",
+          status: githubIntegrationStatus.status,
+        }
+      : null)
+    : mode === "matrix"
+      ? (matrixIntegrationStatus
+        ? {
+            configured: matrixIntegrationStatus.status === "connected",
+            status: matrixIntegrationStatus.status,
+          }
+        : null)
+      : null;
+  const statusTruth: StatusTruthState = deriveStatusTruth({
+    backendHealthy,
+    restoredSession,
+    openRouterConfigured: openRouterCredentialStatus.configured,
+    runtimeMode: runtimeDiagnostics?.runtimeMode ?? null,
+    integration: preferredIntegrationForStatus,
+    hasRealError: hasRealErrorReceipt,
+  });
+  const statusTruthCopy = formatStatusTruthLabel(locale, statusTruth);
+  const freshnessLabel = statusTruthCopy.label;
+  const freshnessHint = statusTruthCopy.hint;
 
   const chatRows = useMemo<StatusPanelRow[]>(() => [
     { label: ui.github.modelLabel, value: activeModelAlias ?? ui.common.none },
@@ -1509,12 +1537,12 @@ function ConsoleShell() {
       label: workspaceTabLabels[workspaceMode],
       detail: workspaceMode === "chat" ? "Ctrl/Cmd+1"
         : workspaceMode === "workbench" ? "Ctrl/Cmd+2"
-        : workspaceMode === "review" ? "Ctrl/Cmd+3"
-        : workspaceMode === "community" ? "Ctrl/Cmd+4"
-        : workspaceMode === "models" ? "Ctrl/Cmd+5"
-        : workspaceMode === "evidence" ? "Ctrl/Cmd+6"
-        : workspaceMode === "matrix" ? "Ctrl/Cmd+7"
-        : workspaceMode === "settings" ? "Ctrl/Cmd+8"
+        : workspaceMode === "matrix" ? "Ctrl/Cmd+3"
+        : workspaceMode === "settings" ? "Ctrl/Cmd+4"
+        : workspaceMode === "perf" ? "Ctrl/Cmd+5"
+        : workspaceMode === "review" ? "Ctrl/Cmd+6"
+        : workspaceMode === "community" ? "Ctrl/Cmd+7"
+        : workspaceMode === "models" ? "Ctrl/Cmd+8"
         : "Ctrl/Cmd+9",
       mode: workspaceMode,
       onSelect: () => {
@@ -2213,7 +2241,11 @@ function ConsoleShell() {
           <div className="shell-truth-top-left">
             <WorkspaceIcon mode={mode} />
             <span>{activeSession?.title ?? workspaceName}</span>
-            <span className={`freshness-badge freshness-badge-${freshness}`} title={freshnessHint}>
+            <span
+              className={`freshness-badge freshness-badge-${freshness}`}
+              data-state={statusTruth}
+              title={freshnessHint}
+            >
               {freshnessLabel}
             </span>
           </div>
@@ -2317,7 +2349,7 @@ function ConsoleShell() {
 
         <BottomNav
           ariaLabel={ui.shell.workspacesLabel}
-          items={MOBILE_NAV_MODES.map((workspaceMode) => ({
+          items={MOBILE_NAV_MODES.filter((workspaceMode) => isPrimaryWorkspace(workspaceMode)).map((workspaceMode) => ({
             key: workspaceMode,
             label: workspaceTabLabels[workspaceMode],
             icon: <WorkspaceIcon mode={workspaceMode} />,
@@ -2416,6 +2448,7 @@ function ConsoleShell() {
               labels={workspaceTabLabels}
               ariaLabel={ui.shell.workspacesLabel}
               onSelect={handleWorkspaceTabSelect}
+              workMode={workMode}
             />
           </ShellCard>
 
@@ -2484,15 +2517,15 @@ function ConsoleShell() {
 
           {routeOwnershipRows.length > 0 ? (
             <TruthRailSection
-              title={mode === "workbench" ? "Workbench route ownership" : "Matrix route ownership"}
+              title={mode === "workbench" ? ui.shell.routeOwnershipTitleWorkbench : ui.shell.routeOwnershipTitleMatrix}
               testId="truth-rail-route-ownership"
-              badge={<StatusBadge tone="muted">backend-owned</StatusBadge>}
+              badge={<StatusBadge tone="muted">{ui.shell.routeOwnershipBadge}</StatusBadge>}
             >
               <MutedSystemCopy>
-                GitHub and Matrix are not browser integrations. The console sends governed intent; backend owns credentials, execution, verification, and sanitized errors.
+                {ui.shell.routeOwnershipHelper}
               </MutedSystemCopy>
               <RouteStatusLadder
-                title={mode === "workbench" ? "Workbench status ladder" : "Matrix status ladder"}
+                title={mode === "workbench" ? ui.shell.routeOwnershipLadderWorkbench : ui.shell.routeOwnershipLadderMatrix}
                 rows={routeOwnershipRows}
               />
             </TruthRailSection>

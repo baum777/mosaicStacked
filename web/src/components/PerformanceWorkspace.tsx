@@ -136,7 +136,7 @@ function toneLabel(tone: MetricTone) {
 }
 
 export function PerformanceWorkspace() {
-  const { locale } = useLocalization();
+  const { locale, copy: ui } = useLocalization();
   const copy = locale === "de"
     ? {
         kicker: "PERFORMANCE",
@@ -149,6 +149,8 @@ export function PerformanceWorkspace() {
         status: "Evidenz",
         localEvidenceOnly: "Nur lokale Evidenz",
         lastUpdatedLabel: "Zuletzt aktualisiert",
+        backendSectionLabel: "Backend-Status",
+        backendNote: "Performance-Evidenz ist lokal. Backend-Status wird separat angezeigt.",
       }
     : {
         kicker: "PERFORMANCE",
@@ -161,6 +163,8 @@ export function PerformanceWorkspace() {
         status: "Evidence",
         localEvidenceOnly: "Local evidence only",
         lastUpdatedLabel: "Last updated",
+        backendSectionLabel: "Backend status",
+        backendNote: "Performance evidence is local. Backend status is shown separately.",
       };
 
   return (
@@ -233,6 +237,15 @@ export function PerformanceWorkspace() {
             </div>
           ))}
         </div>
+      </article>
+
+      <article className="workspace-card performance-backend-card" data-testid="performance-backend-card">
+        <SectionLabel>{copy.backendSectionLabel}</SectionLabel>
+        <p className="muted-copy">{copy.backendNote}</p>
+        <p className="muted-copy performance-backend-summary" data-testid="performance-backend-summary">
+          <span>{ui.shell.healthTitle}:</span>
+          <strong>{ui.shell.healthChecking}</strong>
+        </p>
       </article>
 
       <article className="workspace-card performance-note-card">
