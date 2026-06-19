@@ -239,6 +239,154 @@ npm run test:integration-auth-rotation-live:both
 - Undo, Cross-device Sync, Bulk Review Queue, langlebige serverless Action Stores und erweiterte Observability bleiben nachgelagert.
 - Lokale `memory`-/`file`-Stores sind Entwicklungs- und Preview-Hilfen, keine dauerhafte Produktionspersistenz.
 
+## Contributing
+
+Beiträge sind willkommen! Siehe [CONTRIBUTING.md](./CONTRIBUTING.md) für Richtlinien, PR-Prozess und Entwicklungs-Setup.
+
+**Workflow:**
+
+1. Erstelle einen Feature-Branch von `main`
+2. Führe lokale Checks aus: `npm run smoke:local`
+3. Öffne einen Pull Request mit Kontext
+4. Warte auf CI-Bestätigung (typecheck, test, build)
+5. Review durch Maintainer
+6. Merge auf `main` triggert Vercel-Deploy
+
+**Commitment zu Wartung:**
+
+- Dependencies werden monatlich überprüft (Dependabot aktiviert)
+- Kritische Updates (Sicherheit, Major-Versionn) werden innerhalb einer Woche adressiert
+- Experimentelle Branches werden nach 30 Tagen bereinigt oder konsolidiert
+- Siehe [AUDIT_REPORT.md](./AUDIT_REPORT.md) für Wartungsstatus
+
+## Sicherheit
+
+Dieses Repository verwaltet sensible Integrationsdaten (GitHub App, Matrix Tokens, OpenRouter API Keys).
+
+**Sicherheitsrichtlinien:**
+
+- Alle Provider-Credentials bleiben serverseitig; Browser erhält nur browserseitige Overrides
+- `.env` ist in `.gitignore` und sollte nie committed werden
+- Private Keys (`.pem`, `*.local`) sind ausgeschlossen
+- GitHub App Permissions sind auf Kontext-Read und Repo-Selection beschränkt
+- Execute-Operationen erfordern explizite Browser-Zustimmung + serverseitige Admin-Keys
+- Secrets Scanning ist durch GitHub Dependabot konfiguriert
+
+**Vulnerability Disclosure:**
+
+Entdeckte Sicherheitslücken bitte **nicht** öffentlich öffnen. Kontaktiere stattdessen den Maintainer direkt über GitHub.
+
+## Testing
+
+Die Test-Suite deckt Unit, Integration und Live-Smoke-Tests ab:
+
+**Lokale Checks (vor Push):**
+
+```bash
+npm run smoke:local    # typecheck + unit tests + browser tests
+```
+
+**CI-Checks (bei Push/PR):**
+
+```bash
+npm run smoke:ci       # typecheck + build + unit tests + browser tests
+```
+
+**Detaillierte Tests:**
+
+```bash
+# Unit Tests
+npm run test:server                           # Server Unit Tests
+npm run test:web                              # Web Unit Tests
+npm run test                                  # Beide
+
+# Browser Tests (Playwright)
+npm run test:browser                          # Lokale Browser Tests
+
+# E2E / Smoke Tests
+npm run cypress:run                           # Cypress E2E
+npm run smoke:local                           # Lokale Full-Stack Smoke
+npm run smoke:ci                              # CI-ähnliche Smoke
+
+# Live Integration Tests (erfordern echte Services)
+npm run test:matrix-live                      # Live Matrix Smoke
+npm run test:integration-auth-rotation-live   # Live Auth Rotation
+```
+
+**Performance Tests:**
+
+```bash
+npm run perf:bundle:web          # Web Bundle Size Check
+npm run perf:lighthouse:tti       # Lighthouse Time to Interactive
+```
+
+Siehe auch: `npm run test --help` und `scripts/` für weitere Varianten.
+
+## Dependency Management
+
+Dependencies werden durch [Dependabot](https://dependabot.com) automatisch gescannt.
+
+**Aktueller Status:**
+
+- 🟡 8 Packages veraltet (Playwright, React, TypeScript, @types/*, Vite, Cypress) — siehe [AUDIT_REPORT.md](./AUDIT_REPORT.md)
+- ✓ npm lockfile committed
+- ✓ GitHub Actions mit Node.js 24 LTS
+- ✓ Sicherheits-Patches automatisch gescannt
+
+**Update-Prozess:**
+
+1. Dependabot öffnet PRs für verfügbare Updates
+2. Merge in `main` nach erfolgreicher CI
+3. Major-Updates erfordern manuelles Review und Testing
+4. Changelog wird mit Update dokumentiert
+
+**Stale Dependencies ansprechen:**
+
+```bash
+npm outdated                    # Zeige veraltete Packages
+npm update                      # Update auf "Wanted" Version
+npm run typecheck && npm test   # Verify nach Update
+```
+
+## Deployment
+
+**Status:** Produktionsumgebung auf [Vercel](https://vercel.com)
+
+**Pipeline:**
+
+- Push zu `main` → GitHub Actions CI (typecheck, test, build)
+- CI erfolgreich → automatischer Vercel Deploy
+- Preview Deployments für Pull Requests verfügbar
+- Rollback: Vercel Deployments Tab oder Commit revert
+
+**Secrets Management:**
+
+Alle sensiblen Env Vars werden über Vercel Environment Variables verwaltet (nicht in `.env.example`):
+- OpenRouter API Keys
+- GitHub App Credentials
+- Matrix Access Tokens
+- Admin Keys
+
+Siehe [Wichtige Env-Flächen](#wichtige-env-flächen) für vollständige Liste.
+
+## Maintenance Status
+
+Siehe [AUDIT_REPORT.md](./AUDIT_REPORT.md) für die neueste Health-Report.
+
+**Empfohlene Aktionen (diese Woche):**
+
+- [ ] TypeScript auf 6.0.3 upgraden
+- [ ] Playwright auf 1.61.0 upgraden
+- [ ] LICENSE-Datei hinzufügen
+- [ ] SECURITY.md dokumentieren
+- [ ] Experimentelle Branches cleanen
+
+**Experimentelle Branches:**
+
+Folgende Branches sind derzeit unmerged und sollten bereinigt/merged werden:
+- `codex/agentic-helpdesk-companion`
+- `codex/sticky-workbench-progress`
+
 <!-- workspace-root-sync:readme:start -->
 ## Workspace Integration
 
