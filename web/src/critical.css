@@ -799,6 +799,11 @@ button:disabled {
   overscroll-behavior: contain;
 }
 
+.app-shell-mobile .chat-mobile-secondary-deck {
+  width: min(100%, 430px);
+  margin-inline: auto;
+}
+
 .app-shell-mobile .governed-composer {
   margin: 0;
   border: 0;
@@ -1200,12 +1205,12 @@ button:disabled {
   min-height: 0;
   height: 100%;
   box-sizing: border-box;
-  padding: 14px 12px calc(74px + env(safe-area-inset-bottom));
-  display: grid;
-  align-content: start;
-  gap: 10px;
+  padding: 14px 12px 0;
+  padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
 .app-shell-mobile .github-workspace > :not(.github-mobile-panel),
@@ -1333,10 +1338,12 @@ button:disabled {
 .app-shell-mobile .matrix-mobile-panel,
 .app-shell-mobile .settings-mobile-panel {
   height: 100%;
-  padding: 14px 12px calc(74px + env(safe-area-inset-bottom));
-  display: grid;
-  align-content: start;
-  gap: 10px;
+  padding: 14px 12px 0;
+  padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
 }
 
 .app-shell-mobile .matrix-workspace > :not(.matrix-mobile-panel),
@@ -2424,4 +2431,194 @@ body.light-mode {
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--ms-border, rgba(255, 255, 255, 0.07));
+}
+
+/* ── SwipeDeck ─────────────────────────────────────────────────────────────
+   These rules must stay in critical.css: ui-adaptation.css (the deferred
+   bundle) is not loaded on mobile console surfaces, so any SwipeDeck CSS
+   placed there is silently skipped on mobile. See main.tsx loadDeferredCssForViewport.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.swipe-deck-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.swipe-deck-tabs {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--ms-border);
+  background: var(--ms-bg2);
+}
+
+.swipe-deck-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.swipe-deck-tab {
+  flex: 0 0 auto;
+  min-height: 26px;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ms-text2);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.swipe-deck-tab:hover {
+  background: var(--ms-bg3);
+  color: var(--ms-text);
+  transform: none;
+}
+
+.swipe-deck-tab-active {
+  background: rgba(108, 92, 231, 0.12);
+  border-color: rgba(108, 92, 231, 0.24);
+  color: var(--ms-accent2);
+}
+
+.swipe-deck-track {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.swipe-deck-track::-webkit-scrollbar {
+  display: none;
+}
+
+.swipe-deck-panel {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+/* SwipeDeck workspace variants — fill remaining height in their flex-column panels */
+.app-shell-mobile .github-mobile-panel .github-swipe-deck,
+.app-shell-mobile .matrix-mobile-panel .matrix-swipe-deck {
+  flex: 1 1 0;
+  min-height: 0;
+}
+/* Settings truth snapshot is tall; give it a floor so the panel scrolls rather than
+   squeezing the SwipeDeck to zero height. */
+.app-shell-mobile .settings-mobile-panel .settings-mobile-truth-snapshot {
+  flex-shrink: 0;
+}
+.app-shell-mobile .settings-mobile-panel .settings-swipe-deck {
+  flex-shrink: 0;
+  min-height: 300px;
+}
+
+.app-shell-mobile .github-mobile-panel .github-mobile-stage-progress {
+  flex-shrink: 0;
+}
+
+/* Stage cards and list panels fill the swipe panel and scroll within it */
+.app-shell-mobile .swipe-deck-panel .github-mobile-stage-card,
+.app-shell-mobile .swipe-deck-panel .matrix-mobile-stage-card {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.app-shell-mobile .swipe-deck-panel .settings-mobile-section {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.app-shell-mobile .swipe-deck-panel .matrix-mobile-list {
+  height: 100%;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* Performance workspace — fixed-viewport column layout wrapping the SwipeDeck */
+.performance-workspace {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.performance-swipe-deck {
+  height: 100%;
+}
+
+/* Chat mobile secondary deck — tray between thread and composer */
+/* Hidden on desktop; only rendered when route is degraded or context is pinned */
+.app-shell-console:not(.app-shell-mobile) .chat-mobile-secondary-deck {
+  display: none;
+}
+
+.app-shell-mobile .chat-mobile-secondary-deck {
+  flex: 0 0 128px;
+  overflow: hidden;
+  border-top: 1px solid var(--ms-border);
+}
+
+.app-shell-mobile .chat-secondary-swipe-deck {
+  height: 128px;
+}
+
+.app-shell-mobile .chat-mobile-route-panel {
+  padding: 8px 12px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 12px;
+  font-size: 11px;
+  height: 100%;
+}
+
+.app-shell-mobile .chat-mobile-route-panel .chat-routing-status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.app-shell-mobile .chat-mobile-context-panel {
+  padding: 8px 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  height: 100%;
+}
+
+.app-shell-mobile .chat-mobile-context-summary {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.app-shell-mobile .chat-mobile-context-meta {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ms-text2);
 }

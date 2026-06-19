@@ -190,7 +190,7 @@ test("smoke: performance workspace renders local evidence without leaking provid
   await openConsole(page, "perf");
 
   await expect(page.getByTestId("performance-workspace")).toBeVisible();
-  await expect(page.getByText("Local performance gates")).toBeVisible();
+  await expect(page.getByText("Local evidence", { exact: true })).toBeVisible();
   await expect(page.getByText("npm run perf:bundle:web", { exact: true })).toBeVisible();
   await expect(page.getByText("npm run test:browser", { exact: true })).toBeVisible();
 

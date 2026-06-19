@@ -24,6 +24,7 @@ import { BottomSheet } from "./mobile/shared/BottomSheet.js";
 import { SettingsRow } from "./mobile/shared/SettingsRow.js";
 import { SetupPath, type SetupStep } from "./setup/SetupPath.js";
 import type { SettingsVerificationState, SettingsVerificationTarget } from "../lib/settings-types.js";
+import { SwipeDeck } from "./shared/SwipeDeck.js";
 
 export type { SettingsVerificationState, SettingsVerificationTarget } from "../lib/settings-types.js";
 
@@ -712,26 +713,34 @@ export function SettingsWorkspace({
           </div>
         </header>
 
-        {mobileSettingsSections.map((section) => (
-          <section className="settings-mobile-section" data-testid={mobileSettingsSectionTestIds[section.id]} key={section.id}>
-            <header className="settings-mobile-section-header">
-              <span className="mobile-mono">{section.title}</span>
-            </header>
-            <div className="settings-mobile-row-list">
-              {section.rows.map((row) => (
-                <SettingsRow
-                  key={row.id}
-                  label={row.label}
-                  value={row.value}
-                  detail={row.id === "workmode" || row.id === "diagnostics" ? undefined : row.detail}
-                  tone={row.tone}
-                  testId={`settings-mobile-row-${row.id}`}
-                  action={() => setMobileSettingsSheet(row.id)}
-                />
-              ))}
-            </div>
-          </section>
-        ))}
+        <SwipeDeck
+          className="settings-swipe-deck"
+          ariaLabel={locale === "de" ? "Einstellungs-Panels" : "Settings panels"}
+          panels={mobileSettingsSections.map((section) => ({
+            id: section.id,
+            label: section.title,
+            content: (
+              <section className="settings-mobile-section" data-testid={mobileSettingsSectionTestIds[section.id]}>
+                <header className="settings-mobile-section-header">
+                  <span className="mobile-mono">{section.title}</span>
+                </header>
+                <div className="settings-mobile-row-list">
+                  {section.rows.map((row) => (
+                    <SettingsRow
+                      key={row.id}
+                      label={row.label}
+                      value={row.value}
+                      detail={row.id === "workmode" || row.id === "diagnostics" ? undefined : row.detail}
+                      tone={row.tone}
+                      testId={`settings-mobile-row-${row.id}`}
+                      action={() => setMobileSettingsSheet(row.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ),
+          }))}
+        />
 
         <BottomSheet
           open={Boolean(selectedMobileSettingsRow)}

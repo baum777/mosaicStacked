@@ -31,6 +31,7 @@ import { isExpertMode, type WorkMode } from "../lib/work-mode.js";
 import { toButtonGate } from "../lib/button-gate.js";
 import { ActivityRow } from "./mobile/github/ActivityRow.js";
 import { DiffSheet, type DiffSheetFile } from "./mobile/github/DiffSheet.js";
+import { SwipeDeck } from "./shared/SwipeDeck.js";
 
 export type GitHubWorkspaceStatus = {
   repositoryLabel: string;
@@ -1626,25 +1627,6 @@ export function GitHubWorkspace(props: GitHubWorkspaceProps) {
           </p>
         </header>
 
-        <section className="github-mobile-truth-grid" aria-label={locale === "de" ? "Workbench Status" : "Workbench status"}>
-          <div className="github-mobile-truth-item">
-            <span>{locale === "de" ? "Repo" : "Repo"}</span>
-            <strong>{selectedRepo ? selectedRepo.fullName : ui.github.noRepoSelected}</strong>
-          </div>
-          <div className="github-mobile-truth-item">
-            <span>{locale === "de" ? "Branch" : "Branch"}</span>
-            <strong>{proposalPlan?.branchName ?? selectedRepo?.defaultBranch ?? ui.common.na}</strong>
-          </div>
-          <div className="github-mobile-truth-item">
-            <span>{locale === "de" ? "Verbindung" : "Connection"}</span>
-            <strong>{connectionLabel}</strong>
-          </div>
-          <div className="github-mobile-truth-item">
-            <span>{locale === "de" ? "Nächster Schritt" : "Next step"}</span>
-            <strong>{mobileNextStepLabel}</strong>
-          </div>
-        </section>
-
         <div
           className="github-mobile-stage-progress"
           data-stage-progress={workbenchMobileStage}
@@ -1672,160 +1654,216 @@ export function GitHubWorkspace(props: GitHubWorkspaceProps) {
           </span>
         </div>
 
-        <section className="github-mobile-stage-card" aria-label={locale === "de" ? "Schritt 1 Kontext" : "Step 1 context"}>
-          <span className="mobile-mono">{locale === "de" ? "SCHRITT 1 · KONTEXT" : "STEP 1 · CONTEXT"}</span>
-          <label htmlFor="github-repo-select-mobile">{ui.github.repoSelectLabel}</label>
-          <select
-            id="github-repo-select-mobile"
-            aria-label={ui.github.repoSelectLabel}
-            ref={repoSelectRef}
-            value={selectedRepoFullName}
-            onChange={(event) => handleRepoChange(event.target.value)}
-            disabled={reposLoading || repos.length === 0}
-          >
-            <option value="">
-              {reposLoading ? ui.github.loadingRepos : ui.github.repoSelectLabel}
-            </option>
-            {repos.map((repo, index) => (
-              <option key={repo.fullName} value={repo.fullName}>
-                {friendlyRepoLabel(index, expertMode, repo.fullName, locale)}
-              </option>
-            ))}
-          </select>
-          <div className="github-mobile-stage-actions">
-            {githubConnected ? (
-              <>
-                <button type="button" className="secondary-button" onClick={() => props.onIntegrationAction("github", "reverify")}>
-                  {locale === "de" ? "Erneut prüfen" : "Reverify"}
-                </button>
-                <button type="button" className="secondary-button" onClick={() => props.onIntegrationAction("github", "disconnect")}>
-                  {locale === "de" ? "Trennen" : "Disconnect"}
-                </button>
-              </>
-            ) : (
-              <button type="button" onClick={() => props.onIntegrationAction("github", githubConnectAction)}>
-                {githubConnectLabel}
-              </button>
-            )}
-          </div>
-        </section>
-
-        <section className="github-mobile-stage-card" aria-label={locale === "de" ? "Schritt 2 Analyse und Vorschlag" : "Step 2 analysis and proposal"}>
-          <span className="mobile-mono">{locale === "de" ? "SCHRITT 2 · ANALYSE" : "STEP 2 · ANALYZE"}</span>
-          <p>{locale === "de" ? "Starte erst die Analyse, dann den Vorschlag." : "Run analysis first, then proposal."}</p>
-          <div className="github-mobile-action-list">
-            <button
-              type="button"
-              onClick={() => {
-                if (!selectedRepo && !githubConnected) {
-                  props.onIntegrationAction("github", githubConnectAction);
-                  return;
-                }
-                if (!selectedRepo) {
-                  repoSelectRef.current?.focus();
-                  return;
-                }
-                void runAnalysis();
-              }}
-              disabled={analysisLoading || reposLoading}
-            >
-              {analysisLoading ? ui.common.loading : ui.github.nextStepAnalysis}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                void createProposal();
-              }}
-              disabled={proposalLoading || !analysisBundle}
-            >
-              {proposalLoading ? ui.common.loading : ui.github.nextStepProposal}
-            </button>
-          </div>
-        </section>
-
-        <section className="github-mobile-stage-card" aria-label={locale === "de" ? "Schritt 3 Diff und Übergabe" : "Step 3 diff and handoff"}>
-          <span className="mobile-mono">{locale === "de" ? "SCHRITT 3 · DIFF" : "STEP 3 · DIFF"}</span>
-          <p>{locale === "de" ? "Öffne den Diff und prüfe Änderungen vor Freigabe." : "Open diff and review changes before approval."}</p>
-          <div className="github-mobile-action-list">
-            <button
-              type="button"
-              onClick={() => setDiffSheetOpen(true)}
-              disabled={!proposalPlan}
-            >
-              {workbenchActionLabels.openDiff}
-            </button>
-          </div>
-        </section>
-
-        <section className="github-mobile-stage-card" aria-label={locale === "de" ? "Schritt 4 Freigabe" : "Step 4 approval"}>
-          <span className="mobile-mono">{locale === "de" ? "SCHRITT 4 · FREIGABE" : "STEP 4 · APPROVAL"}</span>
-          <p>
-            {approvalChecked
-              ? (locale === "de"
-                ? "Vorschlag freigegeben. Ausführung läuft im Backend."
-                : "Proposal approved. Backend execution is in progress.")
-              : (locale === "de"
-                ? "Bestätige den Vorschlag und gib ihn frei oder lehne ihn ab."
-                : "Confirm the proposal, then approve or reject it.")}
-          </p>
-          <div className="github-mobile-stage-actions" data-testid="github-mobile-stage-approval">
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => setDiffSheetOpen(true)}
-              disabled={!proposalPlan}
-            >
-              {locale === "de" ? "Bestätigen" : "Confirm"}
-            </button>
-            <button
-              type="button"
-              onClick={handleMarkForStage}
-              disabled={markForStageDisabled}
-              title={markForStageDisabled ? markForStageGate.tooltipText ?? undefined : undefined}
-            >
-              {workbenchActionLabels.markForStage}
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={handleRemoveFromReview}
-              disabled={removeFromReviewDisabled}
-              title={removeFromReviewDisabled ? removeFromReviewGate.tooltipText ?? undefined : undefined}
-            >
-              {workbenchActionLabels.removeReview}
-            </button>
-          </div>
-        </section>
-
-        <section className="github-mobile-activity" aria-label={locale === "de" ? "Workbench Aktivität" : "Workbench activity"}>
-          <span className="mobile-mono">{locale === "de" ? "AKTIVITÄT" : "ACTIVITY"}</span>
-          {mobileActivityRows.length > 0 ? mobileActivityRows.map((row) => (
-            <ActivityRow
-              key={row.id}
-              title={row.title}
-              additions={row.additions}
-              deletions={row.deletions}
-              age={row.age}
-              onPress={row.onPress}
-              quickActions={[
-                {
-                  label: workbenchActionLabels.openDiff,
-                  onPress: () => setDiffSheetOpen(true),
-                  tone: "primary",
-                },
-                {
-                  label: workbenchActionLabels.copySummary,
-                  onPress: () => {
-                    void handleCopySummary();
-                  },
-                  tone: "neutral",
-                },
-              ]}
-            />
-          )) : (
-            <p>{locale === "de" ? "Noch keine Analyse oder Proposal in dieser Session." : "No analysis or proposal in this session yet."}</p>
-          )}
-        </section>
+        <SwipeDeck
+          className="github-swipe-deck"
+          ariaLabel={locale === "de" ? "Workbench Panels" : "Workbench panels"}
+          panels={[
+            {
+              id: "repo",
+              label: locale === "de" ? "Repo" : "Repo",
+              content: (
+                <section className="github-mobile-stage-card" aria-label={locale === "de" ? "Schritt 1 Kontext" : "Step 1 context"}>
+                  <span className="mobile-mono">{locale === "de" ? "SCHRITT 1 · KONTEXT" : "STEP 1 · CONTEXT"}</span>
+                  <label htmlFor="github-repo-select-mobile">{ui.github.repoSelectLabel}</label>
+                  <select
+                    id="github-repo-select-mobile"
+                    aria-label={ui.github.repoSelectLabel}
+                    ref={repoSelectRef}
+                    value={selectedRepoFullName}
+                    onChange={(event) => handleRepoChange(event.target.value)}
+                    disabled={reposLoading || repos.length === 0}
+                  >
+                    <option value="">
+                      {reposLoading ? ui.github.loadingRepos : ui.github.repoSelectLabel}
+                    </option>
+                    {repos.map((repo, index) => (
+                      <option key={repo.fullName} value={repo.fullName}>
+                        {friendlyRepoLabel(index, expertMode, repo.fullName, locale)}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="github-mobile-stage-actions">
+                    {githubConnected ? (
+                      <>
+                        <button type="button" className="secondary-button" onClick={() => props.onIntegrationAction("github", "reverify")}>
+                          {locale === "de" ? "Erneut prüfen" : "Reverify"}
+                        </button>
+                        <button type="button" className="secondary-button" onClick={() => props.onIntegrationAction("github", "disconnect")}>
+                          {locale === "de" ? "Trennen" : "Disconnect"}
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" onClick={() => props.onIntegrationAction("github", githubConnectAction)}>
+                        {githubConnectLabel}
+                      </button>
+                    )}
+                  </div>
+                </section>
+              ),
+            },
+            {
+              id: "context",
+              label: locale === "de" ? "Kontext" : "Context",
+              content: (
+                <section className="github-mobile-truth-grid" aria-label={locale === "de" ? "Workbench Status" : "Workbench status"}>
+                  <div className="github-mobile-truth-item">
+                    <span>{locale === "de" ? "Repo" : "Repo"}</span>
+                    <strong>{selectedRepo ? selectedRepo.fullName : ui.github.noRepoSelected}</strong>
+                  </div>
+                  <div className="github-mobile-truth-item">
+                    <span>{locale === "de" ? "Branch" : "Branch"}</span>
+                    <strong>{proposalPlan?.branchName ?? selectedRepo?.defaultBranch ?? ui.common.na}</strong>
+                  </div>
+                  <div className="github-mobile-truth-item">
+                    <span>{locale === "de" ? "Verbindung" : "Connection"}</span>
+                    <strong>{connectionLabel}</strong>
+                  </div>
+                  <div className="github-mobile-truth-item">
+                    <span>{locale === "de" ? "Nächster Schritt" : "Next step"}</span>
+                    <strong>{mobileNextStepLabel}</strong>
+                  </div>
+                </section>
+              ),
+            },
+            {
+              id: "plan",
+              label: locale === "de" ? "Plan" : "Plan",
+              content: (
+                <section className="github-mobile-stage-card" aria-label={locale === "de" ? "Schritt 2 Analyse und Vorschlag" : "Step 2 analysis and proposal"}>
+                  <span className="mobile-mono">{locale === "de" ? "SCHRITT 2 · ANALYSE" : "STEP 2 · ANALYZE"}</span>
+                  <p>{locale === "de" ? "Starte erst die Analyse, dann den Vorschlag." : "Run analysis first, then proposal."}</p>
+                  <div className="github-mobile-action-list">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!selectedRepo && !githubConnected) {
+                          props.onIntegrationAction("github", githubConnectAction);
+                          return;
+                        }
+                        if (!selectedRepo) {
+                          repoSelectRef.current?.focus();
+                          return;
+                        }
+                        void runAnalysis();
+                      }}
+                      disabled={analysisLoading || reposLoading}
+                    >
+                      {analysisLoading ? ui.common.loading : ui.github.nextStepAnalysis}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void createProposal();
+                      }}
+                      disabled={proposalLoading || !analysisBundle}
+                    >
+                      {proposalLoading ? ui.common.loading : ui.github.nextStepProposal}
+                    </button>
+                  </div>
+                </section>
+              ),
+            },
+            {
+              id: "diff",
+              label: "Diff",
+              content: (
+                <section className="github-mobile-stage-card" aria-label={locale === "de" ? "Schritt 3 Diff und Übergabe" : "Step 3 diff and handoff"}>
+                  <span className="mobile-mono">{locale === "de" ? "SCHRITT 3 · DIFF" : "STEP 3 · DIFF"}</span>
+                  <p>{locale === "de" ? "Öffne den Diff und prüfe Änderungen vor Freigabe." : "Open diff and review changes before approval."}</p>
+                  <div className="github-mobile-action-list">
+                    <button
+                      type="button"
+                      onClick={() => setDiffSheetOpen(true)}
+                      disabled={!proposalPlan}
+                    >
+                      {workbenchActionLabels.openDiff}
+                    </button>
+                  </div>
+                </section>
+              ),
+            },
+            {
+              id: "execute",
+              label: locale === "de" ? "Freigabe" : "Execute",
+              content: (
+                <section className="github-mobile-stage-card" aria-label={locale === "de" ? "Schritt 4 Freigabe" : "Step 4 approval"}>
+                  <span className="mobile-mono">{locale === "de" ? "SCHRITT 4 · FREIGABE" : "STEP 4 · APPROVAL"}</span>
+                  <p>
+                    {approvalChecked
+                      ? (locale === "de"
+                        ? "Vorschlag freigegeben. Ausführung läuft im Backend."
+                        : "Proposal approved. Backend execution is in progress.")
+                      : (locale === "de"
+                        ? "Bestätige den Vorschlag und gib ihn frei oder lehne ihn ab."
+                        : "Confirm the proposal, then approve or reject it.")}
+                  </p>
+                  <div className="github-mobile-stage-actions" data-testid="github-mobile-stage-approval">
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => setDiffSheetOpen(true)}
+                      disabled={!proposalPlan}
+                    >
+                      {locale === "de" ? "Bestätigen" : "Confirm"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleMarkForStage}
+                      disabled={markForStageDisabled}
+                      title={markForStageDisabled ? markForStageGate.tooltipText ?? undefined : undefined}
+                    >
+                      {workbenchActionLabels.markForStage}
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={handleRemoveFromReview}
+                      disabled={removeFromReviewDisabled}
+                      title={removeFromReviewDisabled ? removeFromReviewGate.tooltipText ?? undefined : undefined}
+                    >
+                      {workbenchActionLabels.removeReview}
+                    </button>
+                  </div>
+                </section>
+              ),
+            },
+            {
+              id: "verify",
+              label: locale === "de" ? "Aktivität" : "Verify",
+              content: (
+                <section className="github-mobile-activity" aria-label={locale === "de" ? "Workbench Aktivität" : "Workbench activity"}>
+                  <span className="mobile-mono">{locale === "de" ? "AKTIVITÄT" : "ACTIVITY"}</span>
+                  {mobileActivityRows.length > 0 ? mobileActivityRows.map((row) => (
+                    <ActivityRow
+                      key={row.id}
+                      title={row.title}
+                      additions={row.additions}
+                      deletions={row.deletions}
+                      age={row.age}
+                      onPress={row.onPress}
+                      quickActions={[
+                        {
+                          label: workbenchActionLabels.openDiff,
+                          onPress: () => setDiffSheetOpen(true),
+                          tone: "primary",
+                        },
+                        {
+                          label: workbenchActionLabels.copySummary,
+                          onPress: () => {
+                            void handleCopySummary();
+                          },
+                          tone: "neutral",
+                        },
+                      ]}
+                    />
+                  )) : (
+                    <p>{locale === "de" ? "Noch keine Analyse oder Proposal in dieser Session." : "No analysis or proposal in this session yet."}</p>
+                  )}
+                </section>
+              ),
+            },
+          ]}
+        />
 
         <DiffSheet
           open={diffSheetOpen}

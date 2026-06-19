@@ -1,46 +1,25 @@
 import React from "react";
 import { useLocalization } from "../lib/localization.js";
-import { SectionLabel, StatusBadge } from "./ShellPrimitives.js";
+import { StatusBadge } from "./ShellPrimitives.js";
+import { SwipeDeck } from "./shared/SwipeDeck.js";
 import perfCache from "../lib/perf-cache.json";
 
 type MetricTone = "ready" | "partial" | "error";
-
-type PerfMetric = {
-  label: string;
-  value: string;
-  detail: string;
-  tone: MetricTone;
-  points: string;
-};
-
-type WorkflowStep = {
-  label: string;
-  command: string;
-  status: string;
-  tone: MetricTone;
-  width: number;
-};
-
-const lighthouseSource = (perfCache as { lighthouse?: { lcpMs?: unknown; cls?: unknown; ttiMs?: unknown } }).lighthouse;
-const bundleSource = (perfCache as { bundle?: { gzipBytes?: unknown; brotliBytes?: unknown; budgetGzipBytes?: unknown; budgetBrotliBytes?: unknown } }).bundle;
 
 function readNumber(source: Record<string, unknown> | undefined, key: string): number | null {
   const value = source?.[key];
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+const lighthouseSource = (perfCache as { lighthouse?: Record<string, unknown> }).lighthouse;
+const bundleSource = (perfCache as { bundle?: Record<string, unknown> }).bundle;
+
 const lcpMs = readNumber(lighthouseSource, "lcpMs");
 const clsValue = readNumber(lighthouseSource, "cls");
 const ttiMs = readNumber(lighthouseSource, "ttiMs");
 const gzipBytes = readNumber(bundleSource, "gzipBytes");
+const brotliBytes = readNumber(bundleSource, "brotliBytes");
 const budgetGzipBytes = readNumber(bundleSource, "budgetGzipBytes");
-
-const lcpDisplay = lcpMs !== null ? `${(lcpMs / 1000).toFixed(1)} s` : "unknown";
-const clsDisplay = clsValue !== null ? clsValue.toFixed(2) : "unknown";
-const ttiDisplay = ttiMs !== null ? `${(ttiMs / 1000).toFixed(1)} s` : "unknown";
-const bundleDisplay = gzipBytes !== null && budgetGzipBytes !== null
-  ? (gzipBytes <= budgetGzipBytes ? "budgeted" : "over")
-  : "unknown";
 
 const lastUpdated: string = (() => {
   const raw = (perfCache as { lastUpdated?: unknown }).lastUpdated;
@@ -48,210 +27,212 @@ const lastUpdated: string = (() => {
     return "unknown";
   }
   const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) {
-    return "unknown";
-  }
-  return parsed.toISOString();
+  return Number.isNaN(parsed.getTime()) ? "unknown" : parsed.toLocaleDateString("en", { year: "numeric", month: "short", day: "numeric" });
 })();
 
-const metrics: PerfMetric[] = [
-  {
-    label: "LCP",
-    value: lcpDisplay,
-    detail: "Reference from docs/lighthouse-report.json, local evidence only",
-    tone: "ready",
-    points: "0,18 12,14 24,16 36,11 48,9 60,10 72,7 84,9 100,6",
-  },
-  {
-    label: "CLS",
-    value: clsDisplay,
-    detail: "Reference from docs/lighthouse-report.json, local evidence only",
-    tone: "ready",
-    points: "0,12 12,12 24,11 36,14 48,12 60,11 72,12 84,13 100,11",
-  },
-  {
-    label: "TTI",
-    value: ttiDisplay,
-    detail: "Checked by npm run perf:lighthouse:tti against local preview",
-    tone: "ready",
-    points: "0,17 12,15 24,14 36,12 48,13 60,10 72,9 84,10 100,8",
-  },
-  {
-    label: "Bundle",
-    value: bundleDisplay,
-    detail: "Checked by npm run perf:bundle:web",
-    tone: gzipBytes !== null && budgetGzipBytes !== null && gzipBytes <= budgetGzipBytes ? "ready" : "partial",
-    points: "0,11 12,10 24,12 36,10 48,11 60,9 72,11 84,8 100,9",
-  },
-];
+const lcpDisplay = lcpMs !== null ? `${(lcpMs / 1000).toFixed(1)} s` : "–";
+const clsDisplay = clsValue !== null ? clsValue.toFixed(2) : "–";
+const ttiDisplay = ttiMs !== null ? `${(ttiMs / 1000).toFixed(1)} s` : "–";
+const bundleOk = gzipBytes !== null && budgetGzipBytes !== null && gzipBytes <= budgetGzipBytes;
+const bundleDisplay = gzipBytes !== null && budgetGzipBytes !== null
+  ? (bundleOk ? "pass" : "over budget")
+  : "–";
 
-const workflowSteps: WorkflowStep[] = [
-  {
-    label: "Typecheck web",
-    command: "npm run typecheck:web",
-    status: "local gate",
-    tone: "ready",
-    width: 35,
-  },
-  {
-    label: "Unit web",
-    command: "npm run test:web",
-    status: "local gate",
-    tone: "ready",
-    width: 48,
-  },
-  {
-    label: "Build web",
-    command: "npm run build:web",
-    status: "local gate",
-    tone: "ready",
-    width: 62,
-  },
-  {
-    label: "Browser suite",
-    command: "npm run test:browser",
-    status: "local browser gate",
-    tone: "partial",
-    width: 78,
-  },
-  {
-    label: "Bundle budget",
-    command: "npm run perf:bundle:web",
-    status: "performance gate",
-    tone: "partial",
-    width: 92,
-  },
-];
+const lcpTone: MetricTone = lcpMs !== null ? (lcpMs <= 2500 ? "ready" : lcpMs <= 4000 ? "partial" : "error") : "partial";
+const clsTone: MetricTone = clsValue !== null ? (clsValue <= 0.1 ? "ready" : clsValue <= 0.25 ? "partial" : "error") : "partial";
+const ttiTone: MetricTone = ttiMs !== null ? (ttiMs <= 3800 ? "ready" : ttiMs <= 7300 ? "partial" : "error") : "partial";
+const bundleTone: MetricTone = bundleOk ? "ready" : "partial";
 
-function toneLabel(tone: MetricTone) {
-  if (tone === "ready") {
-    return "pass";
-  }
+const overallTone: MetricTone = [lcpTone, clsTone, ttiTone, bundleTone].includes("error")
+  ? "error"
+  : [lcpTone, clsTone, ttiTone, bundleTone].includes("partial")
+    ? "partial"
+    : "ready";
 
-  if (tone === "error") {
-    return "blocked";
-  }
+const overallLabel = overallTone === "ready" ? "Pass" : overallTone === "error" ? "Failed" : "Partial";
 
-  return "partial";
+function MetricChip({ label, value, tone }: { label: string; value: string; tone: MetricTone }) {
+  return (
+    <div className={`perf-metric-chip perf-metric-chip-${tone}`}>
+      <span className="perf-metric-chip-label">{label}</span>
+      <strong className="perf-metric-chip-value">{value}</strong>
+    </div>
+  );
+}
+
+function DetailPanel({ label, value, tone, command, detail }: {
+  label: string;
+  value: string;
+  tone: MetricTone;
+  command: string;
+  detail: string;
+}) {
+  return (
+    <div className="perf-detail-panel">
+      <div className="perf-detail-panel-header">
+        <span className="perf-detail-panel-kicker">PERFORMANCE · {label.toUpperCase()}</span>
+        <StatusBadge tone={tone}>{tone === "ready" ? "pass" : tone === "error" ? "fail" : "partial"}</StatusBadge>
+      </div>
+      <strong className="perf-detail-panel-value">{value}</strong>
+      <p className="perf-detail-panel-detail">{detail}</p>
+      <code className="perf-detail-panel-cmd">{command}</code>
+    </div>
+  );
 }
 
 export function PerformanceWorkspace() {
-  const { locale, copy: ui } = useLocalization();
-  const copy = locale === "de"
-    ? {
-        kicker: "PERFORMANCE",
-        title: "Lokale Performance-Gates",
-        body: "Diese Fläche zeigt lokale Evidenz und Repo-Gates. Sie behauptet keine Live-CI, kein Deployment und keine Produktions-Telemetrie.",
-        vitals: "Core Web Vitals",
-        workflow: "Lokaler Gate-Workflow",
-        deploy: "Deploy-Hinweis",
-        deployBody: "Production- und Preview-Status bleiben außerhalb dieser Browserfläche, bis Backend- oder CI-Evidenz sie belegt.",
-        status: "Evidenz",
-        localEvidenceOnly: "Nur lokale Evidenz",
-        lastUpdatedLabel: "Zuletzt aktualisiert",
-        backendSectionLabel: "Backend-Status",
-        backendNote: "Performance-Evidenz ist lokal. Backend-Status wird separat angezeigt.",
-      }
-    : {
-        kicker: "PERFORMANCE",
-        title: "Local performance gates",
-        body: "This surface shows local evidence and repo gates. It does not claim live CI, deployment, or production telemetry.",
-        vitals: "Core Web Vitals",
-        workflow: "Local gate workflow",
-        deploy: "Deploy note",
-        deployBody: "Production and preview status stay outside this browser surface until backend or CI evidence proves them.",
-        status: "Evidence",
-        localEvidenceOnly: "Local evidence only",
-        lastUpdatedLabel: "Last updated",
-        backendSectionLabel: "Backend status",
-        backendNote: "Performance evidence is local. Backend status is shown separately.",
-      };
+  const { locale } = useLocalization();
+  const localUpdated = locale === "de" ? "Letzte Messung" : "Local evidence";
+
+  const panels = [
+    {
+      id: "overview",
+      label: locale === "de" ? "Übersicht" : "Overview",
+      content: (
+        <div className="perf-overview-panel">
+          <div className="perf-overview-timestamp">
+            <span>{localUpdated}</span>
+            <span data-testid="performance-last-updated" data-last-updated={(perfCache as { lastUpdated?: unknown }).lastUpdated ?? "unknown"}>
+              {lastUpdated}
+            </span>
+          </div>
+          <div className="perf-overview-gate">
+            <StatusBadge tone={overallTone}>{overallLabel}</StatusBadge>
+            <span className="perf-overview-gate-label">
+              {locale === "de" ? "Gate-Status · lokale Evidenz" : "Gate state · local evidence only"}
+            </span>
+          </div>
+          <div className="perf-metric-chip-row">
+            <MetricChip label="LCP" value={lcpDisplay} tone={lcpTone} />
+            <MetricChip label="CLS" value={clsDisplay} tone={clsTone} />
+            <MetricChip label="TTI" value={ttiDisplay} tone={ttiTone} />
+            <MetricChip label={locale === "de" ? "Bundle" : "Bundle"} value={bundleDisplay} tone={bundleTone} />
+          </div>
+          <p className="perf-overview-note">
+            {locale === "de"
+              ? "Keine Live-CI, kein Deployment — nur lokale Evidenz."
+              : "No live CI or deployment claimed — local evidence only."}
+          </p>
+        </div>
+      ),
+    },
+    {
+      id: "bundle",
+      label: "Bundle budget",
+      content: (
+        <DetailPanel
+          label="Bundle budget"
+          value={gzipBytes !== null ? `${Math.round(gzipBytes / 1024)} kB gzip` : "–"}
+          tone={bundleTone}
+          command="npm run perf:bundle:web"
+          detail={bundleSource && gzipBytes !== null && budgetGzipBytes !== null
+            ? `${Math.round(gzipBytes / 1024)} kB / ${Math.round(budgetGzipBytes / 1024)} kB budget · ${brotliBytes !== null ? `${Math.round(brotliBytes / 1024)} kB brotli` : ""}`
+            : "Run the bundle gate to get size evidence."}
+        />
+      ),
+    },
+    {
+      id: "lighthouse",
+      label: "Lighthouse",
+      content: (
+        <div className="perf-detail-panel">
+          <div className="perf-detail-panel-header">
+            <span className="perf-detail-panel-kicker">PERFORMANCE · LIGHTHOUSE</span>
+            <StatusBadge tone={overallTone}>{overallLabel.toLowerCase()}</StatusBadge>
+          </div>
+          <div className="perf-lighthouse-metrics">
+            <DetailPanel label="LCP" value={lcpDisplay} tone={lcpTone} command="npm run perf:lighthouse:tti" detail="Largest Contentful Paint — target ≤ 2.5 s" />
+            <DetailPanel label="CLS" value={clsDisplay} tone={clsTone} command="npm run perf:lighthouse:tti" detail="Cumulative Layout Shift — target ≤ 0.1" />
+            <DetailPanel label="TTI" value={ttiDisplay} tone={ttiTone} command="npm run perf:lighthouse:tti" detail="Time to Interactive — target ≤ 3.8 s" />
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "typecheck",
+      label: "Typecheck web",
+      content: (
+        <DetailPanel
+          label="Typecheck web"
+          value={locale === "de" ? "Lokales Gate" : "Local gate"}
+          tone="ready"
+          command="npm run typecheck:web"
+          detail={locale === "de"
+            ? "TypeScript-Typprüfung. Muss vor dem Merge bestehen."
+            : "TypeScript type check. Must pass before merge."}
+        />
+      ),
+    },
+    {
+      id: "tests",
+      label: "Unit web",
+      content: (
+        <DetailPanel
+          label="Unit web"
+          value={locale === "de" ? "Lokales Gate" : "Local gate"}
+          tone="ready"
+          command="npm run test:web"
+          detail={locale === "de"
+            ? "Web-Unit-Tests. Muss vor dem Merge bestehen."
+            : "Web unit tests. Must pass before merge."}
+        />
+      ),
+    },
+    {
+      id: "build",
+      label: "Build web",
+      content: (
+        <DetailPanel
+          label="Build web"
+          value={locale === "de" ? "Lokales Gate" : "Local gate"}
+          tone="ready"
+          command="npm run build:web"
+          detail={locale === "de"
+            ? "Web-Build-Gate. Muss vor dem Merge bestehen."
+            : "Web build gate. Must pass before merge."}
+        />
+      ),
+    },
+    {
+      id: "browser",
+      label: "Browser suite",
+      content: (
+        <DetailPanel
+          label="Browser suite"
+          value={locale === "de" ? "Lokales Gate" : "Local gate"}
+          tone="partial"
+          command="npm run test:browser"
+          detail={locale === "de"
+            ? "Browser-Integrationstests. Erfordert lokale Preview."
+            : "Browser integration tests. Requires local preview."}
+        />
+      ),
+    },
+    {
+      id: "evidence-log",
+      label: locale === "de" ? "Log" : "Log",
+      content: (
+        <div className="perf-detail-panel" data-testid="performance-backend-card">
+          <div className="perf-detail-panel-header">
+            <span className="perf-detail-panel-kicker">PERFORMANCE · LOG</span>
+          </div>
+          <p className="perf-detail-panel-detail" data-testid="performance-backend-summary">
+            {locale === "de"
+              ? "Performance-Evidenz ist lokal. Backend-Status wird separat angezeigt. Produktions- und Preview-Status bleiben außerhalb dieser Fläche."
+              : "Performance evidence is local. Backend status shown separately. Production and preview status stay outside this surface until CI evidence proves them."}
+          </p>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <section className="workspace-panel performance-workspace" data-testid="performance-workspace">
-      <article className="workspace-card performance-hero-card">
-        <header className="card-header">
-          <div>
-            <span>{copy.kicker}</span>
-            <strong>{copy.title}</strong>
-          </div>
-          <StatusBadge tone="partial">{copy.status}: partial</StatusBadge>
-        </header>
-        <p className="muted-copy">{copy.body}</p>
-        <p className="muted-copy performance-last-updated-line">
-          <span className="performance-last-updated-label">{copy.lastUpdatedLabel}:</span>
-          <span
-            data-testid="performance-last-updated"
-            data-last-updated={lastUpdated}
-          >
-            {lastUpdated}
-          </span>
-          <span aria-hidden="true"> · </span>
-          <span className="performance-local-evidence-disclaimer">{copy.localEvidenceOnly}</span>
-        </p>
-      </article>
-
-      <article className="workspace-card performance-metric-card">
-        <header className="card-header">
-          <div>
-            <span>{copy.kicker}</span>
-            <strong>{copy.vitals}</strong>
-          </div>
-        </header>
-        <div className="performance-metric-grid">
-          {metrics.map((metric) => (
-            <div className={`performance-metric performance-metric-${metric.tone}`} key={metric.label}>
-              <div className="performance-metric-topline">
-                <span>{metric.label}</span>
-                <StatusBadge tone={metric.tone}>{toneLabel(metric.tone)}</StatusBadge>
-              </div>
-              <strong>{metric.value}</strong>
-              <p>{metric.detail}</p>
-              <svg viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true">
-                <polyline points={metric.points} />
-              </svg>
-            </div>
-          ))}
-        </div>
-      </article>
-
-      <article className="workspace-card performance-workflow-card">
-        <header className="card-header">
-          <div>
-            <span>{copy.kicker}</span>
-            <strong>{copy.workflow}</strong>
-          </div>
-        </header>
-        <div className="performance-workflow-list">
-          {workflowSteps.map((step) => (
-            <div className={`performance-step performance-step-${step.tone}`} key={step.command}>
-              <div className="performance-step-icon" aria-hidden="true">{step.tone === "ready" ? "✓" : "•"}</div>
-              <div className="performance-step-copy">
-                <strong>{step.label}</strong>
-                <code>{step.command}</code>
-              </div>
-              <div className="performance-step-bar" aria-hidden="true">
-                <span style={{ width: `${step.width}%` }} />
-              </div>
-              <small>{step.status}</small>
-            </div>
-          ))}
-        </div>
-      </article>
-
-      <article className="workspace-card performance-backend-card" data-testid="performance-backend-card">
-        <SectionLabel>{copy.backendSectionLabel}</SectionLabel>
-        <p className="muted-copy">{copy.backendNote}</p>
-        <p className="muted-copy performance-backend-summary" data-testid="performance-backend-summary">
-          <span>{ui.shell.healthTitle}:</span>
-          <strong>{ui.shell.healthChecking}</strong>
-        </p>
-      </article>
-
-      <article className="workspace-card performance-note-card">
-        <SectionLabel>{copy.deploy}</SectionLabel>
-        <p className="muted-copy">{copy.deployBody}</p>
-      </article>
+      <SwipeDeck
+        panels={panels}
+        ariaLabel={locale === "de" ? "Performance-Evidenz" : "Performance evidence"}
+        className="performance-swipe-deck"
+      />
     </section>
   );
 }

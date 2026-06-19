@@ -53,6 +53,7 @@ import {
 } from "../lib/guide-state.js";
 import { ComposeZone } from "./mobile/chat/ComposeZone.js";
 import { InlineDiff } from "./mobile/chat/InlineDiff.js";
+import { SwipeDeck } from "./shared/SwipeDeck.js";
 
 const LazyMarkdownMessage = lazy(() => import("./MarkdownMessage.js").then((module) => ({ default: module.MarkdownMessage })));
 const LazyGuideOverlay = lazy(() => import("./GuideOverlay.js").then((module) => ({ default: module.GuideOverlay })));
@@ -2164,6 +2165,50 @@ export function ChatWorkspace(props: ChatWorkspaceProps) {
               </button>
             </div>
           </ShellCard>
+        ) : null}
+
+        {(Boolean(props.pinnedContext) || routingStatusItems.some((item) => item.tone === "error" || item.tone === "partial")) ? (
+          <div className="chat-mobile-secondary-deck">
+            <SwipeDeck
+              className="chat-secondary-swipe-deck"
+              ariaLabel={locale === "de" ? "Chat-Kontext" : "Chat context"}
+              panels={[
+                ...(props.pinnedContext ? [{
+                  id: "context",
+                  label: locale === "de" ? "Kontext" : "Context",
+                  content: (
+                    <div className="chat-mobile-context-panel">
+                      <p className="chat-mobile-context-summary">{props.pinnedContext.summary}</p>
+                      <p className="chat-mobile-context-meta">
+                        {`${props.pinnedContext.repoFullName} · ${props.pinnedContext.ref}${props.pinnedContext.path ? ` · ${props.pinnedContext.path}` : ""}`}
+                      </p>
+                      <button
+                        type="button"
+                        className="ghost-button"
+                        onClick={props.onClearPinnedContext}
+                      >
+                        {ui.chat.pinnedContext.clear}
+                      </button>
+                    </div>
+                  ),
+                }] : []),
+                {
+                  id: "route",
+                  label: "Route",
+                  content: (
+                    <div className="chat-mobile-route-panel">
+                      {routingStatusItems.map((item) => (
+                        <div className={`chat-routing-status-item chat-routing-status-item-${item.tone}`} key={item.label}>
+                          <span>{item.label}</span>
+                          <strong>{item.value}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </div>
         ) : null}
 
         <div className="mobile-chat-input-stack">
