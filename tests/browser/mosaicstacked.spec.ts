@@ -1036,6 +1036,98 @@ test("mobile workbench keeps content inside the mobile scroll container above fi
   expect(layout.panelBottom!).toBeLessThanOrEqual(layout.navTop! + 1);
 });
 
+test("mobile workbench and matrix expose swipe deck navigation in the first viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installBaseMocks(page, { matrixStatus: "ok" });
+
+  await page.goto("/console?mode=workbench", { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("app-shell")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId("github-workspace")).toBeVisible();
+
+  const readDeckLayout = async (workspaceSelector: string, deckSelector: string, firstPanelSelector: string) => page.evaluate(
+    ({ workspaceSelector, deckSelector, firstPanelSelector }) => {
+      const workspace = document.querySelector<HTMLElement>(workspaceSelector);
+      const deck = document.querySelector<HTMLElement>(deckSelector);
+      const tabs = deck?.querySelector<HTMLElement>(".swipe-deck-tabs") ?? null;
+      const firstPanel = deck?.querySelector<HTMLElement>(firstPanelSelector) ?? null;
+      const nav = document.querySelector<HTMLElement>(".mobile-bottom-nav");
+
+      const rectFor = (element: HTMLElement | null) => {
+        if (!element) {
+          return null;
+        }
+
+        const rect = element.getBoundingClientRect();
+        return {
+          top: rect.top,
+          bottom: rect.bottom,
+          height: rect.height,
+          width: rect.width,
+        };
+      };
+
+      return {
+        workspace: rectFor(workspace),
+        deck: rectFor(deck),
+        tabs: rectFor(tabs),
+        firstPanel: rectFor(firstPanel),
+        nav: rectFor(nav),
+        tabsDisplay: tabs ? getComputedStyle(tabs).display : null,
+        tabCount: tabs?.querySelectorAll(".swipe-deck-tab").length ?? 0,
+        visibleTabCount: tabs
+          ? Array.from(tabs.querySelectorAll<HTMLElement>(".swipe-deck-tab")).filter((tab) => {
+              const rect = tab.getBoundingClientRect();
+              return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
+            }).length
+          : 0,
+        activeTabMinHeight: tabs
+          ? getComputedStyle(tabs.querySelector<HTMLElement>(".swipe-deck-tab-active") ?? tabs.querySelector<HTMLElement>(".swipe-deck-tab")!).minHeight
+          : null,
+        activeTabFontSize: tabs
+          ? getComputedStyle(tabs.querySelector<HTMLElement>(".swipe-deck-tab-active") ?? tabs.querySelector<HTMLElement>(".swipe-deck-tab")!).fontSize
+          : null,
+        activeTabText: tabs?.querySelector<HTMLElement>(".swipe-deck-tab-active")?.textContent?.trim() ?? null,
+      };
+    },
+    { workspaceSelector, deckSelector, firstPanelSelector },
+  );
+
+  const workbenchDeck = await readDeckLayout(".github-workspace", ".github-swipe-deck", ".github-mobile-stage-card");
+  expect(workbenchDeck.deck).not.toBeNull();
+  expect(workbenchDeck.tabs).not.toBeNull();
+  expect(workbenchDeck.firstPanel).not.toBeNull();
+  expect(workbenchDeck.nav).not.toBeNull();
+  expect(workbenchDeck.tabsDisplay).toBe("flex");
+  expect(workbenchDeck.tabCount).toBeGreaterThanOrEqual(4);
+  expect(workbenchDeck.visibleTabCount).toBeGreaterThanOrEqual(1);
+  expect(workbenchDeck.activeTabText).toBe("Repo");
+  expect(Number.parseFloat(workbenchDeck.activeTabMinHeight ?? "0")).toBeGreaterThanOrEqual(36);
+  expect(Number.parseFloat(workbenchDeck.activeTabFontSize ?? "0")).toBeGreaterThanOrEqual(12);
+  expect(workbenchDeck.tabs!.height).toBeGreaterThan(20);
+  expect(workbenchDeck.tabs!.bottom).toBeLessThanOrEqual(workbenchDeck.nav!.top);
+  expect(workbenchDeck.firstPanel!.top).toBeGreaterThanOrEqual(workbenchDeck.tabs!.bottom - 1);
+  expect(workbenchDeck.firstPanel!.bottom).toBeLessThanOrEqual(workbenchDeck.nav!.top);
+
+  await page.getByTestId("tab-matrix").click();
+  await expect(page.getByTestId("matrix-workspace")).toBeVisible();
+
+  const matrixDeck = await readDeckLayout(".matrix-workspace", ".matrix-swipe-deck", ".matrix-mobile-stage-card");
+  expect(matrixDeck.deck).not.toBeNull();
+  expect(matrixDeck.tabs).not.toBeNull();
+  expect(matrixDeck.firstPanel).not.toBeNull();
+  expect(matrixDeck.nav).not.toBeNull();
+  expect(matrixDeck.tabsDisplay).toBe("flex");
+  expect(matrixDeck.tabCount).toBeGreaterThanOrEqual(4);
+  expect(matrixDeck.visibleTabCount).toBeGreaterThanOrEqual(1);
+  expect(["Identität", "Identity"]).toContain(matrixDeck.activeTabText);
+  expect(Number.parseFloat(matrixDeck.activeTabMinHeight ?? "0")).toBeGreaterThanOrEqual(36);
+  expect(Number.parseFloat(matrixDeck.activeTabFontSize ?? "0")).toBeGreaterThanOrEqual(12);
+  expect(matrixDeck.tabs!.height).toBeGreaterThan(20);
+  expect(matrixDeck.tabs!.bottom).toBeLessThanOrEqual(matrixDeck.nav!.top);
+  expect(matrixDeck.firstPanel!.top).toBeGreaterThanOrEqual(matrixDeck.tabs!.bottom - 1);
+  expect(matrixDeck.firstPanel!.bottom).toBeLessThanOrEqual(matrixDeck.nav!.top);
+});
+
 test("mobile settings renders authority control center and opens detail sheet", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installBaseMocks(page, { matrixStatus: "ok" });
