@@ -26,13 +26,13 @@ Output als gültig akzeptiert oder verworfen wird.
 ## Ausgang
 
 - `SwarmReviewResult` mit `status` und Scorecard
-- Nächster Gate-Hinweis (`nextGate`)
+- Nächster Arbeitsblock (`nextWorkBlock`, optional — nur bei Risiko, Entscheidung oder Slice-Abschluss)
 
 ## Entscheidungs-Status
 
 | Status | Bedeutung | Folge |
 | --- | --- | --- |
-| `pass` | Alle Kriterien erfüllt | Nächster kleiner Schritt |
+| `pass` | Alle Kriterien erfüllt | Closure Gate: Arbeitsblock abschließen. Nur wenn ein neuer Scope Gate nötig ist: nächsten Arbeitsblock explizit formulieren. |
 | `needs_rework` | Konkrete Mängel, aber korrigierbar | Zurück an Builder mit Liste |
 | `blocked` | Authority, Quelle oder Validierung fehlt | MSPR-Packet, menschlicher Review |
 | `approval_required` | Risiko oder Policy-Trigger | Human Approval, sonst Stop |
@@ -51,7 +51,7 @@ review:
     safety: 0..5
     evidenceQuality: 0..5
     sideEffects: 0..5
-  nextGate: string
+  nextWorkBlock: string  # optional — nur bei Risiko, Entscheidung oder Slice-Abschluss
 ```
 
 ## Kriterien-Mapping
@@ -72,7 +72,7 @@ export type SwarmReviewResult = {
   policyViolations: string[];
   validationEvidence: string[];
   memoryUpdates: string[];
-  nextGate: string;
+  nextWorkBlock: string  # optional — nur bei Risiko, Entscheidung oder Slice-Abschluss;
 };
 ```
 
