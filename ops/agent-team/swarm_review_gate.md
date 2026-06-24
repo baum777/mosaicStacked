@@ -32,7 +32,7 @@ Output als gültig akzeptiert oder verworfen wird.
 
 | Status | Bedeutung | Folge |
 | --- | --- | --- |
-| `pass` | Alle Kriterien erfüllt | Closure Gate: Arbeitsblock abschließen. Nur wenn ein neuer Scope Gate nötig ist: nächsten Arbeitsblock explizit formulieren. |
+| `pass` | Alle Kriterien erfüllt | Task Closure: Arbeitsblock abschließen. Nächsten Arbeitsblock nur explizit formulieren bei Risiko, Entscheidung oder neuem Scope. |
 | `needs_rework` | Konkrete Mängel, aber korrigierbar | Zurück an Builder mit Liste |
 | `blocked` | Authority, Quelle oder Validierung fehlt | MSPR-Packet, menschlicher Review |
 | `approval_required` | Risiko oder Policy-Trigger | Human Approval, sonst Stop |
