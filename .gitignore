@@ -26,3 +26,4 @@ update-vercel-env.sh
 .env*.local
 
 *.pem
+assets/Screenshots/*.zip
