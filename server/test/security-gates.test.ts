@@ -10,6 +10,10 @@ import {
   createTestMatrixConfig,
   TEST_MATRIX_AGENT_KEY
 } from "../test-support/helpers.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
+
+const GITHUB_TTL_TOKEN = createSyntheticSecret("gho-ttl");
+const MATRIX_TTL_TOKEN = createSyntheticSecret("syt-matrix");
 
 function createMatrixTestApp(overrides: Parameters<typeof createTestEnv>[0] = {}) {
   return createApp({
@@ -280,7 +284,7 @@ test("integration auth store expires sessions after the ttl and drops credential
   const session = store.ensureSession(null);
   const sessionId = session.sessionId;
 
-  assert.equal(store.storeCredential(sessionId, "github", { accessToken: "gho_ttl_token" }), true);
+  assert.equal(store.storeCredential(sessionId, "github", { accessToken: GITHUB_TTL_TOKEN }), true);
   store.markConnected({
     sessionId,
     provider: "github",
@@ -288,7 +292,7 @@ test("integration auth store expires sessions after the ttl and drops credential
     source: "user_connected"
   });
 
-  assert.equal(store.readCredential(sessionId, "github")?.accessToken, "gho_ttl_token");
+  assert.equal(store.readCredential(sessionId, "github")?.accessToken, GITHUB_TTL_TOKEN);
 
   currentTime += 61_000;
 
@@ -311,14 +315,14 @@ test("integration auth store slides the ttl forward on activity", () => {
 
   const session = store.ensureSession(null);
   const sessionId = session.sessionId;
-  store.storeCredential(sessionId, "matrix", { accessToken: "syt_matrix_token" });
+  store.storeCredential(sessionId, "matrix", { accessToken: MATRIX_TTL_TOKEN });
 
   currentTime += 50_000;
   assert.equal(store.ensureSession(sessionId).sessionId, sessionId);
 
   currentTime += 20_000;
   // 70s since creation, but only 20s since last activity: still valid.
-  assert.equal(store.readCredential(sessionId, "matrix")?.accessToken, "syt_matrix_token");
+  assert.equal(store.readCredential(sessionId, "matrix")?.accessToken, MATRIX_TTL_TOKEN);
 
   currentTime += 70_000;
   assert.equal(store.readCredential(sessionId, "matrix"), null);

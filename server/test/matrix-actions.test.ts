@@ -10,6 +10,7 @@ import {
   createTestMatrixConfig,
   withMatrixAdminKey
 } from "../test-support/helpers.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
 
 function createMatrixActionClient(overrides: {
   roomTopic?: string | null;

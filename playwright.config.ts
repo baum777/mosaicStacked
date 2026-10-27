@@ -14,7 +14,11 @@ export default defineConfig({
     baseURL: previewUrl,
     browserName: "chromium",
     trace: "retain-on-failure",
-    screenshot: "only-on-failure"
+    screenshot: "only-on-failure",
+    // The v6 service worker claims clients and reloads on controllerchange,
+    // which resets app state mid-test and bypasses page.route API mocks.
+    // Browser specs exercise UI behavior, not SW lifecycle — keep them deterministic.
+    serviceWorkers: "block"
   },
   webServer: {
     command: "node scripts/browser-preview-server.mjs",

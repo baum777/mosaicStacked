@@ -10,6 +10,7 @@ import {
   createTestGitHubConfig,
   createTestSessionCookie
 } from "../test-support/helpers.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
 
 const TEST_GITHUB_APP_PRIVATE_KEY = [
   "-----BEGIN PRIVATE KEY-----",
