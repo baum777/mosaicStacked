@@ -48,6 +48,7 @@ export const EnvSchema = z.object({
   MATRIX_VERIFY_AFTER_EXECUTE: z.string().trim().default("true"),
   MATRIX_ALLOWED_ACTION_TYPES: z.string().trim().default("set_room_topic"),
   MATRIX_FAIL_CLOSED: z.string().trim().default("true"),
+  MATRIX_AGENT_API_KEY: z.string().trim().default(""),
   GITHUB_TOKEN: z.string().trim().default(""),
   GITHUB_ALLOWED_REPOS: z.string().trim().default(""),
   GITHUB_AGENT_API_KEY: z.string().trim().default(""),
@@ -83,13 +84,17 @@ export const EnvSchema = z.object({
   INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY_VERSION: z.string().trim().default("1"),
   INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY: z.string().trim().default(""),
   INTEGRATION_AUTH_ENCRYPTION_PREVIOUS_KEYS: z.string().trim().default(""),
+  INTEGRATION_AUTH_SESSION_TTL_SECONDS: z.string().trim().default("604800"),
   RATE_LIMIT_ENABLED: z.string().trim().default("true"),
   RATE_LIMIT_WINDOW_MS: z.string().trim().default("60000"),
   RATE_LIMIT_CHAT_MAX: z.string().trim().default("30"),
   RATE_LIMIT_AUTH_LOGIN_MAX: z.string().trim().default("8"),
   RATE_LIMIT_GITHUB_PROPOSE_MAX: z.string().trim().default("10"),
   RATE_LIMIT_GITHUB_EXECUTE_MAX: z.string().trim().default("6"),
+  RATE_LIMIT_GITHUB_READ_MAX: z.string().trim().default("60"),
+  RATE_LIMIT_GITHUB_CAPABILITIES_MAX: z.string().trim().default("60"),
   RATE_LIMIT_MATRIX_EXECUTE_MAX: z.string().trim().default("6"),
+  RATE_LIMIT_MATRIX_ANALYZE_MAX: z.string().trim().default("20"),
   RATE_LIMIT_FAIL_CLOSED: z.string().trim().default("true"),
   JOURNAL_ENABLED: z.string().trim().default("true"),
   JOURNAL_STORE_MODE: z.string().trim().default("memory"),
@@ -98,7 +103,8 @@ export const EnvSchema = z.object({
   JOURNAL_EXPOSE_RECENT_LIMIT: z.string().trim().default("50"),
   MOSAIC_STACK_ADMIN_PASSWORD: z.string().trim().default(""),
   MOSAIC_STACK_SESSION_SECRET: z.string().trim().default(""),
-  MOSAIC_STACK_SESSION_TTL_SECONDS: z.string().trim().default("86400")
+  MOSAIC_STACK_SESSION_TTL_SECONDS: z.string().trim().default("86400"),
+  TRUST_PROXY: z.string().trim().default("false")
 });
 
 export type AppEnv = {
@@ -137,6 +143,7 @@ export type AppEnv = {
   MATRIX_VERIFY_AFTER_EXECUTE: boolean;
   MATRIX_ALLOWED_ACTION_TYPES: string[];
   MATRIX_FAIL_CLOSED: boolean;
+  MATRIX_AGENT_API_KEY: string;
   GITHUB_TOKEN: string;
   GITHUB_ALLOWED_REPOS: string[];
   GITHUB_AGENT_API_KEY: string;
@@ -172,13 +179,17 @@ export type AppEnv = {
   INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY_VERSION: string;
   INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY: string;
   INTEGRATION_AUTH_ENCRYPTION_PREVIOUS_KEYS: string;
+  INTEGRATION_AUTH_SESSION_TTL_SECONDS: number;
   RATE_LIMIT_ENABLED: boolean;
   RATE_LIMIT_WINDOW_MS: number;
   RATE_LIMIT_CHAT_MAX: number;
   RATE_LIMIT_AUTH_LOGIN_MAX: number;
   RATE_LIMIT_GITHUB_PROPOSE_MAX: number;
   RATE_LIMIT_GITHUB_EXECUTE_MAX: number;
+  RATE_LIMIT_GITHUB_READ_MAX: number;
+  RATE_LIMIT_GITHUB_CAPABILITIES_MAX: number;
   RATE_LIMIT_MATRIX_EXECUTE_MAX: number;
+  RATE_LIMIT_MATRIX_ANALYZE_MAX: number;
   RATE_LIMIT_FAIL_CLOSED: boolean;
   JOURNAL_ENABLED: boolean;
   JOURNAL_STORE_MODE: string;
@@ -188,6 +199,7 @@ export type AppEnv = {
   MOSAIC_STACK_ADMIN_PASSWORD: string;
   MOSAIC_STACK_SESSION_SECRET: string;
   MOSAIC_STACK_SESSION_TTL_SECONDS: number;
+  TRUST_PROXY: boolean;
 };
 
 function parsePositiveIntOrDefault(input: string, fallback: number) {
@@ -267,6 +279,7 @@ export function createEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     MATRIX_VERIFY_AFTER_EXECUTE: parseBoolean(parsed.MATRIX_VERIFY_AFTER_EXECUTE.trim()),
     MATRIX_ALLOWED_ACTION_TYPES: parseCsvList(parsed.MATRIX_ALLOWED_ACTION_TYPES),
     MATRIX_FAIL_CLOSED: parseBoolean(parsed.MATRIX_FAIL_CLOSED.trim()),
+    MATRIX_AGENT_API_KEY: parsed.MATRIX_AGENT_API_KEY.trim(),
     GITHUB_TOKEN: parsed.GITHUB_TOKEN.trim(),
     GITHUB_ALLOWED_REPOS: parseCsvList(parsed.GITHUB_ALLOWED_REPOS),
     GITHUB_AGENT_API_KEY: parsed.GITHUB_AGENT_API_KEY.trim(),
@@ -302,6 +315,7 @@ export function createEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY_VERSION: parsed.INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY_VERSION.trim() || "1",
     INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY: parsed.INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY.trim(),
     INTEGRATION_AUTH_ENCRYPTION_PREVIOUS_KEYS: parsed.INTEGRATION_AUTH_ENCRYPTION_PREVIOUS_KEYS.trim(),
+    INTEGRATION_AUTH_SESSION_TTL_SECONDS: parsePositiveIntOrDefault(parsed.INTEGRATION_AUTH_SESSION_TTL_SECONDS, 604_800),
     RATE_LIMIT_ENABLED: parseBoolean(parsed.RATE_LIMIT_ENABLED.trim()),
     RATE_LIMIT_WINDOW_MS: parsePositiveIntWithPolicy(
       parsed.RATE_LIMIT_WINDOW_MS,
@@ -333,11 +347,29 @@ export function createEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
       rateLimitFailClosed,
       "RATE_LIMIT_GITHUB_EXECUTE_MAX"
     ),
+    RATE_LIMIT_GITHUB_READ_MAX: parsePositiveIntWithPolicy(
+      parsed.RATE_LIMIT_GITHUB_READ_MAX,
+      60,
+      rateLimitFailClosed,
+      "RATE_LIMIT_GITHUB_READ_MAX"
+    ),
+    RATE_LIMIT_GITHUB_CAPABILITIES_MAX: parsePositiveIntWithPolicy(
+      parsed.RATE_LIMIT_GITHUB_CAPABILITIES_MAX,
+      60,
+      rateLimitFailClosed,
+      "RATE_LIMIT_GITHUB_CAPABILITIES_MAX"
+    ),
     RATE_LIMIT_MATRIX_EXECUTE_MAX: parsePositiveIntWithPolicy(
       parsed.RATE_LIMIT_MATRIX_EXECUTE_MAX,
       6,
       rateLimitFailClosed,
       "RATE_LIMIT_MATRIX_EXECUTE_MAX"
+    ),
+    RATE_LIMIT_MATRIX_ANALYZE_MAX: parsePositiveIntWithPolicy(
+      parsed.RATE_LIMIT_MATRIX_ANALYZE_MAX,
+      20,
+      rateLimitFailClosed,
+      "RATE_LIMIT_MATRIX_ANALYZE_MAX"
     ),
     RATE_LIMIT_FAIL_CLOSED: rateLimitFailClosed,
     JOURNAL_ENABLED: parseBoolean(parsed.JOURNAL_ENABLED.trim()),
@@ -347,7 +379,8 @@ export function createEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     JOURNAL_EXPOSE_RECENT_LIMIT: parsePositiveIntOrDefault(parsed.JOURNAL_EXPOSE_RECENT_LIMIT, 50),
     MOSAIC_STACK_ADMIN_PASSWORD: parsed.MOSAIC_STACK_ADMIN_PASSWORD.trim(),
     MOSAIC_STACK_SESSION_SECRET: parsed.MOSAIC_STACK_SESSION_SECRET.trim(),
-    MOSAIC_STACK_SESSION_TTL_SECONDS: parsePositiveIntOrDefault(parsed.MOSAIC_STACK_SESSION_TTL_SECONDS, 86_400)
+    MOSAIC_STACK_SESSION_TTL_SECONDS: parsePositiveIntOrDefault(parsed.MOSAIC_STACK_SESSION_TTL_SECONDS, 86_400),
+    TRUST_PROXY: parseBoolean(parsed.TRUST_PROXY.trim())
   };
 
   return normalized;

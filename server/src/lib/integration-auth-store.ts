@@ -66,6 +66,7 @@ type IntegrationAuthStoreSnapshot = {
   sessions: Array<{
     sessionId: string;
     connections: SessionConnections;
+    lastSeenAtMs?: number;
   }>;
   credentials: Array<{
     sessionId: string;
@@ -100,6 +101,7 @@ export type IntegrationAuthStoreMode = "memory" | "file";
 export type IntegrationAuthStoreSelection = {
   mode: IntegrationAuthStoreMode;
   filePath: string;
+  sessionTtlMs: number;
   encryption: {
     current: IntegrationCredentialKeyConfig | null;
     previous: IntegrationCredentialKeyConfig[];
@@ -108,6 +110,7 @@ export type IntegrationAuthStoreSelection = {
 
 type IntegrationAuthStoreOptions = {
   stateTtlMs?: number;
+  sessionTtlMs?: number;
   mode?: IntegrationAuthStoreMode;
   filePath?: string;
   encryptionSecret?: string;
@@ -117,6 +120,7 @@ type IntegrationAuthStoreOptions = {
 };
 
 const DEFAULT_STATE_TTL_MS = 5 * 60 * 1000;
+const DEFAULT_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_STORE_FILE_PATH = ".local-ai/state/integration-auth-store.json";
 const VERCEL_TMP_STORE_ROOT = "mosaicstacked";
 
@@ -215,6 +219,7 @@ export function createIntegrationAuthStoreSelection(env: AppEnv): IntegrationAut
   return {
     mode,
     filePath,
+    sessionTtlMs: Math.max(1, env.INTEGRATION_AUTH_SESSION_TTL_SECONDS) * 1000,
     encryption: {
       current,
       previous: previousKeys
@@ -240,15 +245,21 @@ function createEmptySessionConnections(): SessionConnections {
   };
 }
 
+type StoreSessionEntry = {
+  connections: SessionConnections;
+  lastSeenAtMs: number;
+};
+
 function createStoreSnapshot(
-  sessions: Map<string, SessionConnections>,
+  sessions: Map<string, StoreSessionEntry>,
   credentials: Map<string, CredentialEnvelopeByProvider>
 ): IntegrationAuthStoreSnapshot {
   return {
     version: 1,
-    sessions: [...sessions.entries()].map(([sessionId, connections]) => ({
+    sessions: [...sessions.entries()].map(([sessionId, entry]) => ({
       sessionId,
-      connections
+      connections: entry.connections,
+      lastSeenAtMs: entry.lastSeenAtMs
     })),
     credentials: [...credentials.entries()].map(([sessionId, providers]) => ({
       sessionId,
@@ -317,7 +328,8 @@ function readSnapshotFile(filePath: string): IntegrationAuthStoreSnapshot | null
 
       sessions.push({
         sessionId: session.sessionId,
-        connections: session.connections
+        connections: session.connections,
+        lastSeenAtMs: isNumber(session.lastSeenAtMs) ? session.lastSeenAtMs : undefined
       });
     }
 
@@ -394,12 +406,13 @@ function keyMapKey(keyId: string, keyVersion: number) {
 export function createIntegrationAuthStore(options: IntegrationAuthStoreOptions = {}): IntegrationAuthStore {
   const now = options.now ?? (() => Date.now());
   const stateTtlMs = options.stateTtlMs ?? DEFAULT_STATE_TTL_MS;
+  const sessionTtlMs = options.sessionTtlMs ?? DEFAULT_SESSION_TTL_MS;
   const mode = options.mode ?? "memory";
   const filePath = mode === "file"
     ? path.resolve(options.filePath ?? DEFAULT_STORE_FILE_PATH)
     : null;
   const intentsByState = new Map<string, IntegrationAuthIntent>();
-  const sessions = new Map<string, SessionConnections>();
+  const sessions = new Map<string, StoreSessionEntry>();
   const credentials = new Map<string, CredentialEnvelopeByProvider>();
 
   const explicitCurrentKey = normalizeCredentialKeyConfig(options.currentEncryptionKey);
@@ -422,7 +435,10 @@ export function createIntegrationAuthStore(options: IntegrationAuthStoreOptions 
     const snapshot = readSnapshotFile(filePath);
 
     for (const entry of snapshot?.sessions ?? []) {
-      sessions.set(entry.sessionId, entry.connections);
+      sessions.set(entry.sessionId, {
+        connections: entry.connections,
+        lastSeenAtMs: entry.lastSeenAtMs ?? now()
+      });
     }
 
     for (const entry of snapshot?.credentials ?? []) {
@@ -446,18 +462,54 @@ export function createIntegrationAuthStore(options: IntegrationAuthStoreOptions 
     }
   }
 
+  function pruneExpiredSessions(nowMs = now()) {
+    if (sessionTtlMs <= 0) {
+      return;
+    }
+
+    for (const [sessionId, entry] of sessions.entries()) {
+      if (nowMs - entry.lastSeenAtMs > sessionTtlMs) {
+        sessions.delete(sessionId);
+        credentials.delete(sessionId);
+      }
+    }
+  }
+
+  function isSessionExpired(sessionId: string, nowMs = now()): boolean {
+    const entry = sessions.get(sessionId);
+
+    if (!entry) {
+      return true;
+    }
+
+    return sessionTtlMs > 0 && nowMs - entry.lastSeenAtMs > sessionTtlMs;
+  }
+
+  function touchSession(sessionId: string, nowMs = now()) {
+    const entry = sessions.get(sessionId);
+
+    if (entry) {
+      entry.lastSeenAtMs = nowMs;
+    }
+  }
+
   function getOrCreateSession(sessionId: string): { session: SessionConnections; created: boolean } {
+    pruneExpiredSessions();
     const existing = sessions.get(sessionId);
 
     if (existing) {
+      existing.lastSeenAtMs = now();
       return {
-        session: existing,
+        session: existing.connections,
         created: false
       };
     }
 
     const created = createEmptySessionConnections();
-    sessions.set(sessionId, created);
+    sessions.set(sessionId, {
+      connections: created,
+      lastSeenAtMs: now()
+    });
     persist();
     return {
       session: created,
@@ -529,13 +581,17 @@ export function createIntegrationAuthStore(options: IntegrationAuthStoreOptions 
 
   return {
     ensureSession(sessionId) {
+      pruneExpiredIntents();
+      pruneExpiredSessions();
       const normalized = sessionId?.trim() ?? "";
 
-      if (normalized.length > 0) {
-        const ensured = getOrCreateSession(normalized);
+      // Only reuse session IDs that were previously issued by this store.
+      // Adopting client-provided unknown IDs would enable session fixation.
+      if (normalized.length > 0 && sessions.has(normalized)) {
+        touchSession(normalized);
         return {
           sessionId: normalized,
-          created: ensured.created
+          created: false
         };
       }
 
@@ -586,13 +642,14 @@ export function createIntegrationAuthStore(options: IntegrationAuthStoreOptions 
         return null;
       }
 
-      const session = sessions.get(normalized);
+      pruneExpiredSessions();
 
-      if (!session) {
+      if (!sessions.has(normalized)) {
         return null;
       }
 
-      return session[provider];
+      touchSession(normalized);
+      return sessions.get(normalized)!.connections[provider];
     },
 
     markConnected(input) {
@@ -619,20 +676,21 @@ export function createIntegrationAuthStore(options: IntegrationAuthStoreOptions 
     },
 
     reverify(sessionId, provider) {
+      pruneExpiredSessions();
       const session = sessions.get(sessionId);
 
-      if (!session || !session[provider].connected) {
+      if (!session || isSessionExpired(sessionId) || !session.connections[provider].connected) {
         return null;
       }
 
-      session[provider] = {
-        ...session[provider],
+      session.connections[provider] = {
+        ...session.connections[provider],
         lastVerifiedAt: new Date(now()).toISOString(),
         lastErrorCode: null
       };
       persist();
 
-      return session[provider];
+      return session.connections[provider];
     },
 
     setErrorCode(sessionId, provider, code) {
@@ -670,6 +728,13 @@ export function createIntegrationAuthStore(options: IntegrationAuthStoreOptions 
         return null;
       }
 
+      pruneExpiredSessions();
+
+      if (!sessions.has(normalized) || isSessionExpired(normalized)) {
+        return null;
+      }
+
+      touchSession(normalized);
       const providerCredentials = credentials.get(normalized);
       const encrypted = providerCredentials?.[provider];
 

@@ -1,190 +1,81 @@
 # Repository Health Report
 
-**Scope:** CLI-verified (static analysis + npm/git commands executed)  
-**Date:** 2026-06-19  
-**Project:** mosaicStack (monorepo: server + web workspaces)
+**Scope:** Deep-dive 360° audit (static analysis, live smoke tests, full verification run) + remediation sprint
+**Date:** 2026-10-27
+**Project:** mosaicStacked (monorepo: server + web workspaces, main @ a19c0cf + security sprint)
+**Method:** Manual code review of server routes/auth/model-routing, frontend surface review, npm audit, live server smoke tests, full typecheck/test/build verification
 
 ---
 
 ## Gesamtstatus
 
-**Status:** 🟡 **Gelb** (Good foundation, but dependency updates needed + branch hygiene)
+**Status:** 🟢 **Grün** (P1-Sicherheitsfindings behoben, P2-Robustheit umgesetzt, Verifikation vollständig)
 
-**Reason:** Project has solid CI/CD, test infrastructure, and documentation, but multiple outdated packages (8 updates available), unmerged experimental branches, and missing governance files create maintenance risk.
-
----
-
-## Maintenance Score
-
-| Bereich      | Score (0–10) | Kommentar |
-|---|---:|---|
-| Dependencies | 6/10 | Dependabot configured, but 8 packages outdated (Playwright, TypeScript, React, @types/\*, Vite, Cypress); url.parse() deprecation warning |
-| Docs | 8/10 | README (283 lines), CHANGELOG, AGENTS.md present; missing SECURITY.md, CONTRIBUTING.md, LICENSE |
-| CI/CD | 8/10 | GitHub Actions workflows solid (node:24, typecheck, test, build); no pre-commit hooks; deployment workflows exist |
-| Codebase | 7/10 | 93 test files, monorepo structure clean, conventional commits; 2 unmerged branches (likely experimental) |
-| Security | 6/10 | .env/.pem in .gitignore but not in git history (good); no secrets found; missing SECURITY.md policy |
-| **Gesamt** | **7/10** | Stable base with clear upkeep needed |
+**Nach dem Remediation-Sprint:**
+- Typecheck: server + web ✅
+- Tests: 249 server / 358 web — alle grün ✅ (inkl. 12 neuer Security-Gate-Tests + 4 SW-Tests)
+- Build: ✅
+- `npm audit`: 0 Vulnerabilities ✅ (fastify 5.12.7, zod 4.6.7, qs 6.16.1 via Override)
+- CI: `npm audit --audit-level=high`-Gate ergänzt
 
 ---
 
-## Kritische Risiken
+## Behobene Findings (P1 — Sicherheit)
 
-1. **Outdated dependencies** — 8 packages behind latest (React 19.2.7, TypeScript 6.0.3, Playwright 1.61.0, Vite 8.0.16, Cypress 15.17.0)
-   - Playwright significantly behind (1.59.1 → 1.61.0)
-   - TypeScript 6.0.3 available (currently 5.9.3) — major version upgrade ready
-   - url.parse() deprecation warning in Node.js workflow
+### 🔴 K-1: Unauthentifizierte Matrix-Write-Kette — **BEHOBEN**
+`/api/matrix/analyze` und `/api/matrix/actions/:planId/execute` akzeptierten ohne jedes Auth-Gate beliebige Requests (nur Rate-Limit auf execute). Neu:
+- Gate via `MATRIX_AGENT_API_KEY` (Header `X-MosaicStacked-Admin-Key`, timing-sicherer Vergleich) **oder** abgeschlossene Matrix-Integration-Session.
+- Ohne Authority: 401 `matrix_unauthorized`; falscher Key: 403.
+- Zusätzlich Rate-Limit-Scope `matrix_analyze` (Standard 20/min).
+- Tote Env-Gates sind jetzt runtime-authoritativ: `MATRIX_ALLOWED_ACTION_TYPES` wird auf analyze/execute gegen den Plan-Actiontyp geprüft; `MATRIX_FAIL_CLOSED` erzwingt die Fallback-Policy (`allow_fallback_on_execute`) auf dem Execute-Pfad mit Journal-Event `matrix_execute_blocked`.
+- `assertExecuteFallbackBlocked` erhält echte Werte (`modelPolicy.fallbackUsed`, `globalPolicy.allow_fallback_on_execute`) statt hardcoded Konstanten.
 
-2. **Missing governance files** — no SECURITY.md, CONTRIBUTING.md, or LICENSE
-   - Public GitHub repo without explicit license
-   - No security policy for vulnerability disclosure
+### 🟠 H-1: GitHub-Read/Propose ohne Session (Instance-Fallback) — **BEHOBEN**
+`/api/github/repos`, `/api/github/context`, tree, file, propose, plan-fetch und verify erfordern jetzt eine Integration-Session mit GitHub-Credential **oder** einen gültigen Agent-Admin-Key. Anonyme Requests erhalten 401 und rollen nie mehr auf Instanz-Credentials zurück. Execute prüft den Admin-Key **vor** dem Credential-Resolve.
 
-3. **Stale experimental branches** — multiple codex/ and modelgate/ branches not merged
-   - Cognitive load on branch list
-   - Risk of forgotten work-in-progress
+### 🟠 H-2: `/api/github/capabilities` als Admin-Key-Orakel — **BEHOBEN**
+Neuer Rate-Limit-Scope `github_capabilities` (Standard 60/min pro IP) drosselt Brute-Force-Versuche.
 
-4. **No pre-commit hooks** — no linting gate before commits (relies on CI)
-   - Slower feedback loop
-   - Allows invalid code to reach CI
+### 🟠 H-3: Integrations-Session-Fixation — **BEHOBEN**
+`ensureSession` übernimmt client-gelieferte Session-IDs nur noch, wenn sie zuvor serverseitig ausgestellt wurden; gefälschte Cookie-Werte erzeugen eine neue Server-UUID. Sessions tragen eine Idle-TTL (`INTEGRATION_AUTH_SESSION_TTL_SECONDS`, Standard 7 Tage) und verlieren bei Ablauf Connections + verschlüsselte Credentials.
 
----
+### 🟠 H-4: High-Dependency-Advisories — **BEHOBEN**
+fastify 5.8.5 → 5.12.7 (Auth-Bypass-Advisory), zod 4.4.3 → 4.6.7 (Memory-Exhaustion), `qs` 6.14.2 → 6.16.1 (Override, dev-only über Cypress). `npm audit`: 0 Findings.
 
-## Sofortmaßnahmen (diese Woche)
+### 🟠 H-5: SW-Stale-Cache / Chunk-404-Falle — **BEHOBEN (P2)**
+- Ungehashte Assets (index.html, Manifests, Icons, Fonts) werden network-first ausgeliefert; gehashte `/assets/` bleiben cache-first (immutable).
+- Chunk-404s greifen auf den vorherigen Cache zurück; die Aktivierung behält die direkt vorherige Cache-Version für stale Tabs.
+- Update-Flow: `controllerchange`-Reload (sessionStorage-guarded), Update-Checks alle 5 Minuten + bei Tab-Fokus. Cache-Version → `mosaicstacked-shell-v6`.
 
-1. **Upgrade TypeScript to 6.0.3** — major version available, test for breaking changes
-2. **Update Playwright to 1.61.0** — critical for test stability
-3. **Address url.parse() deprecation** — update workflow or replace with WHATWG URL API in Node 24 codebase
-4. **Add LICENSE file** — MIT or Apache 2.0 recommended for public repo
-5. **Create SECURITY.md** — define vulnerability disclosure process
-
----
-
-## Diese Woche erledigen
-
-- [ ] Merge or close 2 unmerged experimental branches (codex/agentic-helpdesk-companion, codex/sticky-workbench-progress)
-- [ ] Update top 5 outdated packages (TypeScript, React, @types/\*, Vite)
-- [ ] Run full test suite after dependency updates
-- [ ] Add pre-commit hook for typecheck (use husky or simple npm hook)
-- [ ] Document CONTRIBUTING.md (link to AGENTS.md workflow)
-- [ ] Verify branch protection on main (check GitHub settings)
+### 🟡 M-Findings — **TEILWEISE BEHOBEN (P2)**
+- **Abort-Race im Chat-Stream:** Client-Disconnects werden über das verlässliche `close`-Event erkannt (guarded by `writableEnded`); der OpenRouter-Client bricht bei Caller-Abort sofort ab statt auf das nächste Provider-Target zu failovern — keine Phantom-Timeouts mehr.
+- **Rate-Limit-Keys hinter Proxy:** `TRUST_PROXY` (default `false`) verdrahtet Fastify `trustProxy`; hinter Vercel/nginx keyen Buckets auf echte Client-IPs (ohne das Flag würde eine Serverless-Deployment einen einzigen globalen Bucket teilen).
+- **Fehlende Security-Header:** `vercel.json` setzt CSP (`default-src 'self'`, kein `unsafe-inline` bei Scripts, `frame-ancestors 'none'`), `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`.
+- **Offen (dokumentiert):** Das Rate-Limit bleibt pro Instanz in-memory. Eine globale Serverless-Quota (z. B. Upstash Redis) erfordert eine Async-Umbau des Limiter-Interface — bewusst als P3-Backlog-Item mit Interface-Notes in `server/README.md` dokumentiert, statt eine Schein-Integration zu shippen.
 
 ---
 
-## Backlog / Später
+## Weiterhin gültige Stärken
 
-- [ ] Enable Dependabot auto-merge for patch/minor versions
-- [ ] Add CODEOWNERS for code review routing
-- [ ] Set up branch auto-cleanup (delete merged branches after 30 days)
-- [ ] Add pre-push hook to prevent force-push to main
-- [ ] Document deployment rollback strategy (currently vercel-deploy.yml only)
-- [ ] Consider adding code coverage reporting (currently no coverage artifact in CI)
-- [ ] Upgrade to TypeScript 6.0.3 and validate breaking changes
-- [ ] Audit GitHub App permissions (scope document for github-workbench)
-- [ ] Document Matrix integration security model (scope, rate limits)
-- [ ] Add performance baseline CI gate (integrate lighthouse/bundle check into CI)
+- XSS-Fläche bleibt null (kein `dangerouslySetInnerHTML`, Backend-owned Rendering)
+- Fail-closed-Kultur durchgehend (ungkonfigurierte Integrations antworten mit 503, nicht mit Fehlerdetails)
+- Secret-Hygiene: AES-256-GCM-verschlüsselte Credential-Envelopes, Log-Redaction, keine Secrets im Code
+- 590+ Tests, CI mit Audit-Gate, Dependabot
 
 ---
 
-## Empfohlene GitHub-Issues
+## Offene Punkte (P3 — Backlog)
 
-- [ ] **Dependency updates** — Upgrade Playwright (1.59.1 → 1.61.0), React (19.2.5 → 19.2.7), @types/\*, Vite, TypeScript
-- [ ] **Branch cleanup** — Merge/close experimental branches (codex/agentic-helpdesk-companion, codex/sticky-workbench-progress)
-- [ ] **Security governance** — Add SECURITY.md, LICENSE, CONTRIBUTING.md
-- [ ] **Pre-commit hooks** — Add typecheck gate before push
-- [ ] **Node url.parse() deprecation** — Migrate workflow or codebase to WHATWG URL API
-- [ ] **Test coverage tracking** — Add coverage reports to CI pipeline
+- [ ] Globales/distributed Rate-Limit für Serverless (Upstash Redis o. ä.) — benötigt Async-Refaktor des `AppRateLimiter`
+- [ ] Atomarer Plan-Claim (execute-Race über zwei parallele Requests auf dasselbe Plan-Objekt)
+- [ ] Cross-Tab-Storage-Konsolidierung
+- [ ] Redaction-Tests weiter härten
+- [ ] Safari-inkompatible Regex ersetzen (falls im Zielbrowser-Set relevant)
+- [ ] Doku: Matrix-Integration-Security-Modul vollständig ausformulieren (Scope-Doku begonnen in `server/README.md`)
 
----
+## Wartung (aus früherem Report, weiterhin offen)
 
-## Detailed Findings
-
-### Dependencies
-- **npm outdated:** 8 packages behind latest
-  - @playwright/test: 1.59.1 → 1.61.0
-  - @types/node: 22.19.17 → 25.9.3
-  - @types/react: 19.2.14 → 19.2.17
-  - react: 19.2.5 → 19.2.7
-  - react-dom: 19.2.5 → 19.2.7
-  - cypress: 15.14.2 → 15.17.0
-  - typescript: 5.9.3 → 6.0.3 (major version)
-  - vite: 8.0.10 → 8.0.16
-  - tsx: 4.21.0 → 4.22.4
-  - yaml: 2.8.4 → 2.9.0
-- **Lockfile:** package-lock.json committed ✓
-- **Dependabot:** configured ✓
-- **CVE alerts:** None detected in current scan
-
-### CI/CD
-- **GitHub Actions:** 5 workflows present
-  - ci.yml (typecheck, test, build) — solid foundation
-  - vercel-deploy.yml (deployment pipeline)
-  - integration & smoke test workflows for Matrix, GitHub, OpenRouter
-- **Action versions:** Recent (actions/checkout@v6, actions/setup-node@v6) ✓
-- **Node version:** 24 LTS (latest) ✓
-- **No pre-commit hooks:** Allows broken code to reach CI
-
-### Security
-- **.env files:** Properly excluded from git ✓
-- **Secret files (.pem):** Rule exists in .gitignore ✓
-- **Git history:** No secrets found in recent commits ✓
-- **SECURITY.md:** Missing (high priority)
-- **Secrets scanning:** Dependabot configured but no explicit secrets policy
-
-### Documentation
-- **README.md:** Comprehensive (283 lines, German, architecture diagrams)
-  - Covers ist-Zustand, architecture, authority rules, console areas
-  - Explains chat, workbench, matrix, settings, performance, approval flow
-- **CHANGELOG.md:** Present (42 lines, recent entries)
-- **AGENTS.md:** Workflow documentation (93 lines)
-- **CONTRIBUTING.md:** Missing
-- **LICENSE:** Missing (public repo, no license file)
-
-### Branch Hygiene
-- **Default branch:** main ✓
-- **Unmerged branches:** 2 local (codex/agentic-helpdesk-companion, codex/sticky-workbench-progress)
-- **Merged branches:** 5 local (cleanup opportunity)
-- **Remote stale branches:** Multiple codex/ and modelgate/ branches (90+ days old)
-- **Branch protection:** Unknown (need GitHub API; not configured in git config)
-
-### Test Coverage
-- **Test files:** 93 files (excluding node_modules)
-- **Test commands:** 10+ npm scripts (unit, integration, smoke, e2e, live tests)
-- **Test types:**
-  - Unit tests (web/test/\*.test.ts\[x\])
-  - Server tests (server/test/\*.test.ts)
-  - Browser tests (Playwright, Cypress)
-  - Live integration tests (matrix, github, openrouter)
-  - Smoke tests (local, CI, live, production)
-- **Coverage reporting:** None in CI pipeline
-
-### Project Structure
-- **Monorepo:** ✓ (npm workspaces: server/, web/)
-- **.github/:** Workflows, no templates for issues/PRs
-- **tests/, tests/live/:** Integration and smoke tests
-- **cypress/:** E2E tests
-- **scripts/:** Build, test, and deployment utilities
-- **config/:** Central configuration
-- **docs/:** Documentation
-- **ops/:** Operational scripts (matrix smoke, perf checks)
-
----
-
-## Analysis Scope
-
-- ✓ Static file analysis (structure, metadata, .gitignore, package.json, workflows)
-- ✓ CLI-verified (npm outdated, git log, branch status, security checks)
-- ✗ GitHub API data (branch protection rules, pull request/issue trends, action run status not checked)
-
----
-
-## Recommendations for README Update
-
-Based on this audit, the README should be enhanced with:
-
-1. **Setup and Installation** — Quick start guide (dev environment setup)
-2. **Dependency management** — How to keep packages updated, pre-commit workflow
-3. **Contributing** — Link to CONTRIBUTING.md, PR checklist
-4. **Security** — Reference to SECURITY.md, vulnerability disclosure
-5. **Testing** — How to run tests locally, coverage targets
-6. **Deployment** — Current status (Vercel), staging vs. production
-7. **Known issues / Roadmap** — Experimental branches, planned upgrades
-
+- [ ] LICENSE-Datei ergänzen (öffentliches Repo)
+- [ ] Experimentelle Branches mergen oder löschen
+- [ ] Pre-Commit-Hook für Typecheck
+- [ ] CONTRIBUTING.md ergänzen

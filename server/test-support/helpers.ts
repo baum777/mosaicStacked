@@ -5,6 +5,9 @@ import type { MatrixClient } from "../src/lib/matrix-client.js";
 import { createDisabledMatrixConfig, type MatrixConfig } from "../src/lib/matrix-env.js";
 import type { OpenRouterClient } from "../src/lib/openrouter.js";
 
+export const TEST_MATRIX_AGENT_KEY = "test-matrix-agent-key";
+export const TEST_GITHUB_ADMIN_KEY = "test-github-admin-key";
+
 export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
   return {
     PORT: overrides.PORT ?? 8787,
@@ -42,6 +45,7 @@ export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     MATRIX_VERIFY_AFTER_EXECUTE: overrides.MATRIX_VERIFY_AFTER_EXECUTE ?? true,
     MATRIX_ALLOWED_ACTION_TYPES: overrides.MATRIX_ALLOWED_ACTION_TYPES ?? ["set_room_topic"],
     MATRIX_FAIL_CLOSED: overrides.MATRIX_FAIL_CLOSED ?? true,
+    MATRIX_AGENT_API_KEY: overrides.MATRIX_AGENT_API_KEY ?? TEST_MATRIX_AGENT_KEY,
     GITHUB_TOKEN: overrides.GITHUB_TOKEN ?? "",
     GITHUB_ALLOWED_REPOS: overrides.GITHUB_ALLOWED_REPOS ?? [],
     GITHUB_AGENT_API_KEY: overrides.GITHUB_AGENT_API_KEY ?? "",
@@ -77,13 +81,17 @@ export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY_VERSION: overrides.INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY_VERSION ?? "1",
     INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY: overrides.INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY ?? "",
     INTEGRATION_AUTH_ENCRYPTION_PREVIOUS_KEYS: overrides.INTEGRATION_AUTH_ENCRYPTION_PREVIOUS_KEYS ?? "",
+    INTEGRATION_AUTH_SESSION_TTL_SECONDS: overrides.INTEGRATION_AUTH_SESSION_TTL_SECONDS ?? 604_800,
     RATE_LIMIT_ENABLED: overrides.RATE_LIMIT_ENABLED ?? true,
     RATE_LIMIT_WINDOW_MS: overrides.RATE_LIMIT_WINDOW_MS ?? 60_000,
     RATE_LIMIT_CHAT_MAX: overrides.RATE_LIMIT_CHAT_MAX ?? 30,
     RATE_LIMIT_AUTH_LOGIN_MAX: overrides.RATE_LIMIT_AUTH_LOGIN_MAX ?? 8,
     RATE_LIMIT_GITHUB_PROPOSE_MAX: overrides.RATE_LIMIT_GITHUB_PROPOSE_MAX ?? 10,
     RATE_LIMIT_GITHUB_EXECUTE_MAX: overrides.RATE_LIMIT_GITHUB_EXECUTE_MAX ?? 6,
+    RATE_LIMIT_GITHUB_READ_MAX: overrides.RATE_LIMIT_GITHUB_READ_MAX ?? 60,
+    RATE_LIMIT_GITHUB_CAPABILITIES_MAX: overrides.RATE_LIMIT_GITHUB_CAPABILITIES_MAX ?? 60,
     RATE_LIMIT_MATRIX_EXECUTE_MAX: overrides.RATE_LIMIT_MATRIX_EXECUTE_MAX ?? 6,
+    RATE_LIMIT_MATRIX_ANALYZE_MAX: overrides.RATE_LIMIT_MATRIX_ANALYZE_MAX ?? 20,
     RATE_LIMIT_FAIL_CLOSED: overrides.RATE_LIMIT_FAIL_CLOSED ?? true,
     JOURNAL_ENABLED: overrides.JOURNAL_ENABLED ?? true,
     JOURNAL_STORE_MODE: overrides.JOURNAL_STORE_MODE ?? "memory",
@@ -92,7 +100,8 @@ export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     JOURNAL_EXPOSE_RECENT_LIMIT: overrides.JOURNAL_EXPOSE_RECENT_LIMIT ?? 50,
     MOSAIC_STACK_ADMIN_PASSWORD: overrides.MOSAIC_STACK_ADMIN_PASSWORD ?? "test-admin-password",
     MOSAIC_STACK_SESSION_SECRET: overrides.MOSAIC_STACK_SESSION_SECRET ?? "test-session-secret",
-    MOSAIC_STACK_SESSION_TTL_SECONDS: overrides.MOSAIC_STACK_SESSION_TTL_SECONDS ?? 86_400
+    MOSAIC_STACK_SESSION_TTL_SECONDS: overrides.MOSAIC_STACK_SESSION_TTL_SECONDS ?? 86_400,
+    TRUST_PROXY: overrides.TRUST_PROXY ?? false
   };
 }
 
@@ -119,6 +128,50 @@ export function withTestSession<T extends { inject: (request: Parameters<T["inje
       headers: {
         cookie: sessionCookie,
         ...(normalizedRequest.headers ?? {})
+      }
+    });
+  }) as T["inject"];
+
+  return app;
+}
+
+export function withMatrixAdminKey<T extends { inject: (request: Parameters<T["inject"]>[0]) => ReturnType<T["inject"]> }>(
+  app: T,
+  adminKey: string = TEST_MATRIX_AGENT_KEY
+) {
+  const originalInject = app.inject.bind(app);
+
+  app.inject = ((request: Parameters<T["inject"]>[0]) => {
+    const normalizedRequest = (request as { headers?: Record<string, string> }) ?? {};
+
+    return originalInject({
+      ...request,
+      headers: {
+        ...(normalizedRequest.headers ?? {}),
+        "x-mosaicstacked-admin-key": adminKey
+      }
+    });
+  }) as T["inject"];
+
+  return app;
+}
+
+export function withGitHubAgent<T extends { inject: (request: Parameters<T["inject"]>[0]) => ReturnType<T["inject"]> }>(
+  app: T,
+  adminKey: string = TEST_GITHUB_ADMIN_KEY
+) {
+  const sessionCookie = createTestSessionCookie();
+  const originalInject = app.inject.bind(app);
+
+  app.inject = ((request: Parameters<T["inject"]>[0]) => {
+    const normalizedRequest = (request as { headers?: Record<string, string> }) ?? {};
+
+    return originalInject({
+      ...request,
+      headers: {
+        cookie: sessionCookie,
+        ...(normalizedRequest.headers ?? {}),
+        "x-mosaicstacked-admin-key": adminKey
       }
     });
   }) as T["inject"];
@@ -245,7 +298,7 @@ export function createTestGitHubConfig(overrides: Partial<GitHubConfig> = {}): G
       : overrides.installationTokenOverride,
     allowedRepos,
     allowedRepoSet: overrides.allowedRepoSet ?? new Set(allowedRepos),
-    agentApiKey: overrides.agentApiKey ?? null,
+    agentApiKey: overrides.agentApiKey === undefined ? TEST_GITHUB_ADMIN_KEY : overrides.agentApiKey,
     defaultOwner: overrides.defaultOwner ?? "acme",
     branchPrefix: overrides.branchPrefix ?? "mosaicstacked/github",
     requestTimeoutMs: overrides.requestTimeoutMs ?? 5000,

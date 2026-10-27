@@ -698,7 +698,12 @@ async function resolveRequestGitHubClient(
     }
   }
 
-  if (deps.config.instanceReady && deps.config.installationId) {
+  if (deps.config.instanceReady
+    && deps.config.installationId
+    && deriveGitHubClientCapabilities({
+      config: deps.config,
+      providedAdminKey: readGitHubAdminKeyHeader(request),
+    }).canExecute) {
     const accessToken = deps.config.installationTokenOverride
       ? deps.config.installationTokenOverride
       : await appAuth.getInstallationToken(deps.config.installationId);
@@ -744,6 +749,45 @@ function requireGitHubAdminKey(request: FastifyRequest, reply: FastifyReply, con
   return null;
 }
 
+function hasGitHubAgentAccess(request: FastifyRequest, deps: GitHubRouteDependencies) {
+  const sessionId = readIntegrationSessionCookie(request);
+
+  if (sessionId && deps.authStore.readCredential(sessionId, "github")) {
+    return true;
+  }
+
+  const capabilities = deriveGitHubClientCapabilities({
+    config: deps.config,
+    providedAdminKey: readGitHubAdminKeyHeader(request),
+  });
+
+  return capabilities.canExecute;
+}
+
+/**
+ * Gates GitHub read/propose surfaces. Access requires an integration session
+ * with a connected GitHub credential or a valid agent admin key; anonymous
+ * requests no longer fall back to instance credentials.
+ */
+function requireGitHubAgentAccess(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  deps: GitHubRouteDependencies
+) {
+  if (!deps.config.ready) {
+    // Without app auth the backend cannot serve any GitHub surface; keep the
+    // established github_not_configured response instead of leaking whether
+    // an agent key or session would have been accepted.
+    return null;
+  }
+
+  if (hasGitHubAgentAccess(request, deps)) {
+    return null;
+  }
+
+  return sendGitHubError(reply, "github_unauthorized");
+}
+
 export function githubRoutes(app: FastifyInstance, deps: GitHubRouteDependencies) {
   const actionStore = deps.actionStore ?? createGitHubActionStore(deps.config.planTtlMs);
   const appAuth = createGitHubAppAuthClient({
@@ -752,6 +796,12 @@ export function githubRoutes(app: FastifyInstance, deps: GitHubRouteDependencies
   });
 
   app.get("/api/github/capabilities", async (request, reply) => {
+    const limit = deps.rateLimiter.check("github_capabilities", request);
+
+    if (!limit.allowed) {
+      return sendGitHubError(reply, "github_rate_limited", undefined, limit.retryAfterSeconds);
+    }
+
     const capabilities = deriveGitHubClientCapabilities({
       config: deps.config,
       providedAdminKey: readGitHubAdminKeyHeader(request),
@@ -766,6 +816,12 @@ export function githubRoutes(app: FastifyInstance, deps: GitHubRouteDependencies
   });
 
   app.get("/api/github/repos", async (_request, reply) => {
+    const accessError = requireGitHubAgentAccess(_request, reply, deps);
+
+    if (accessError) {
+      return accessError;
+    }
+
     try {
       const resolvedClient = await resolveRequestGitHubClient(_request, deps, appAuth);
 
@@ -788,6 +844,18 @@ export function githubRoutes(app: FastifyInstance, deps: GitHubRouteDependencies
   });
 
   app.post("/api/github/context", async (request, reply) => {
+    const accessError = requireGitHubAgentAccess(request, reply, deps);
+
+    if (accessError) {
+      return accessError;
+    }
+
+    const readLimit = deps.rateLimiter.check("github_read", request, deps.authConfig);
+
+    if (!readLimit.allowed) {
+      return sendGitHubError(reply, "github_rate_limited", undefined, readLimit.retryAfterSeconds);
+    }
+
     const parsedBody = GitHubContextRequestSchema.safeParse(request.body);
 
     if (!parsedBody.success) {
@@ -840,6 +908,12 @@ export function githubRoutes(app: FastifyInstance, deps: GitHubRouteDependencies
   });
 
   app.post("/api/github/actions/propose", async (request, reply) => {
+    const accessError = requireGitHubAgentAccess(request, reply, deps);
+
+    if (accessError) {
+      return accessError;
+    }
+
     const parsedBody = GitHubChangeProposalRequestSchema.safeParse(request.body);
 
     if (!parsedBody.success) {
@@ -1025,6 +1099,12 @@ export function githubRoutes(app: FastifyInstance, deps: GitHubRouteDependencies
   });
 
   app.get("/api/github/actions/:planId", async (request, reply) => {
+    const accessError = requireGitHubAgentAccess(request, reply, deps);
+
+    if (accessError) {
+      return accessError;
+    }
+
     const parsedPlanId = GitHubPlanIdSchema.safeParse(
       typeof request.params === "object" && request.params !== null
         ? (request.params as { planId?: unknown }).planId
@@ -1076,6 +1156,12 @@ export function githubRoutes(app: FastifyInstance, deps: GitHubRouteDependencies
   });
 
   app.post("/api/github/actions/:planId/execute", async (request, reply) => {
+    const authError = requireGitHubAdminKey(request, reply, deps.config);
+
+    if (authError) {
+      return authError;
+    }
+
     let resolvedClient: GitHubResolvedClient | null;
     try {
       resolvedClient = await resolveRequestGitHubClient(request, deps, appAuth);
@@ -1085,12 +1171,6 @@ export function githubRoutes(app: FastifyInstance, deps: GitHubRouteDependencies
 
     if (!resolvedClient) {
       return sendGitHubError(reply, "github_not_configured");
-    }
-
-    const authError = requireGitHubAdminKey(request, reply, deps.config);
-
-    if (authError) {
-      return authError;
     }
 
     const parsedPlanId = GitHubPlanIdSchema.safeParse(
@@ -1185,6 +1265,12 @@ export function githubRoutes(app: FastifyInstance, deps: GitHubRouteDependencies
   });
 
   app.get("/api/github/actions/:planId/verify", async (request, reply) => {
+    const accessError = requireGitHubAgentAccess(request, reply, deps);
+
+    if (accessError) {
+      return accessError;
+    }
+
     let resolvedClient: GitHubResolvedClient | null;
     try {
       resolvedClient = await resolveRequestGitHubClient(request, deps, appAuth);
@@ -1291,6 +1377,18 @@ export function githubRoutes(app: FastifyInstance, deps: GitHubRouteDependencies
   });
 
   app.get("/api/github/repos/:owner/:repo/tree", async (request, reply) => {
+    const accessError = requireGitHubAgentAccess(request, reply, deps);
+
+    if (accessError) {
+      return accessError;
+    }
+
+    const readLimit = deps.rateLimiter.check("github_read", request, deps.authConfig);
+
+    if (!readLimit.allowed) {
+      return sendGitHubError(reply, "github_rate_limited", undefined, readLimit.retryAfterSeconds);
+    }
+
     let resolvedClient: GitHubResolvedClient | null;
     try {
       resolvedClient = await resolveRequestGitHubClient(request, deps, appAuth);
@@ -1341,6 +1439,18 @@ export function githubRoutes(app: FastifyInstance, deps: GitHubRouteDependencies
   });
 
   app.get("/api/github/repos/:owner/:repo/file", async (request, reply) => {
+    const accessError = requireGitHubAgentAccess(request, reply, deps);
+
+    if (accessError) {
+      return accessError;
+    }
+
+    const readLimit = deps.rateLimiter.check("github_read", request, deps.authConfig);
+
+    if (!readLimit.allowed) {
+      return sendGitHubError(reply, "github_rate_limited", undefined, readLimit.retryAfterSeconds);
+    }
+
     let resolvedClient: GitHubResolvedClient | null;
     try {
       resolvedClient = await resolveRequestGitHubClient(request, deps, appAuth);

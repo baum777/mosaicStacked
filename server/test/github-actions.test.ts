@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createApp } from "../src/app.js";
 import { createGitHubClient } from "../src/lib/github-client.js";
-import { createTestEnv, createMockOpenRouterClient, createTestGitHubConfig, createTestSessionCookie } from "../test-support/helpers.js";
+import {
+  TEST_GITHUB_ADMIN_KEY,
+  createMockOpenRouterClient,
+  createTestEnv,
+  createTestGitHubConfig,
+  createTestSessionCookie
+} from "../test-support/helpers.js";
 
 function makeJsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
@@ -192,7 +198,8 @@ test("github proposal routes create a review-only plan scaffold and keep it read
     method: "POST",
     url: "/api/github/actions/propose",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     },
     payload: {
       repo: {
@@ -315,7 +322,8 @@ test("github proposal routes create a review-only plan scaffold and keep it read
     method: "GET",
     url: `/api/github/actions/${proposeBody.plan.planId}`,
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     }
   });
 
@@ -448,7 +456,8 @@ test("github proposal routes create a deterministic smoke plan without the LLM",
     method: "POST",
     url: "/api/github/actions/propose",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     },
     payload: {
       repo: {
@@ -598,7 +607,8 @@ test("github proposal smoke requests reject unsafe branch or file selection", as
     method: "POST",
     url: "/api/github/actions/propose",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     },
     payload: {
       repo: {
@@ -626,7 +636,8 @@ test("github proposal smoke requests reject unsafe branch or file selection", as
     method: "POST",
     url: "/api/github/actions/propose",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     },
     payload: {
       repo: {
@@ -748,7 +759,8 @@ test("github proposal routes fail closed with a controlled timeout when the LLM 
     method: "POST",
     url: "/api/github/actions/propose",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     },
     payload: {
       repo: {
@@ -891,7 +903,8 @@ test("github proposal routes fail closed when the repository changes during prop
     method: "POST",
     url: "/api/github/actions/propose",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     },
     payload: {
       repo: {
@@ -943,7 +956,8 @@ test("github proposal routes fail closed for missing plans and invalid proposal 
     method: "POST",
     url: "/api/github/actions/propose",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     },
     payload: {
       repo: {
@@ -968,7 +982,8 @@ test("github proposal routes fail closed for missing plans and invalid proposal 
     method: "GET",
     url: "/api/github/actions/plan_missing",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     }
   });
 
@@ -1092,7 +1107,8 @@ test("github proposal routes reject malformed model drafts", async (t) => {
     method: "POST",
     url: "/api/github/actions/propose",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     },
     payload: {
       repo: {
@@ -1228,7 +1244,8 @@ test("github proposal routes return 429 and skip OpenRouter when rate-limited", 
     method: "POST",
     url: "/api/github/actions/propose",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     },
     payload: {
       repo: {
@@ -1246,7 +1263,8 @@ test("github proposal routes return 429 and skip OpenRouter when rate-limited", 
     method: "POST",
     url: "/api/github/actions/propose",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     },
     payload: {
       repo: {

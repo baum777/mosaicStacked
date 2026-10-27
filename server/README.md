@@ -82,8 +82,9 @@ Optional environment variables:
 - `MATRIX_ANALYZE_LLM_ENABLED` - parsed Matrix workflow policy flag; deferred, not runtime-authoritative
 - `MATRIX_EXECUTE_APPROVAL_REQUIRED` - parsed Matrix workflow policy flag; deferred, not runtime-authoritative
 - `MATRIX_VERIFY_AFTER_EXECUTE` - parsed Matrix workflow policy flag; deferred, not runtime-authoritative
-- `MATRIX_ALLOWED_ACTION_TYPES` - parsed Matrix workflow action allowlist; deferred, not runtime-authoritative
-- `MATRIX_FAIL_CLOSED` - parsed Matrix workflow policy flag; deferred, not runtime-authoritative
+- `MATRIX_ALLOWED_ACTION_TYPES` - comma-separated runtime action allowlist for the Matrix write chain; `analyze` and `execute` reject action types outside this list (defaults to `set_room_topic`)
+- `MATRIX_FAIL_CLOSED` - defaults to `true`; when `true` the execute path enforces the model-routing fallback policy (`allow_fallback_on_execute`) and blocks execution with `matrix_forbidden` if the analyze model resolved via fallback
+- `MATRIX_AGENT_API_KEY` - required agent key for the Matrix write chain (`/api/matrix/analyze` and `/api/matrix/actions/:planId/execute`); callers authenticate with `X-MosaicStacked-Admin-Key` or a Matrix integration session from a completed SSO flow; without either authority the routes answer 401
 - `MATRIX_ENABLED` - defaults to `false`; enables the server-owned Matrix read-only routes when `true`
 - `MATRIX_REQUIRED` - defaults to `false`; fails startup closed if Matrix is enabled but invalid
 - `MATRIX_BASE_URL` - absolute Matrix homeserver origin used by the server when Matrix is enabled
@@ -110,6 +111,20 @@ Optional environment variables:
 - `GITHUB_SMOKE_ENABLED` - optional boolean flag for the manual GitHub smoke path
 - `GITHUB_APP_INSTALLATION_ID` - optional instance installation id for non-session smoke or server-side instance mode
 - `MOSAIC_STACK_SESSION_TTL_SECONDS` - defaults to `86400`
+- `INTEGRATION_AUTH_SESSION_TTL_SECONDS` - idle TTL for integration (GitHub/Matrix SSO) sessions in seconds, defaults to `604800` (7 days); expired sessions are pruned and their encrypted credentials dropped
+- `TRUST_PROXY` - defaults to `false`; set to `true` behind a trusted reverse proxy (Vercel, nginx) so `request.ip` and per-IP rate limit buckets derive from `X-Forwarded-For` instead of the proxy address
+- `RATE_LIMIT_WINDOW_MS` - sliding window for the in-memory rate limiter, defaults to `60000`
+- `RATE_LIMIT_CHAT_MAX` - chat requests per window, defaults to `30`
+- `RATE_LIMIT_AUTH_LOGIN_MAX` - auth login attempts per window, defaults to `8`
+- `RATE_LIMIT_GITHUB_PROPOSE_MAX` - GitHub proposal requests per window, defaults to `10`
+- `RATE_LIMIT_GITHUB_EXECUTE_MAX` - GitHub execute requests per window, defaults to `6`
+- `RATE_LIMIT_GITHUB_READ_MAX` - GitHub read requests (`/api/github/context`, tree, file) per window, defaults to `60`
+- `RATE_LIMIT_GITHUB_CAPABILITIES_MAX` - `/api/github/capabilities` probes per window; throttles admin-key brute force, defaults to `60`
+- `RATE_LIMIT_MATRIX_ANALYZE_MAX` - Matrix analyze plan creations per window, defaults to `20`
+- `RATE_LIMIT_MATRIX_EXECUTE_MAX` - Matrix execute requests per window, defaults to `6`
+- `RATE_LIMIT_FAIL_CLOSED` - defaults to `true`; invalid limiter configuration fails startup instead of falling back
+
+The rate limiter keeps per-instance in-memory windows. Behind serverless platforms every instance owns its own window; the instance-level limits stay a per-instance guard, not a global quota. Set `TRUST_PROXY=true` so buckets key on real client IPs.
 
 ## Local Run
 
@@ -271,7 +286,7 @@ data: {"ok":false,"error":{"code":"provider_unavailable","message":"Chat provide
 
 ## GitHub Workspace Contract
 
-These routes are backend-owned and review-first. The browser may start GitHub login/install, read allowed repositories, build read context, prepare a proposal plan, and submit approval intent only. GitHub account authority comes from session-bound GitHub App installation credentials; repository scope comes from the repositories the user allowed on GitHub's Install & Authorize page. When GitHub returns an OAuth `code` after installation, the backend exchanges it server-side, resolves the user's accessible GitHub App installation, and stores only the installation credential envelope. `GITHUB_ALLOWED_REPOS` is only an optional instance-mode narrowing control. Execution stays server-side and fails closed until `GITHUB_AGENT_API_KEY` is configured for trusted callers.
+These routes are backend-owned and review-first. The browser may start GitHub login/install, read allowed repositories, build read context, prepare a proposal plan, and submit approval intent only. GitHub account authority comes from session-bound GitHub App installation credentials; repository scope comes from the repositories the user allowed on GitHub's Install & Authorize page. When GitHub returns an OAuth `code` after installation, the backend exchanges it server-side, resolves the user's accessible GitHub App installation, and stores only the installation credential envelope. `GITHUB_ALLOWED_REPOS` is only an optional instance-mode narrowing control. Read and propose surfaces require an integration session with a connected GitHub credential or a valid agent admin key; anonymous requests fail with 401 and never fall back to instance credentials. Execution stays server-side and fails closed until `GITHUB_AGENT_API_KEY` is configured for trusted callers.
 
 GitHub read and proposal routes do not require the legacy global admin session. The browser never sees the GitHub token, provider key, or execute key.
 

@@ -369,7 +369,17 @@ export function chatRoutes(app: FastifyInstance, deps: ChatRouteDependencies) {
         abortController.abort();
       };
 
+      // "aborted" on IncomingMessage is deprecated and unreliable; "close"
+      // fires for every disconnect. Only treat it as a client abort while the
+      // hijacked response is still open, so normal completion stays success.
+      const onConnectionClose = () => {
+        if (!reply.raw.writableEnded && request.raw.destroyed) {
+          onClientAbort();
+        }
+      };
+
       request.raw.on("aborted", onClientAbort);
+      request.raw.on("close", onConnectionClose);
 
       try {
         const result = await deps.openRouter.relayChatCompletionStream(body, routeDecision.selection, {
@@ -438,6 +448,7 @@ export function chatRoutes(app: FastifyInstance, deps: ChatRouteDependencies) {
         writeSseEvent(reply.raw, "error", upstream.body);
       } finally {
         request.raw.off("aborted", onClientAbort);
+        request.raw.off("close", onConnectionClose);
         reply.raw.end();
       }
 
