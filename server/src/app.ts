@@ -22,7 +22,7 @@ import {
   type RuntimeJournal
 } from "./lib/runtime-journal.js";
 import { createRuntimeObservability, type RuntimeObservability } from "./lib/runtime-observability.js";
-import { loadModelCapabilitiesConfig, type ModelCapabilitiesConfig } from "./lib/workflow-model-router.js";
+import { loadModelCapabilitiesConfig, resolveMatrixAnalyzeModel, type ModelCapabilitiesConfig } from "./lib/workflow-model-router.js";
 import {
   createIntegrationAuthStore,
   createIntegrationAuthStoreSelection,
@@ -125,6 +125,7 @@ export function createApp(deps: AppDependencies) {
   const integrationAuthStore = deps.integrationAuthStore ?? createIntegrationAuthStore({
     mode: integrationAuthStoreSelection.mode,
     filePath: integrationAuthStoreSelection.filePath,
+    sessionTtlMs: integrationAuthStoreSelection.sessionTtlMs,
     currentEncryptionKey: integrationAuthStoreSelection.encryption.current,
     previousEncryptionKeys: integrationAuthStoreSelection.encryption.previous
   });
@@ -132,7 +133,11 @@ export function createApp(deps: AppDependencies) {
   const openRouterCredentialStore = deps.openRouterCredentialStore ?? createUserOpenRouterCredentialStore(deps.env);
   const app = Fastify({
     logger: deps.logger ?? true,
-    bodyLimit: 1_048_576
+    bodyLimit: 1_048_576,
+    // Behind a trusted reverse proxy (Vercel, nginx) derive request.ip from
+    // X-Forwarded-For so per-IP rate limit buckets key on real clients instead
+    // of the proxy address. Direct local exposure stays spoof-resistant.
+    trustProxy: deps.env.TRUST_PROXY
   });
 
   registerCors(app, deps.env);
@@ -176,13 +181,19 @@ export function createApp(deps: AppDependencies) {
     matrixConfig,
     authStore: integrationAuthStore
   });
+  const matrixAnalyzePolicy = resolveMatrixAnalyzeModel(deps.env, modelCapabilitiesConfig);
   matrixRoutes(app, {
     config: matrixConfig,
     client: matrixClient,
     store: matrixStore,
     actionStore: matrixActionStore,
     rateLimiter,
-    runtimeJournal
+    runtimeJournal,
+    adminKey: deps.env.MATRIX_AGENT_API_KEY || null,
+    authStore: integrationAuthStore,
+    modelPolicy: matrixAnalyzePolicy,
+    allowedActionTypes: deps.env.MATRIX_ALLOWED_ACTION_TYPES,
+    failClosed: deps.env.MATRIX_FAIL_CLOSED
   });
   githubRoutes(app, {
     config: githubConfig,

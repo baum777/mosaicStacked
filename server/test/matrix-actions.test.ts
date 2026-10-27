@@ -3,8 +3,13 @@ import test from "node:test";
 import { createApp } from "../src/app.js";
 import { MatrixClientError } from "../src/lib/matrix-client.js";
 import { createMatrixActionStore } from "../src/lib/matrix-action-store.js";
-import { createTestEnv, createMockMatrixClient, createMockOpenRouterClient, createTestMatrixConfig } from "../test-support/helpers.js";
-import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
+import {
+  createMockMatrixClient,
+  createMockOpenRouterClient,
+  createTestEnv,
+  createTestMatrixConfig,
+  withMatrixAdminKey
+} from "../test-support/helpers.js";
 
 function createMatrixActionClient(overrides: {
   roomTopic?: string | null;
@@ -45,14 +50,14 @@ function makeApp(overrides: {
   matrixClient?: ReturnType<typeof createMockMatrixClient>;
   matrixActionStore?: ReturnType<typeof createMatrixActionStore>;
 } = {}) {
-  return createApp({
+  return withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createTestMatrixConfig(),
     matrixClient: overrides.matrixClient ?? createMockMatrixClient(),
     matrixActionStore: overrides.matrixActionStore,
     logger: false
-  });
+  }));
 }
 
 test("matrix analyze rejects invalid requests", async (t) => {
@@ -441,7 +446,7 @@ test("matrix execute records evidence write failure but returns execution result
     roomTopic: "Old room topic",
     writeTransactionId: "event-optional-evidence"
   });
-  const app = createApp({
+  const app = withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createTestMatrixConfig({
@@ -468,7 +473,7 @@ test("matrix execute records evidence write failure but returns execution result
       }
     }),
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await app.close();
@@ -526,7 +531,7 @@ test("matrix execute and verify return safe evidence receipts when evidence writ
     roomTopic: "Old room topic",
     writeTransactionId: "event-with-evidence"
   });
-  const app = createApp({
+  const app = withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createTestMatrixConfig({
@@ -555,7 +560,7 @@ test("matrix execute and verify return safe evidence receipts when evidence writ
       }
     }),
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await app.close();
@@ -622,7 +627,7 @@ test("matrix execute is rate-limited before write operations", async (t) => {
   const topicClient = createMatrixActionClient({
     roomTopic: "Old room topic"
   });
-  const app = createApp({
+  const app = withMatrixAdminKey(createApp({
     env: createTestEnv({
       RATE_LIMIT_WINDOW_MS: 60_000,
       RATE_LIMIT_MATRIX_EXECUTE_MAX: 1
@@ -631,7 +636,7 @@ test("matrix execute is rate-limited before write operations", async (t) => {
     matrixConfig: createTestMatrixConfig(),
     matrixClient: topicClient.client,
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await app.close();
@@ -776,7 +781,7 @@ test("matrix verify keeps mismatch status even when evidence write succeeds", as
   const topicClient = createMatrixActionClient({
     roomTopic: "Old room topic"
   });
-  const app = createApp({
+  const app = withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createTestMatrixConfig({
@@ -796,7 +801,7 @@ test("matrix verify keeps mismatch status even when evidence write succeeds", as
       })
     }),
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await app.close();
@@ -850,7 +855,7 @@ test("matrix writer routes normalize authorization and timeout failures without 
   const secretToken = createSyntheticSecret("matrix-actions");
 
   await t.test("unauthorized analyze is normalized", async () => {
-    const app = createApp({
+    const app = withMatrixAdminKey(createApp({
       env: createTestEnv({
         MATRIX_ACCESS_TOKEN: secretToken
       }),
@@ -871,7 +876,7 @@ test("matrix writer routes normalize authorization and timeout failures without 
         }
       }),
       logger: false
-    });
+    }));
 
     try {
       const response = await app.inject({
@@ -899,7 +904,7 @@ test("matrix writer routes normalize authorization and timeout failures without 
   });
 
   await t.test("write forbidden execute is normalized", async () => {
-    const app = createApp({
+    const app = withMatrixAdminKey(createApp({
       env: createTestEnv({
         MATRIX_ACCESS_TOKEN: secretToken
       }),
@@ -921,7 +926,7 @@ test("matrix writer routes normalize authorization and timeout failures without 
         }
       }),
       logger: false
-    });
+    }));
 
     try {
       const analyzeResponse = await app.inject({
@@ -960,7 +965,7 @@ test("matrix writer routes normalize authorization and timeout failures without 
 
   await t.test("timeout verify is normalized", async () => {
     let callCount = 0;
-    const app = createApp({
+    const app = withMatrixAdminKey(createApp({
       env: createTestEnv({
         MATRIX_ACCESS_TOKEN: secretToken
       }),
@@ -987,7 +992,7 @@ test("matrix writer routes normalize authorization and timeout failures without 
         }
       }),
       logger: false
-    });
+    }));
 
     try {
       const analyzeResponse = await app.inject({
@@ -1022,7 +1027,7 @@ test("matrix writer routes normalize authorization and timeout failures without 
   });
 
   await t.test("room not found analyze is normalized", async () => {
-    const app = createApp({
+    const app = withMatrixAdminKey(createApp({
       env: createTestEnv({
         MATRIX_ACCESS_TOKEN: secretToken
       }),
@@ -1043,7 +1048,7 @@ test("matrix writer routes normalize authorization and timeout failures without 
         }
       }),
       logger: false
-    });
+    }));
 
     try {
       const response = await app.inject({

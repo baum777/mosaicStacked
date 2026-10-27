@@ -4,7 +4,7 @@ import type { AuthConfig } from "./auth.js";
 import { verifySessionFromRequest } from "./auth.js";
 import type { AppEnv } from "./env.js";
 
-export type RateLimitScope = "chat" | "auth_login" | "github_propose" | "github_execute" | "matrix_execute";
+export type RateLimitScope = "chat" | "auth_login" | "github_propose" | "github_execute" | "github_read" | "github_capabilities" | "matrix_analyze" | "matrix_execute";
 type Clock = () => number;
 
 export type RateLimitConfig = {
@@ -14,6 +14,9 @@ export type RateLimitConfig = {
   authLoginMax: number;
   githubProposeMax: number;
   githubExecuteMax: number;
+  githubReadMax: number;
+  githubCapabilitiesMax: number;
+  matrixAnalyzeMax: number;
   matrixExecuteMax: number;
 };
 
@@ -103,6 +106,12 @@ function maxForScope(scope: RateLimitScope, config: RateLimitConfig) {
       return config.githubProposeMax;
     case "github_execute":
       return config.githubExecuteMax;
+    case "github_read":
+      return config.githubReadMax;
+    case "github_capabilities":
+      return config.githubCapabilitiesMax;
+    case "matrix_analyze":
+      return config.matrixAnalyzeMax;
     case "matrix_execute":
       return config.matrixExecuteMax;
   }
@@ -126,6 +135,9 @@ export function createRateLimitConfig(env: AppEnv): RateLimitConfig {
     authLoginMax: env.RATE_LIMIT_AUTH_LOGIN_MAX,
     githubProposeMax: env.RATE_LIMIT_GITHUB_PROPOSE_MAX,
     githubExecuteMax: env.RATE_LIMIT_GITHUB_EXECUTE_MAX,
+    githubReadMax: env.RATE_LIMIT_GITHUB_READ_MAX,
+    githubCapabilitiesMax: env.RATE_LIMIT_GITHUB_CAPABILITIES_MAX,
+    matrixAnalyzeMax: env.RATE_LIMIT_MATRIX_ANALYZE_MAX,
     matrixExecuteMax: env.RATE_LIMIT_MATRIX_EXECUTE_MAX
   };
 }
@@ -141,6 +153,9 @@ export function createAppRateLimiter(
     auth_login: 0,
     github_propose: 0,
     github_execute: 0,
+    github_read: 0,
+    github_capabilities: 0,
+    matrix_analyze: 0,
     matrix_execute: 0
   };
 
@@ -153,6 +168,9 @@ export function createAppRateLimiter(
         auth_login: config.authLoginMax,
         github_propose: config.githubProposeMax,
         github_execute: config.githubExecuteMax,
+        github_read: config.githubReadMax,
+        github_capabilities: config.githubCapabilitiesMax,
+        matrix_analyze: config.matrixAnalyzeMax,
         matrix_execute: config.matrixExecuteMax
       },
       blockedByScope: {
@@ -160,6 +178,9 @@ export function createAppRateLimiter(
         auth_login: blockedByScope.auth_login,
         github_propose: blockedByScope.github_propose,
         github_execute: blockedByScope.github_execute,
+        github_read: blockedByScope.github_read,
+        github_capabilities: blockedByScope.github_capabilities,
+        matrix_analyze: blockedByScope.matrix_analyze,
         matrix_execute: blockedByScope.matrix_execute
       }
     };

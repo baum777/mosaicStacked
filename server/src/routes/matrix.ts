@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import type { FastifyInstance, FastifyReply } from "fastify";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
   MatrixAgentPlan,
   MatrixAnalyzeRequestSchema,
@@ -22,6 +22,7 @@ import {
   type MatrixEvidenceWriteWarning
 } from "../lib/matrix-evidence-writer.js";
 import type { MatrixConfig } from "../lib/matrix-env.js";
+import type { IntegrationAuthStore } from "../lib/integration-auth-store.js";
 import {
   createMatrixActionStore,
   type MatrixActionStore,
@@ -35,6 +36,7 @@ import {
 } from "../lib/matrix-scope-store.js";
 import type { AppRateLimiter } from "../lib/rate-limit.js";
 import type { RuntimeJournal } from "../lib/runtime-journal.js";
+import type { WorkflowModelPolicy } from "../lib/workflow-model-router.js";
 import { assertExecuteFallbackBlocked } from "../lib/workflow-model-router.js";
 
 type MatrixRouteDependencies = {
@@ -44,7 +46,14 @@ type MatrixRouteDependencies = {
   actionStore?: MatrixActionStore;
   rateLimiter: AppRateLimiter;
   runtimeJournal: RuntimeJournal;
+  adminKey: string | null;
+  authStore: IntegrationAuthStore;
+  modelPolicy: WorkflowModelPolicy;
+  allowedActionTypes: string[];
+  failClosed: boolean;
 };
+
+const MATRIX_ADMIN_KEY_HEADER = "x-mosaicstacked-admin-key";
 
 function sendMatrixError(reply: FastifyReply, code: MatrixErrorCode, message?: string) {
   return reply.status(matrixErrorStatus(code)).send(buildMatrixErrorResponse(code, message));
@@ -224,6 +233,95 @@ function assertExpectedMatrixUser(
       message: "Matrix backend returned an unexpected user identity"
     });
   }
+}
+
+function readMatrixAdminKeyHeader(request: FastifyRequest) {
+  const rawValue = request.headers[MATRIX_ADMIN_KEY_HEADER];
+
+  if (Array.isArray(rawValue)) {
+    return rawValue[0] ?? null;
+  }
+
+  return typeof rawValue === "string" ? rawValue : null;
+}
+
+function readIntegrationSessionCookie(request: FastifyRequest) {
+  const cookieHeader = Array.isArray(request.headers.cookie)
+    ? request.headers.cookie[0]
+    : request.headers.cookie;
+  const cookieName = "mosaicstacked_integration_session";
+
+  if (!cookieHeader) {
+    return null;
+  }
+
+  for (const segment of cookieHeader.split(";")) {
+    const trimmed = segment.trim();
+
+    if (!trimmed.startsWith(`${cookieName}=`)) {
+      continue;
+    }
+
+    try {
+      return decodeURIComponent(trimmed.slice(cookieName.length + 1));
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function timingSafeStringsEqual(left: string, right: string) {
+  const leftDigest = createHash("sha256").update(left).digest();
+  const rightDigest = createHash("sha256").update(right).digest();
+
+  return timingSafeEqual(leftDigest, rightDigest);
+}
+
+function hasMatrixIntegrationSession(request: FastifyRequest, deps: MatrixRouteDependencies) {
+  const sessionId = readIntegrationSessionCookie(request);
+
+  if (!sessionId) {
+    return false;
+  }
+
+  return deps.authStore.readCredential(sessionId, "matrix") !== null;
+}
+
+/**
+ * Gates the Matrix write chain (analyze/execute). Access requires either a
+ * valid agent admin key header or an integration session that completed the
+ * Matrix SSO flow. Requests without either authority are rejected with 401.
+ */
+function requireMatrixAgentAccess(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  deps: MatrixRouteDependencies
+) {
+  const providedKey = readMatrixAdminKeyHeader(request)?.trim() ?? "";
+
+  if (providedKey.length > 0) {
+    if (!deps.adminKey) {
+      return sendMatrixError(reply, "matrix_not_configured");
+    }
+
+    if (!timingSafeStringsEqual(providedKey, deps.adminKey)) {
+      return sendMatrixError(reply, "matrix_forbidden");
+    }
+
+    return null;
+  }
+
+  if (hasMatrixIntegrationSession(request, deps)) {
+    return null;
+  }
+
+  return sendMatrixError(reply, "matrix_unauthorized");
+}
+
+function isMatrixActionTypeAllowed(actionType: string, allowedActionTypes: string[]) {
+  return allowedActionTypes.includes(actionType);
 }
 
 function getRoomRequiredTopicPowerLevel(powerLevels: {
@@ -425,6 +523,23 @@ export function matrixRoutes(app: FastifyInstance, deps: MatrixRouteDependencies
   app.post("/api/matrix/analyze", async (request, reply) => {
     if (!deps.config.ready) {
       return sendMatrixError(reply, "matrix_not_configured");
+    }
+
+    const accessError = requireMatrixAgentAccess(request, reply, deps);
+
+    if (accessError) {
+      return accessError;
+    }
+
+    if (!isMatrixActionTypeAllowed("set_room_topic", deps.allowedActionTypes)) {
+      return sendMatrixError(reply, "invalid_request", "Matrix action type is not allowed by policy");
+    }
+
+    const limit = deps.rateLimiter.check("matrix_analyze", request);
+
+    if (!limit.allowed) {
+      reply.header("Retry-After", String(limit.retryAfterSeconds));
+      return sendMatrixError(reply, "matrix_rate_limited");
     }
 
     const parsed = MatrixAnalyzeRequestSchema.safeParse(request.body);
@@ -678,6 +793,12 @@ export function matrixRoutes(app: FastifyInstance, deps: MatrixRouteDependencies
       return sendMatrixError(reply, "matrix_not_configured");
     }
 
+    const accessError = requireMatrixAgentAccess(request, reply, deps);
+
+    if (accessError) {
+      return accessError;
+    }
+
     const planIdResult = MatrixActionPlanIdSchema.safeParse(
       typeof request.params === "object" && request.params !== null
         ? (request.params as { planId?: unknown }).planId
@@ -712,11 +833,38 @@ export function matrixRoutes(app: FastifyInstance, deps: MatrixRouteDependencies
       return sendMatrixError(reply, "matrix_plan_already_executed");
     }
 
-    assertExecuteFallbackBlocked({
-      workflow: "matrix_analyze",
-      fallbackUsed: false,
-      allowFallbackOnExecute: false
-    });
+    if (!isMatrixActionTypeAllowed("set_room_topic", deps.allowedActionTypes)) {
+      return sendMatrixError(reply, "invalid_request", "Matrix action type is not allowed by policy");
+    }
+
+    if (deps.failClosed) {
+      try {
+        assertExecuteFallbackBlocked({
+          workflow: "matrix_analyze",
+          fallbackUsed: deps.modelPolicy.fallbackUsed,
+          allowFallbackOnExecute: deps.modelPolicy.globalPolicy.allow_fallback_on_execute
+        });
+      } catch {
+        deps.runtimeJournal.append({
+          source: "matrix",
+          eventType: "matrix_execute_blocked",
+          authorityDomain: "matrix",
+          severity: "warning",
+          outcome: "blocked",
+          planId: plan.planId,
+          summary: "Matrix execute blocked by model routing fallback policy",
+          safeMetadata: {
+            roomId: plan.roomId,
+            selectedModel: deps.modelPolicy.selectedModel
+          }
+        });
+        return sendMatrixError(
+          reply,
+          "matrix_forbidden",
+          "Matrix execute is blocked because the analyze model resolved via fallback while policy forbids fallback on execute"
+        );
+      }
+    }
 
     try {
       const warnings: MatrixEvidenceWriteWarning[] = [];

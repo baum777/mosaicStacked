@@ -419,6 +419,12 @@ export function createOpenRouterClient(options: OpenRouterClientOptions): OpenRo
           signal: merged.signal
         });
       } catch (error) {
+        if (signal?.aborted) {
+          // The caller aborted (client disconnect): stop immediately instead
+          // of failing over to the next provider target for a gone consumer.
+          throw error;
+        }
+
         if (merged.timedOut() || (error instanceof Error && error.name === "AbortError")) {
           lastError = createOpenRouterError("OpenRouter request timed out", 504);
           continue;
@@ -481,6 +487,12 @@ export function createOpenRouterClient(options: OpenRouterClientOptions): OpenRo
 
         return { model: selection.publicModelId, text };
       } catch (error) {
+        if (signal?.aborted) {
+          // Client aborted mid-stream: propagate instead of misreporting this
+          // as an upstream failure or retrying other targets.
+          throw error;
+        }
+
         if (error instanceof TypeError && !emittedToken) {
           lastError = createOpenRouterError("OpenRouter request failed", 502);
           continue;

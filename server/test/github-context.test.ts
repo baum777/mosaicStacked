@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createApp } from "../src/app.js";
 import { createGitHubClient } from "../src/lib/github-client.js";
-import { createTestEnv, createMockOpenRouterClient, createTestGitHubConfig, createTestSessionCookie } from "../test-support/helpers.js";
+import {
+  TEST_GITHUB_ADMIN_KEY,
+  createMockOpenRouterClient,
+  createTestEnv,
+  createTestGitHubConfig,
+  createTestSessionCookie
+} from "../test-support/helpers.js";
 
 function makeJsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
@@ -151,7 +157,8 @@ test("github context returns a ranked, citation-backed bundle", async (t) => {
     method: "POST",
     url: "/api/github/context",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     },
     payload: {
       repo: {
@@ -238,7 +245,8 @@ test("github context fails closed for invalid paths before any upstream fetch", 
     method: "POST",
     url: "/api/github/context",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     },
     payload: {
       repo: {
@@ -341,7 +349,8 @@ test("github context returns file not found when a selected path is missing", as
     method: "POST",
     url: "/api/github/context",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     },
     payload: {
       repo: {

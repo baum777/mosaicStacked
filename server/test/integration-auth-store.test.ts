@@ -37,12 +37,13 @@ test("file-backed integration auth store persists connections and encrypted cred
     currentEncryptionKey: encryptionKey
   });
 
-  store.ensureSession("session-a");
-  const stored = store.storeCredential("session-a", "github", {
-    accessToken: GITHUB_SESSION_A_TOKEN
+  const session = store.ensureSession(null);
+  const sessionId = session.sessionId;
+  const stored = store.storeCredential(sessionId, "github", {
+    accessToken: "gho_session_a_token"
   });
   store.markConnected({
-    sessionId: "session-a",
+    sessionId,
     provider: "github",
     safeIdentityLabel: "octocat",
     source: "user_connected"
@@ -56,8 +57,8 @@ test("file-backed integration auth store persists connections and encrypted cred
     currentEncryptionKey: encryptionKey
   });
 
-  const connection = restarted.readConnection("session-a", "github");
-  const credential = restarted.readCredential("session-a", "github");
+  const connection = restarted.readConnection(sessionId, "github");
+  const credential = restarted.readCredential(sessionId, "github");
 
   assert.equal(connection?.connected, true);
   assert.equal(connection?.safeIdentityLabel, "octocat");
@@ -83,8 +84,13 @@ test("integration auth store reads previous key versions and writes with the cur
     currentEncryptionKey: v1Key
   });
 
-  assert.equal(initial.storeCredential("session-a", "github", {
-    accessToken: GITHUB_OLD_TOKEN
+  const issued = initial.ensureSession(null);
+  const sessionId = issued.sessionId;
+
+  assert.equal(initial.ensureSession(sessionId).sessionId, sessionId);
+
+  assert.equal(initial.storeCredential(sessionId, "github", {
+    accessToken: "gho_old_token"
   }), true);
 
   const rotated = createIntegrationAuthStore({
@@ -94,10 +100,10 @@ test("integration auth store reads previous key versions and writes with the cur
     previousEncryptionKeys: [v1Key]
   });
 
-  assert.equal(rotated.readCredential("session-a", "github")?.accessToken, GITHUB_OLD_TOKEN);
+  assert.equal(rotated.readCredential(sessionId, "github")?.accessToken, "gho_old_token");
 
-  assert.equal(rotated.storeCredential("session-a", "github", {
-    accessToken: GITHUB_NEW_TOKEN
+  assert.equal(rotated.storeCredential(sessionId, "github", {
+    accessToken: "gho_new_token"
   }), true);
 
   const snapshot = JSON.parse(fs.readFileSync(storePath, "utf8")) as {
@@ -111,7 +117,7 @@ test("integration auth store reads previous key versions and writes with the cur
       };
     }>;
   };
-  const githubEnvelope = snapshot.credentials.find((entry) => entry.sessionId === "session-a")?.providers.github;
+  const githubEnvelope = snapshot.credentials.find((entry) => entry.sessionId === sessionId)?.providers.github;
 
   assert.equal(githubEnvelope?.keyId, "integration-auth-v2");
   assert.equal(githubEnvelope?.keyVersion, 2);

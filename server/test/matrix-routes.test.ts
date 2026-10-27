@@ -2,16 +2,22 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createApp } from "../src/app.js";
 import { createDisabledMatrixConfig } from "../src/lib/matrix-env.js";
-import { createMockMatrixClient, createMockOpenRouterClient, createTestEnv, createTestMatrixConfig } from "../test-support/helpers.js";
+import {
+  createMockMatrixClient,
+  createMockOpenRouterClient,
+  createTestEnv,
+  createTestMatrixConfig,
+  withMatrixAdminKey
+} from "../test-support/helpers.js";
 import { createMatrixScopeStore } from "../src/lib/matrix-scope-store.js";
 
 test("matrix routes return not configured when matrix is disabled", async (t) => {
-  const app = createApp({
+  const app = withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createDisabledMatrixConfig(),
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await app.close();
@@ -37,7 +43,7 @@ test("matrix routes fail closed when the expected user id does not match whoami"
   let joinedRoomsCalls = 0;
   let resolveScopeCalls = 0;
 
-  const app = createApp({
+  const app = withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createTestMatrixConfig({
@@ -72,7 +78,7 @@ test("matrix routes fail closed when the expected user id does not match whoami"
       }
     },
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await app.close();
@@ -130,13 +136,13 @@ test("matrix routes fail closed when the expected user id does not match whoami"
 });
 
 test("matrix scope resolve rejects empty selections", async (t) => {
-  const app = createApp({
+  const app = withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createTestMatrixConfig(),
     matrixClient: createMockMatrixClient(),
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await app.close();
@@ -162,13 +168,13 @@ test("matrix scope resolve rejects empty selections", async (t) => {
 });
 
 test("matrix analyze rejects missing room ids", async (t) => {
-  const app = createApp({
+  const app = withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createTestMatrixConfig(),
     matrixClient: createMockMatrixClient(),
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await app.close();
@@ -194,13 +200,13 @@ test("matrix analyze rejects missing room ids", async (t) => {
 });
 
 test("matrix promote route is no longer available", async (t) => {
-  const app = createApp({
+  const app = withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createTestMatrixConfig(),
     matrixClient: createMockMatrixClient(),
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await app.close();
@@ -219,13 +225,13 @@ test("matrix promote route is no longer available", async (t) => {
 });
 
 test("matrix topic access reports joined room power details", async (t) => {
-  const app = createApp({
+  const app = withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createTestMatrixConfig(),
     matrixClient: createMockMatrixClient(),
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await app.close();
@@ -260,13 +266,13 @@ test("matrix topic access reports joined room power details", async (t) => {
 });
 
 test("matrix scope resolve stores a snapshot and summary reads it back", async (t) => {
-  const app = createApp({
+  const app = withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createTestMatrixConfig(),
     matrixClient: createMockMatrixClient(),
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await app.close();
@@ -321,13 +327,13 @@ test("matrix scope resolve stores a snapshot and summary reads it back", async (
 });
 
 test("matrix scope summary fails closed for missing and expired snapshots", async (t) => {
-  const missingApp = createApp({
+  const missingApp = withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createTestMatrixConfig(),
     matrixClient: createMockMatrixClient(),
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await missingApp.close();
@@ -349,14 +355,14 @@ test("matrix scope summary fails closed for missing and expired snapshots", asyn
 
   let now = Date.now();
   const store = createMatrixScopeStore(1, () => now);
-  const expiredApp = createApp({
+  const expiredApp = withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createTestMatrixConfig(),
     matrixClient: createMockMatrixClient(),
     matrixStore: store,
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await expiredApp.close();
@@ -396,7 +402,7 @@ test("matrix room provenance returns normalized read-only room metadata", async 
   let joinedRoomsCalls = 0;
   let readTopicCalls = 0;
 
-  const app = createApp({
+  const app = withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createTestMatrixConfig({
@@ -439,7 +445,7 @@ test("matrix room provenance returns normalized read-only room metadata", async 
       }
     },
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await app.close();
@@ -494,7 +500,7 @@ test("matrix room provenance returns normalized read-only room metadata", async 
 });
 
 test("matrix room provenance fails closed when the room is missing", async (t) => {
-  const app = createApp({
+  const app = withMatrixAdminKey(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient(),
     matrixConfig: createTestMatrixConfig(),
@@ -527,7 +533,7 @@ test("matrix room provenance fails closed when the room is missing", async (t) =
       }
     },
     logger: false
-  });
+  }));
 
   t.after(async () => {
     await app.close();

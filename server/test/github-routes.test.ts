@@ -3,8 +3,13 @@ import test from "node:test";
 import { createApp } from "../src/app.js";
 import { createGitHubClient } from "../src/lib/github-client.js";
 import { createIntegrationAuthStore } from "../src/lib/integration-auth-store.js";
-import { createTestEnv, createMockOpenRouterClient, createTestGitHubConfig, createTestSessionCookie } from "../test-support/helpers.js";
-import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
+import {
+  TEST_GITHUB_ADMIN_KEY,
+  createMockOpenRouterClient,
+  createTestEnv,
+  createTestGitHubConfig,
+  createTestSessionCookie
+} from "../test-support/helpers.js";
 
 const TEST_GITHUB_APP_PRIVATE_KEY = [
   "-----BEGIN PRIVATE KEY-----",
@@ -115,7 +120,8 @@ test("github routes return not configured when the feature is disabled", async (
     method: "GET",
     url: "/api/github/repos",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     }
   });
 
@@ -333,7 +339,8 @@ test("github routes return repository summaries and file context from the backen
     method: "GET",
     url: "/api/github/repos",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     }
   });
 
@@ -356,7 +363,8 @@ test("github routes return repository summaries and file context from the backen
     method: "GET",
     url: "/api/github/repos/acme/widget/tree?ref=main&path=src&depth=1&maxEntries=10",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     }
   });
 
@@ -378,7 +386,8 @@ test("github routes return repository summaries and file context from the backen
     method: "GET",
     url: "/api/github/repos/acme/widget/file?path=src/index.ts&ref=main",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     }
   });
 
@@ -435,7 +444,8 @@ test("github routes fail closed for invalid paths and repos outside the allowlis
     method: "GET",
     url: "/api/github/repos/acme/widget/file?path=../secret&ref=main",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     }
   });
 
@@ -452,7 +462,8 @@ test("github routes fail closed for invalid paths and repos outside the allowlis
     method: "GET",
     url: "/api/github/repos/acme/widget/tree?path=../secret",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     }
   });
 
@@ -469,7 +480,8 @@ test("github routes fail closed for invalid paths and repos outside the allowlis
     method: "GET",
     url: "/api/github/repos/other/widget/tree?ref=main",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     }
   });
 
@@ -517,7 +529,8 @@ test("github routes sanitize upstream authorization failures", async (t) => {
     method: "GET",
     url: "/api/github/repos/acme/widget/tree?ref=main",
     headers: {
-      cookie: TEST_SESSION_COOKIE
+      cookie: TEST_SESSION_COOKIE,
+      "x-mosaicstacked-admin-key": TEST_GITHUB_ADMIN_KEY
     }
   });
 
@@ -749,10 +762,16 @@ test("github routes do not reuse another session user token", async (t) => {
     }
   });
 
-  assert.equal(response.statusCode, 200);
-  const payload = JSON.parse(response.body) as {
-    credentialSource: string;
-  };
-  assert.equal(payload.credentialSource, "instance_config");
-  assert.equal(authHeaders[0], "Bearer ghs_instance_token");
+  // Sessions without a connected GitHub credential must no longer fall back
+  // to instance installation credentials: the read surface is bound to the
+  // integration session or a valid agent admin key.
+  assert.equal(response.statusCode, 401);
+  assert.deepEqual(JSON.parse(response.body), {
+    ok: false,
+    error: {
+      code: "github_unauthorized",
+      message: "GitHub credentials were rejected"
+    }
+  });
+  assert.equal(authHeaders.length, 0);
 });

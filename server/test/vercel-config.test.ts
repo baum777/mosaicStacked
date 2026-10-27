@@ -13,6 +13,21 @@ type VercelConfig = {
     source: string;
     destination: string;
   }>;
+  headers?: Array<{
+    source: string;
+    headers: Array<{
+      key: string;
+      value: string;
+    }>;
+  }>;
+};
+
+const REQUIRED_SECURITY_HEADERS: Record<string, string | RegExp> = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  "Content-Security-Policy": /^default-src 'self'; script-src 'self';/
 };
 
 function assertIncludeFiles(entry: string | string[] | undefined) {
@@ -37,6 +52,35 @@ test("vercel config bundles runtime-loaded config files for both api entrypoints
   assertIncludeFiles(vercelConfig.functions?.["api/[...path].ts"]?.includeFiles);
   assert.equal(vercelConfig.functions?.["api/matrix/[...path].ts"]?.maxDuration, 60);
   assertIncludeFiles(vercelConfig.functions?.["api/matrix/[...path].ts"]?.includeFiles);
+});
+
+test("vercel config ships security headers for every route", () => {
+  const vercelConfigPath = fileURLToPath(new URL("../../vercel.json", import.meta.url));
+  const vercelConfig = JSON.parse(fs.readFileSync(vercelConfigPath, "utf8")) as VercelConfig;
+  const globalHeaders = (vercelConfig.headers ?? []).find((entry) => entry.source === "/(.*)");
+
+  assert.ok(globalHeaders, "a global header rule for all routes must exist");
+
+  const headerMap = new Map(globalHeaders.headers.map((header) => [header.key, header.value]));
+
+  for (const [key, expected] of Object.entries(REQUIRED_SECURITY_HEADERS)) {
+    const value = headerMap.get(key);
+
+    assert.ok(value !== undefined, `${key} header must be configured`);
+
+    if (expected instanceof RegExp) {
+      assert.match(value, expected);
+    } else {
+      assert.equal(value, expected);
+    }
+  }
+
+  const csp = headerMap.get("Content-Security-Policy") ?? "";
+
+  assert.match(csp, /frame-ancestors 'none'/);
+  assert.match(csp, /object-src 'none'/);
+  assert.match(csp, /connect-src 'self'/);
+  assert.doesNotMatch(csp, /script-src[^;]*'unsafe-inline'/);
 });
 
 test("vercel config keeps governed GitHub and Matrix API routes on backend adapters", () => {
