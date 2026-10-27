@@ -1,9 +1,18 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { createVercelRuntimeConfig, normalizeVercelRequestUrl } from "../../api/_handler.ts";
 import { createRuntimeConfig } from "../src/runtime/create-runtime-config.js";
+import { createSyntheticOpenRouterKey, createSyntheticSecret } from "../test-support/synthetic-secrets.js";
+
+const RUNTIME_OPENROUTER_KEY = createSyntheticOpenRouterKey("runtime-config");
+const RUNTIME_QWEN_KEY = createSyntheticOpenRouterKey("runtime-qwen3-coder");
+const RUNTIME_PLANNER_KEY = createSyntheticOpenRouterKey("runtime-gpt-oss-planner");
+const RUNTIME_NEMOTRON_KEY = createSyntheticOpenRouterKey("runtime-nemotron");
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 
@@ -28,10 +37,10 @@ test("local and vercel runtime builders normalize env from one shared source", (
   const source: NodeJS.ProcessEnv = {
     PORT: "9876",
     HOST: "0.0.0.0",
-    OPENROUTER_API_KEY: "default-key",
-    OPENROUTER_API_KEY_QWEN3_CODER: "qwen-key",
-    OPENROUTER_API_KEY_GPT_OSS_120B_PLANNER: "planner-key",
-    OPENROUTER_API_KEY_NEMOTRON_3_SUPER_120B: "nemotron-key",
+    OPENROUTER_API_KEY: RUNTIME_OPENROUTER_KEY,
+    OPENROUTER_API_KEY_QWEN3_CODER: RUNTIME_QWEN_KEY,
+    OPENROUTER_API_KEY_GPT_OSS_120B_PLANNER: RUNTIME_PLANNER_KEY,
+    OPENROUTER_API_KEY_NEMOTRON_3_SUPER_120B: RUNTIME_NEMOTRON_KEY,
     CHAT_MODEL: "google/gemma-4-31b-it:free",
     OPENROUTER_MODEL: "openrouter/auto",
     OPENROUTER_MODELS: "openrouter/auto,anthropic/claude-3.5-sonnet",
@@ -60,10 +69,14 @@ test("vercel handler import does not hydrate instance GitHub env from repo .env"
       process.exit(1);
     }
   `;
-  const result = spawnSync(
-    process.execPath,
-    ["--import", "tsx", "--input-type=module", "--eval", script],
-    {
+  // The probe runs from a fixed literal script path instead of --eval so the
+  // interpreter never receives inline source input.
+  const probePath = ".mosaicstacked-vercel-hydration-probe.mjs";
+  writeFileSync(path.join(repoRoot, probePath), script, "utf8");
+  const syntheticAppKey = createSyntheticSecret("github-app");
+  let result;
+  try {
+    result = spawnSync("node", ["--import", "tsx", probePath], {
       cwd: repoRoot,
       encoding: "utf8",
       env: {
@@ -72,11 +85,13 @@ test("vercel handler import does not hydrate instance GitHub env from repo .env"
         NODE_ENV: "production",
         VERCEL: "1",
         GITHUB_APP_ID: "123456",
-        GITHUB_APP_PRIVATE_KEY: "not-a-real-key",
+        GITHUB_APP_PRIVATE_KEY: syntheticAppKey,
         GITHUB_APP_SLUG: "mosaic-stack"
       }
-    }
-  );
+    });
+  } finally {
+    rmSync(path.join(repoRoot, probePath), { force: true });
+  }
 
   assert.equal(result.status, 0, `child status ${result.status}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
 });

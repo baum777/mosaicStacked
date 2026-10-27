@@ -89,7 +89,7 @@ test("github proposal routes create a review-only plan scaffold and keep it read
     fetchImpl: async (input, init) => {
       const url = new URL(String(input));
       fetchCalls.push(`${url.pathname}${url.search}`);
-      assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer test-github-token");
+      assert.equal(new Headers(init?.headers).get("Authorization"), `Bearer ${githubConfig.token}`);
 
       if (url.pathname === "/repos/acme/widget") {
         return makeJsonResponse({
@@ -354,7 +354,7 @@ test("github proposal routes create a deterministic smoke plan without the LLM",
     config: githubConfig,
     fetchImpl: async (input, init) => {
       const url = new URL(String(input));
-      assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer test-github-token");
+      assert.equal(new Headers(init?.headers).get("Authorization"), `Bearer ${githubConfig.token}`);
 
       if (url.pathname === "/repos/acme/widget") {
         return makeJsonResponse({

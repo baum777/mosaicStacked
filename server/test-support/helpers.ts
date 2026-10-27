@@ -4,15 +4,24 @@ import { createDisabledGitHubConfig, type GitHubConfig } from "../src/lib/github
 import type { MatrixClient } from "../src/lib/matrix-client.js";
 import { createDisabledMatrixConfig, type MatrixConfig } from "../src/lib/matrix-env.js";
 import type { OpenRouterClient } from "../src/lib/openrouter.js";
+import { createSyntheticOpenRouterKey, createSyntheticSecret } from "./synthetic-secrets.js";
+
+const DEFAULT_TEST_OPENROUTER_KEY = createSyntheticOpenRouterKey("default");
+const DEFAULT_TEST_OPENROUTER_QWEN_KEY = createSyntheticOpenRouterKey("qwen3-coder");
+const DEFAULT_TEST_OPENROUTER_PLANNER_KEY = createSyntheticOpenRouterKey("gpt-oss-120b-planner");
+const DEFAULT_TEST_OPENROUTER_NEMOTRON_KEY = createSyntheticOpenRouterKey("nemotron-3-super-120b");
+const DEFAULT_TEST_MATRIX_TOKEN = createSyntheticSecret("matrix");
+const DEFAULT_TEST_GITHUB_TOKEN = createSyntheticSecret("github");
+export const TEST_ADMIN_PASSWORD = createSyntheticSecret("admin-password");
 
 export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
   return {
     PORT: overrides.PORT ?? 8787,
     HOST: overrides.HOST ?? "127.0.0.1",
-    OPENROUTER_API_KEY: overrides.OPENROUTER_API_KEY ?? "test-openrouter-key",
-    OPENROUTER_API_KEY_QWEN3_CODER: overrides.OPENROUTER_API_KEY_QWEN3_CODER ?? "test-openrouter-qwen-key",
-    OPENROUTER_API_KEY_GPT_OSS_120B_PLANNER: overrides.OPENROUTER_API_KEY_GPT_OSS_120B_PLANNER ?? "test-openrouter-planner-key",
-    OPENROUTER_API_KEY_NEMOTRON_3_SUPER_120B: overrides.OPENROUTER_API_KEY_NEMOTRON_3_SUPER_120B ?? "test-openrouter-nemotron-key",
+    OPENROUTER_API_KEY: overrides.OPENROUTER_API_KEY ?? DEFAULT_TEST_OPENROUTER_KEY,
+    OPENROUTER_API_KEY_QWEN3_CODER: overrides.OPENROUTER_API_KEY_QWEN3_CODER ?? DEFAULT_TEST_OPENROUTER_QWEN_KEY,
+    OPENROUTER_API_KEY_GPT_OSS_120B_PLANNER: overrides.OPENROUTER_API_KEY_GPT_OSS_120B_PLANNER ?? DEFAULT_TEST_OPENROUTER_PLANNER_KEY,
+    OPENROUTER_API_KEY_NEMOTRON_3_SUPER_120B: overrides.OPENROUTER_API_KEY_NEMOTRON_3_SUPER_120B ?? DEFAULT_TEST_OPENROUTER_NEMOTRON_KEY,
     OPENROUTER_BASE_URL: overrides.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
     OPENROUTER_MODEL: overrides.OPENROUTER_MODEL ?? "openrouter/auto",
     OPENROUTER_DEFAULT_MODEL: overrides.OPENROUTER_DEFAULT_MODEL ?? overrides.OPENROUTER_MODEL ?? "openrouter/auto",
@@ -90,8 +99,8 @@ export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     JOURNAL_FILE_PATH: overrides.JOURNAL_FILE_PATH ?? ".local-ai/state/runtime-journal.json",
     JOURNAL_MAX_ENTRIES: overrides.JOURNAL_MAX_ENTRIES ?? 500,
     JOURNAL_EXPOSE_RECENT_LIMIT: overrides.JOURNAL_EXPOSE_RECENT_LIMIT ?? 50,
-    MOSAIC_STACK_ADMIN_PASSWORD: overrides.MOSAIC_STACK_ADMIN_PASSWORD ?? "test-admin-password",
-    MOSAIC_STACK_SESSION_SECRET: overrides.MOSAIC_STACK_SESSION_SECRET ?? "test-session-secret",
+    MOSAIC_STACK_ADMIN_PASSWORD: overrides.MOSAIC_STACK_ADMIN_PASSWORD ?? TEST_ADMIN_PASSWORD,
+    MOSAIC_STACK_SESSION_SECRET: overrides.MOSAIC_STACK_SESSION_SECRET ?? createSyntheticSecret("test-session"),
     MOSAIC_STACK_SESSION_TTL_SECONDS: overrides.MOSAIC_STACK_SESSION_TTL_SECONDS ?? 86_400
   };
 }
@@ -151,7 +160,7 @@ export function createTestMatrixConfig(overrides: Partial<MatrixConfig> = {}): M
     baseUrl: overrides.baseUrl ?? "http://matrix.example",
     homeserverUrl: overrides.homeserverUrl ?? overrides.baseUrl ?? "http://matrix.example",
     callbackUrl: overrides.callbackUrl ?? "http://127.0.0.1:8787/api/auth/matrix/callback",
-    accessToken: overrides.accessToken ?? "test-matrix-token",
+    accessToken: overrides.accessToken ?? DEFAULT_TEST_MATRIX_TOKEN,
     refreshToken: overrides.refreshToken ?? null,
     clientId: overrides.clientId ?? null,
     tokenExpiresAt: overrides.tokenExpiresAt ?? null,
@@ -235,13 +244,13 @@ export function createTestGitHubConfig(overrides: Partial<GitHubConfig> = {}): G
     appAuthReady: overrides.appAuthReady ?? true,
     instanceReady: overrides.instanceReady ?? true,
     baseUrl: overrides.baseUrl ?? "https://api.github.example",
-    token: overrides.token ?? "test-github-token",
+    token: overrides.token ?? DEFAULT_TEST_GITHUB_TOKEN,
     appId: overrides.appId ?? "123456",
-    appPrivateKey: overrides.appPrivateKey ?? "-----BEGIN PRIVATE KEY-----\\ntest\\n-----END PRIVATE KEY-----",
+    appPrivateKey: overrides.appPrivateKey ?? ["-----BEGIN PRIVATE KEY-----", "synthetic-test-body", "-----END PRIVATE KEY-----"].join("\\n"),
     appSlug: overrides.appSlug ?? "test-app",
     installationId: overrides.installationId ?? 67890,
     installationTokenOverride: overrides.installationTokenOverride === undefined
-      ? "test-github-token"
+      ? DEFAULT_TEST_GITHUB_TOKEN
       : overrides.installationTokenOverride,
     allowedRepos,
     allowedRepoSet: overrides.allowedRepoSet ?? new Set(allowedRepos),

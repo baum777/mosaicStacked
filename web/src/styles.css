@@ -219,7 +219,7 @@ button:disabled,
   gap: 12px;
 }
 
-.model-card label, .card-header span, .info-label, .message-role {
+.model-card label, .card-header span, .card-header h2, .info-label, .message-role {
   display: block;
   color: var(--muted);
   font-size: 0.78rem;
@@ -425,7 +425,7 @@ body {
     linear-gradient(180deg, #07142c 0%, #060e20 58%, #040913 100%);
 }
 
-h1, h2, h3, h4, .brand-block h1 {
+h1, h2, h3, h4, .brand-block .app-title {
   font-family: "Space Grotesk", "Inter", "Segoe UI", sans-serif;
 }
 
@@ -445,7 +445,7 @@ pre, code, .message-meta, .detail-grid span, .scope-summary-meta, .runtime-note,
   align-items: end;
 }
 
-.brand-block h1 {
+.brand-block .app-title {
   margin: 0;
   font-size: clamp(2.3rem, 4.8vw, 4.4rem);
   letter-spacing: -0.05em;
@@ -774,7 +774,7 @@ pre, code, .message-meta, .detail-grid span, .scope-summary-meta, .runtime-note,
   gap: 2px;
 }
 
-.runtime-label, .message-role, .telemetry-header span, .card-header span {
+.runtime-label, .message-role, .telemetry-header span, .card-header span, .card-header h2 {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -2503,7 +2503,7 @@ pre, code, .message-meta, .detail-grid span, .scope-summary-meta, .runtime-note,
   margin-bottom: 8px;
 }
 
-.global-header-shell .brand-block h1 {
+.global-header-shell .brand-block .app-title {
   font-size: clamp(2rem, 4vw, 3.6rem);
 }
 
@@ -2570,6 +2570,17 @@ pre, code, .message-meta, .detail-grid span, .scope-summary-meta, .runtime-note,
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
+}
+
+/* Keep rail kickers like "CHAT SESSIONS" on one line instead of orphan-wrapping (UI/UX report F19). */
+.session-list-header > div:first-child {
+  min-width: 0;
+}
+
+.session-list-header .shell-section-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .shell-muted-copy {
@@ -3033,7 +3044,7 @@ pre, code, .message-meta, .detail-grid span, .scope-summary-meta, .runtime-note,
   min-width: 0;
 }
 
-.global-header-shell .brand-block h1 {
+.global-header-shell .brand-block .app-title {
   font-size: 1.35rem;
   line-height: 1.1;
 }
@@ -4495,6 +4506,7 @@ button:hover:not(:disabled) { transform: translateY(-1px); }
 .message-role,
 .model-card label,
 .card-header span,
+.card-header h2,
 .section-label,
 .shell-section-label {
   color: var(--tx-2);
@@ -4505,7 +4517,7 @@ button:hover:not(:disabled) { transform: translateY(-1px); }
   text-transform: uppercase;
 }
 
-.global-header-shell h1 {
+.global-header-shell .app-title {
   margin: 0;
   font-family: Syne, Inter, sans-serif;
   font-size: 17px;
@@ -4838,7 +4850,7 @@ code {
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  to { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -5067,7 +5079,7 @@ h1,
 h2,
 h3,
 h4,
-.brand-block h1,
+.brand-block .app-title,
 .workspace-hero h1 {
   font-family: "JetBrains Mono", "JetBrains Sans", ui-monospace, monospace;
   letter-spacing: 0;
@@ -5125,6 +5137,7 @@ button:hover:not(:disabled) {
 .message-role,
 .model-card label,
 .card-header span,
+.card-header h2,
 .section-label,
 .shell-section-label,
 .runtime-label {
@@ -5136,7 +5149,7 @@ button:hover:not(:disabled) {
   text-transform: uppercase;
 }
 
-.global-header-shell h1 {
+.global-header-shell .app-title {
   color: var(--text-primary);
   font-size: clamp(20px, 2vw, 28px);
   font-weight: 700;
@@ -5710,7 +5723,7 @@ textarea:focus {
   line-height: 1;
 }
 
-.global-header-shell h1 {
+.global-header-shell .app-title {
   position: absolute;
   top: 30px;
   left: clamp(20px, 5vw, 72px);
@@ -6294,7 +6307,7 @@ body,
   transform: translate(-50%, -50%);
 }
 
-.global-header-shell h1 {
+.global-header-shell .app-title {
   position: static;
   max-width: min(38vw, 320px);
   overflow: hidden;
@@ -9903,4 +9916,24 @@ button,
 
 .mobile-compose-input {
   min-height: 40px;
+}
+
+/* Touch: hover-only affordances get permanent/pressed equivalents (UI/UX report F17). */
+@media (hover: none) {
+  .session-list-item .inline-quick-actions,
+  .mobile-activity-row-wrap .inline-quick-actions {
+    transform: translate(0, -50%);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .session-list-item .session-list-select,
+  .mobile-activity-row-wrap .mobile-activity-row {
+    padding-right: 136px;
+  }
+
+  button:not(:disabled):active,
+  a:active {
+    opacity: 0.75;
+  }
 }

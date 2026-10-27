@@ -3,6 +3,9 @@ import test from "node:test";
 import type { AppEnv } from "../src/lib/env.js";
 import { OpenRouterError, createOpenRouterClient, resolveOpenRouterApiKey } from "../src/lib/openrouter.js";
 import { createTestEnv } from "../test-support/helpers.js";
+import { createSyntheticOpenRouterKey } from "../test-support/synthetic-secrets.js";
+
+const DEFAULT_OPENROUTER_KEY = createSyntheticOpenRouterKey("default");
 
 function parseRequestBody(init: RequestInit | undefined) {
   if (typeof init?.body === "string") {
@@ -22,7 +25,7 @@ function readAuthorizationHeader(init: RequestInit | undefined) {
 
 test("openrouter key resolver uses the qwen-specific key for qwen models", () => {
   const env = createTestEnv({
-    OPENROUTER_API_KEY: "default-key",
+    OPENROUTER_API_KEY: DEFAULT_OPENROUTER_KEY,
     OPENROUTER_API_KEY_QWEN3_CODER: "qwen-key"
   });
 
@@ -31,7 +34,7 @@ test("openrouter key resolver uses the qwen-specific key for qwen models", () =>
 
 test("openrouter key resolver uses the planner-specific key for gpt-oss planner models", () => {
   const env = createTestEnv({
-    OPENROUTER_API_KEY: "default-key",
+    OPENROUTER_API_KEY: DEFAULT_OPENROUTER_KEY,
     OPENROUTER_API_KEY_GPT_OSS_120B_PLANNER: "planner-key"
   });
 
@@ -40,7 +43,7 @@ test("openrouter key resolver uses the planner-specific key for gpt-oss planner 
 
 test("openrouter key resolver uses the nemotron-specific key for nemotron models", () => {
   const env = createTestEnv({
-    OPENROUTER_API_KEY: "default-key",
+    OPENROUTER_API_KEY: DEFAULT_OPENROUTER_KEY,
     OPENROUTER_API_KEY_NEMOTRON_3_SUPER_120B: "nemotron-key"
   });
 
@@ -49,15 +52,15 @@ test("openrouter key resolver uses the nemotron-specific key for nemotron models
 
 test("openrouter key resolver uses the default key for standard models", () => {
   const env = createTestEnv({
-    OPENROUTER_API_KEY: "default-key"
+    OPENROUTER_API_KEY: DEFAULT_OPENROUTER_KEY
   });
 
-  assert.equal(resolveOpenRouterApiKey(env, "anthropic/claude-3.5-sonnet"), "default-key");
+  assert.equal(resolveOpenRouterApiKey(env, "anthropic/claude-3.5-sonnet"), DEFAULT_OPENROUTER_KEY);
 });
 
 test("openrouter key resolver fails closed when a specialized key is missing", () => {
   const env = createTestEnv({
-    OPENROUTER_API_KEY: "default-key",
+    OPENROUTER_API_KEY: DEFAULT_OPENROUTER_KEY,
     OPENROUTER_API_KEY_QWEN3_CODER: ""
   });
 
@@ -256,7 +259,7 @@ test("openrouter client fails closed when the api key is missing", async () => {
 
 test("openrouter client sends the qwen-specific key to upstream requests", async () => {
   const env = createTestEnv({
-    OPENROUTER_API_KEY: "default-key",
+    OPENROUTER_API_KEY: DEFAULT_OPENROUTER_KEY,
     OPENROUTER_API_KEY_QWEN3_CODER: "qwen-key"
   });
 
@@ -309,7 +312,7 @@ test("openrouter client sends the qwen-specific key to upstream requests", async
 
 test("openrouter client does not fall back to the default key for specialized models", async () => {
   const env = createTestEnv({
-    OPENROUTER_API_KEY: "default-key",
+    OPENROUTER_API_KEY: DEFAULT_OPENROUTER_KEY,
     OPENROUTER_API_KEY_QWEN3_CODER: ""
   });
 
@@ -349,7 +352,7 @@ test("openrouter client does not fall back to the default key for specialized mo
 
 test("openrouter key resolver fails closed when a specialized key property is absent", () => {
   const env = {
-    OPENROUTER_API_KEY: "default-key"
+    OPENROUTER_API_KEY: DEFAULT_OPENROUTER_KEY
   } as AppEnv;
 
   assert.throws(

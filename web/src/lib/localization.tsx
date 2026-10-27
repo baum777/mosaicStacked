@@ -42,6 +42,7 @@ type ShellCopy = {
   statusError: string;
   pendingApprovalsTitle: string;
   pendingApprovalsSummary: (pending: number, stale: number) => string;
+  pendingCount: (pending: number) => string;
   pendingApprovalsChat: string;
   pendingApprovalsSeparate: string;
   diagnosticsAvailable: string;
@@ -144,6 +145,8 @@ type SettingsCopy = {
   accessCardTruth: string;
   verificationCardTruth: string;
   identityCardTruth: string;
+  openRouterCardTruth: string;
+  showConnections: string;
   backendPolicy: string;
   modelChoiceNote: string;
   diagnosticsHidden: string;
@@ -474,6 +477,7 @@ type CommonCopy = {
   active: string;
   inactive: string;
   justNow: string;
+  close: string;
 };
 
 type LocalizationCopy = {
@@ -500,6 +504,7 @@ export const EN_COPY: LocalizationCopy = {
     active: "Active",
     inactive: "Inactive",
     justNow: "just now",
+    close: "Close",
   },
   shell: {
     appKicker: "MOSAICSTACK",
@@ -530,6 +535,7 @@ export const EN_COPY: LocalizationCopy = {
     statusError: "Error",
     pendingApprovalsTitle: "Pending approvals",
     pendingApprovalsSummary: (pending, stale) => `${pending} pending, ${stale} stale`,
+    pendingCount: (pending) => `${pending} pending`,
     pendingApprovalsChat: "At least one chat proposal is waiting for approval. Further details are in the active workspace.",
     pendingApprovalsSeparate: "Approvals stay separate from execution. Check details in the Workbench.",
     diagnosticsAvailable: "Diagnostics is available. Usage stays read-only and contextual.",
@@ -638,6 +644,8 @@ export const EN_COPY: LocalizationCopy = {
     accessCardTruth: "Shared infrastructure does not mean shared authority. The browser only reflects truth the backend can already prove.",
     verificationCardTruth: "Verification checks use backend routes and return safe summaries only.",
     identityCardTruth: "Identity labels and connection state are read from backend receipts.",
+    openRouterCardTruth: "OpenRouter publishes your own key as a private alias; provider targets stay on the server.",
+    showConnections: "Show connections",
     backendPolicy: "Model choice stays alias-based. Provider mapping and backend paths remain server-owned and are not treated as browser truth.",
     modelChoiceNote: "Model selection remains alias-based.",
     diagnosticsHidden: "Diagnostics stays hidden in Expert mode.",
@@ -988,6 +996,7 @@ export const DE_COPY: LocalizationCopy = {
     active: "Aktiv",
     inactive: "Inaktiv",
     justNow: "gerade eben",
+    close: "Schließen",
   },
   shell: {
     appKicker: "MOSAICSTACK",
@@ -1018,6 +1027,7 @@ export const DE_COPY: LocalizationCopy = {
     statusError: "Fehler",
     pendingApprovalsTitle: "Ausstehende Freigaben",
     pendingApprovalsSummary: (pending, stale) => `${pending} zur Freigabe, ${stale} veraltet`,
+    pendingCount: (pending) => `${pending} ausstehend`,
     pendingApprovalsChat: "Mindestens ein Chat-Vorschlag wartet auf Freigabe. Weitere Details im aktiven Workspace.",
     pendingApprovalsSeparate: "Freigaben bleiben getrennt von Ausführung. Prüfe Details in der Workbench.",
     diagnosticsAvailable: "Diagnostik ist verfügbar. Nutzung bleibt read-only und kontextbezogen.",
@@ -1039,7 +1049,7 @@ export const DE_COPY: LocalizationCopy = {
     routeOwnershipLadderMatrix: "Matrix-Status-Leiter",
     workspaceTabs: {
       chat: { label: "Chat", description: "Fragen stellen und Antworten prüfen" },
-      workbench: { label: "Workbench", description: "Branch-Arbeit, Summary-Log und Übergabe-Aktionen prüfen" },
+      workbench: { label: "Werkbank", description: "Branch-Arbeit, Summary-Log und Übergabe-Aktionen prüfen" },
       review: { label: "Freigabewarteschlange", description: "Ausstehende Freigaben über alle Workspaces" },
       community: { label: "Gemeinschaft", description: "Matrix-Räume, Fragen und Wissensentdeckung" },
       models: { label: "Modelle & Anbieter", description: "Aktives Modell, Provider-Status und Routing" },
@@ -1126,6 +1136,8 @@ export const DE_COPY: LocalizationCopy = {
     accessCardTruth: "Gemeinsame Infrastruktur bedeutet nicht gemeinsame Autorität. Der Browser spiegelt nur Wahrheit wider, die der Backend-Server bereits belegen kann.",
     verificationCardTruth: "Verifikation nutzt Backend-Routen und liefert nur sichere Zusammenfassungen.",
     identityCardTruth: "Identitätslabels und Verbindungsstatus stammen aus Backend-Belegen.",
+    openRouterCardTruth: "OpenRouter veröffentlicht deinen eigenen Key als privaten Alias; Provider-Ziele bleiben serverseitig.",
+    showConnections: "Verbindungen anzeigen",
     backendPolicy: "Modellwahl bleibt alias-basiert. Provider-Zuordnung und Backend-Pfade bleiben serverseitig und werden im Browser nicht als Wahrheit behandelt.",
     modelChoiceNote: "Modellwahl bleibt alias-basiert.",
     diagnosticsHidden: "Diagnostik bleibt im Basismodus verborgen.",

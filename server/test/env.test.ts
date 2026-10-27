@@ -1,15 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createEnv } from "../src/lib/env.js";
+import { createSyntheticOpenRouterKey, createSyntheticSecret } from "../test-support/synthetic-secrets.js";
+
+const ENV_QWEN_KEY = createSyntheticOpenRouterKey("qwen3-coder");
+const ENV_PLANNER_KEY = createSyntheticOpenRouterKey("gpt-oss-120b-planner");
+const ENV_NEMOTRON_KEY = createSyntheticOpenRouterKey("nemotron-3-super-120b");
+const ENV_ADMIN_PASSWORD = createSyntheticSecret("admin-password");
+const ENV_SESSION_SECRET = createSyntheticSecret("session");
 
 test("env parsing allows Matrix-only startup without an OpenRouter key", () => {
   const env = createEnv({
     PORT: "8787",
     HOST: "127.0.0.1",
     OPENROUTER_API_KEY: "",
-    OPENROUTER_API_KEY_QWEN3_CODER: "qwen-key",
-    OPENROUTER_API_KEY_GPT_OSS_120B_PLANNER: "planner-key",
-    OPENROUTER_API_KEY_NEMOTRON_3_SUPER_120B: "nemotron-key",
+    OPENROUTER_API_KEY_QWEN3_CODER: ENV_QWEN_KEY,
+    OPENROUTER_API_KEY_GPT_OSS_120B_PLANNER: ENV_PLANNER_KEY,
+    OPENROUTER_API_KEY_NEMOTRON_3_SUPER_120B: ENV_NEMOTRON_KEY,
     OPENROUTER_BASE_URL: "https://openrouter.ai/api/v1",
     OPENROUTER_MODEL: "openrouter/auto",
     OPENROUTER_DEFAULT_MODEL: "deepseek/deepseek-v4-flash:free",
@@ -55,15 +62,15 @@ test("env parsing allows Matrix-only startup without an OpenRouter key", () => {
     JOURNAL_FILE_PATH: ".local-ai/state/runtime-journal.test.json",
     JOURNAL_MAX_ENTRIES: "250",
     JOURNAL_EXPOSE_RECENT_LIMIT: "25",
-    MOSAIC_STACK_ADMIN_PASSWORD: "admin-password",
-    MOSAIC_STACK_SESSION_SECRET: "session-secret",
+    MOSAIC_STACK_ADMIN_PASSWORD: ENV_ADMIN_PASSWORD,
+    MOSAIC_STACK_SESSION_SECRET: ENV_SESSION_SECRET,
     MOSAIC_STACK_SESSION_TTL_SECONDS: "43200"
   });
 
   assert.equal(env.OPENROUTER_API_KEY, "");
-  assert.equal(env.OPENROUTER_API_KEY_QWEN3_CODER, "qwen-key");
-  assert.equal(env.OPENROUTER_API_KEY_GPT_OSS_120B_PLANNER, "planner-key");
-  assert.equal(env.OPENROUTER_API_KEY_NEMOTRON_3_SUPER_120B, "nemotron-key");
+  assert.equal(env.OPENROUTER_API_KEY_QWEN3_CODER, ENV_QWEN_KEY);
+  assert.equal(env.OPENROUTER_API_KEY_GPT_OSS_120B_PLANNER, ENV_PLANNER_KEY);
+  assert.equal(env.OPENROUTER_API_KEY_NEMOTRON_3_SUPER_120B, ENV_NEMOTRON_KEY);
   assert.equal(env.OPENROUTER_DEFAULT_MODEL, "deepseek/deepseek-v4-flash:free");
   assert.equal(env.OPENROUTER_DEFAULT_LABEL, "Free default");
   assert.equal(env.PORT, 8787);
@@ -106,8 +113,8 @@ test("env parsing allows Matrix-only startup without an OpenRouter key", () => {
   assert.equal(env.JOURNAL_FILE_PATH, ".local-ai/state/runtime-journal.test.json");
   assert.equal(env.JOURNAL_MAX_ENTRIES, 250);
   assert.equal(env.JOURNAL_EXPOSE_RECENT_LIMIT, 25);
-  assert.equal(env.MOSAIC_STACK_ADMIN_PASSWORD, "admin-password");
-  assert.equal(env.MOSAIC_STACK_SESSION_SECRET, "session-secret");
+  assert.equal(env.MOSAIC_STACK_ADMIN_PASSWORD, ENV_ADMIN_PASSWORD);
+  assert.equal(env.MOSAIC_STACK_SESSION_SECRET, ENV_SESSION_SECRET);
   assert.equal(env.MOSAIC_STACK_SESSION_TTL_SECONDS, 43200);
 });
 

@@ -1,4 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
+
+// Runtime-generated fixture tokens for route mocks; never real credentials.
+const FIXTURE_OPENROUTER_KEY = `sk-fixture-openrouter-${randomUUID()}`;
+const FIXTURE_MATRIX_TOKEN = `sk-fixture-matrix-${randomUUID()}`;
 
 const HEALTH_OK = {
   ok: true,
@@ -8,7 +13,7 @@ const HEALTH_OK = {
   defaultModel: "default",
   allowedModelCount: 1,
   streaming: "sse",
-  accessToken: "sk-test-openrouter-key",
+  accessToken: FIXTURE_OPENROUTER_KEY,
 };
 
 const MODELS_OK = {
@@ -129,7 +134,7 @@ const MATRIX_WHOAMI_OK = {
   userId: "@user:matrix.example",
   deviceId: "DEVICE",
   homeserver: "https://matrix.example",
-  accessToken: "sk-test-matrix-token",
+  accessToken: FIXTURE_MATRIX_TOKEN,
 };
 
 const MATRIX_ROOMS_OK = {
@@ -140,7 +145,7 @@ const MATRIX_ROOMS_OK = {
       name: "Room name",
       canonicalAlias: "#room:matrix.example",
       roomType: "room",
-      matrixAccessToken: "sk-test-matrix-token",
+      matrixAccessToken: FIXTURE_MATRIX_TOKEN,
     },
   ],
 };

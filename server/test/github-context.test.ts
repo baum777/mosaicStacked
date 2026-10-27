@@ -34,7 +34,7 @@ test("github context returns a ranked, citation-backed bundle", async (t) => {
     fetchImpl: async (input, init) => {
       const url = new URL(String(input));
       fetchCalls.push(`${url.pathname}${url.search}`);
-      assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer test-github-token");
+      assert.equal(new Headers(init?.headers).get("Authorization"), `Bearer ${githubConfig.token}`);
 
       if (url.pathname === "/repos/acme/widget") {
         return makeJsonResponse({

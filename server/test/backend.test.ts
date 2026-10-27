@@ -3,6 +3,7 @@ import test from "node:test";
 import { createApp } from "../src/app.js";
 import { createOpenRouterClient } from "../src/lib/openrouter.js";
 import { createMockMatrixClient, createMockOpenRouterClient, createTestEnv, createTestMatrixConfig } from "../test-support/helpers.js";
+import { createSyntheticOpenRouterKey, createSyntheticSecret } from "../test-support/synthetic-secrets.js";
 
 function parseSseEvents(body: string) {
   return body
@@ -75,8 +76,9 @@ test("health and models return backend-owned metadata", async (t) => {
 });
 
 test("/models never exposes OpenRouter API keys", async (t) => {
+  const serverApiKey = createSyntheticOpenRouterKey("server-side");
   const env = createTestEnv({
-    OPENROUTER_API_KEY: "sk-or-v1-super-secret-server-key",
+    OPENROUTER_API_KEY: serverApiKey,
   });
   const app = createApp({
     env,
@@ -94,15 +96,19 @@ test("/models never exposes OpenRouter API keys", async (t) => {
   });
 
   assert.equal(response.statusCode, 200);
-  assert.doesNotMatch(response.body, /sk-or-v1-super-secret-server-key/);
+  assert.equal(response.body.includes(serverApiKey), false);
 });
 
 test("diagnostics returns safe observability data without exposing secret env values", async (t) => {
+  const diagnosticsOpenRouterKey = createSyntheticOpenRouterKey("diagnostics");
+  const diagnosticsGithubToken = createSyntheticSecret("diagnostics-github");
+  const diagnosticsAdminPassword = createSyntheticSecret("diagnostics-admin");
+  const diagnosticsSessionSecret = createSyntheticSecret("diagnostics-session");
   const env = createTestEnv({
-    OPENROUTER_API_KEY: "secret-openrouter-token",
-    GITHUB_TOKEN: "secret-github-token",
-    MOSAIC_STACK_ADMIN_PASSWORD: "secret-admin-password",
-    MOSAIC_STACK_SESSION_SECRET: "secret-session-secret",
+    OPENROUTER_API_KEY: diagnosticsOpenRouterKey,
+    GITHUB_TOKEN: diagnosticsGithubToken,
+    MOSAIC_STACK_ADMIN_PASSWORD: diagnosticsAdminPassword,
+    MOSAIC_STACK_SESSION_SECRET: diagnosticsSessionSecret,
   });
   const app = createApp({
     env,
@@ -189,10 +195,10 @@ test("diagnostics returns safe observability data without exposing secret env va
   assert.equal(payload.counters.chatRequests, 0);
 
   const serialized = JSON.stringify(payload);
-  assert.doesNotMatch(serialized, /secret-openrouter-token/);
-  assert.doesNotMatch(serialized, /secret-github-token/);
-  assert.doesNotMatch(serialized, /secret-admin-password/);
-  assert.doesNotMatch(serialized, /secret-session-secret/);
+  assert.equal(serialized.includes(diagnosticsOpenRouterKey), false);
+  assert.equal(serialized.includes(diagnosticsGithubToken), false);
+  assert.equal(serialized.includes(diagnosticsAdminPassword), false);
+  assert.equal(serialized.includes(diagnosticsSessionSecret), false);
 });
 
 test("/journal/recent returns bounded safe entries and supports source filter", async (t) => {

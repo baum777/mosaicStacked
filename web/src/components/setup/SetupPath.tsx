@@ -16,10 +16,11 @@ export type SetupPathProps = {
   steps: SetupStep[];
   onPrimaryAction: () => void;
   onSecondaryAction: () => void;
+  secondaryLabel?: string;
   testId?: string;
 };
 
-export function SetupPath({ steps, onPrimaryAction, onSecondaryAction, testId }: SetupPathProps) {
+export function SetupPath({ steps, onPrimaryAction, onSecondaryAction, secondaryLabel, testId }: SetupPathProps) {
   const { copy: ui, locale } = useLocalization();
   const primaryStep = steps.find((step) => step.status === "blocked") ?? null;
   const primaryLabel = primaryStep
@@ -83,7 +84,7 @@ export function SetupPath({ steps, onPrimaryAction, onSecondaryAction, testId }:
           onClick={onSecondaryAction}
           data-testid="setup-step-secondary"
         >
-          {ui.chat.setupPath.secondaryAction}
+          {secondaryLabel ?? ui.chat.setupPath.secondaryAction}
         </button>
       </div>
     </section>

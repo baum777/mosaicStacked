@@ -4,6 +4,7 @@ import { createApp } from "../src/app.js";
 import { MatrixClientError } from "../src/lib/matrix-client.js";
 import { createMatrixActionStore } from "../src/lib/matrix-action-store.js";
 import { createTestEnv, createMockMatrixClient, createMockOpenRouterClient, createTestMatrixConfig } from "../test-support/helpers.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
 
 function createMatrixActionClient(overrides: {
   roomTopic?: string | null;
@@ -846,7 +847,7 @@ test("matrix verify keeps mismatch status even when evidence write succeeds", as
 });
 
 test("matrix writer routes normalize authorization and timeout failures without leaking tokens", async (t) => {
-  const secretToken = "sk-test-secret-token";
+  const secretToken = createSyntheticSecret("matrix-actions");
 
   await t.test("unauthorized analyze is normalized", async () => {
     const app = createApp({

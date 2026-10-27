@@ -3,8 +3,11 @@ import test from "node:test";
 import { createApp } from "../src/app.js";
 import { createOpenRouterClient } from "../src/lib/openrouter.js";
 import { createTestEnv } from "../test-support/helpers.js";
+import { createSyntheticOpenRouterKey, createSyntheticSecret } from "../test-support/synthetic-secrets.js";
 
-const SECRET_KEY = "sk-or-v1-secret-user-openrouter-key";
+const SECRET_KEY = createSyntheticOpenRouterKey("user-profile");
+const LEGACY_ENV_KEY = createSyntheticOpenRouterKey("legacy-env");
+const USER_CREDENTIALS_TEST_KEY = createSyntheticSecret("user-credentials-encryption");
 
 function cookieHeaderFrom(response: { headers: Record<string, string | string[] | undefined> }) {
   const raw = response.headers["set-cookie"];
@@ -15,7 +18,7 @@ function cookieHeaderFrom(response: { headers: Record<string, string | string[] 
 
 test("OpenRouter settings save creates a backend profile cookie and never returns the api key", async (t) => {
   const env = createTestEnv({
-    USER_CREDENTIALS_ENCRYPTION_KEY: "user-credentials-test-key",
+    USER_CREDENTIALS_ENCRYPTION_KEY: USER_CREDENTIALS_TEST_KEY,
     USER_CREDENTIALS_STORE_MODE: "memory"
   });
   const app = createApp({
@@ -44,7 +47,7 @@ test("OpenRouter settings save creates a backend profile cookie and never return
   assert.match(String(saveResponse.headers["set-cookie"]), /mosaicstacked_local_profile=/);
   assert.match(String(saveResponse.headers["set-cookie"]), /HttpOnly/);
   assert.match(String(saveResponse.headers["set-cookie"]), /SameSite=Lax/);
-  assert.doesNotMatch(saveResponse.body, /sk-or-v1-secret-user-openrouter-key/);
+  assert.equal(saveResponse.body.includes(SECRET_KEY), false);
 
   const cookie = cookieHeaderFrom(saveResponse);
   const statusResponse = await app.inject({
@@ -73,13 +76,13 @@ test("OpenRouter settings save creates a backend profile cookie and never return
       modelId: "anthropic/claude-3.5-sonnet"
     }
   });
-  assert.doesNotMatch(statusResponse.body, /sk-or-v1-secret-user-openrouter-key/);
+  assert.equal(statusResponse.body.includes(SECRET_KEY), false);
 });
 
 test("OpenRouter settings rejects body-supplied credential owner authority", async (t) => {
   const app = createApp({
     env: createTestEnv({
-      USER_CREDENTIALS_ENCRYPTION_KEY: "user-credentials-test-key",
+      USER_CREDENTIALS_ENCRYPTION_KEY: USER_CREDENTIALS_TEST_KEY,
       USER_CREDENTIALS_STORE_MODE: "memory"
     }),
     openRouter: createOpenRouterClient({
@@ -104,13 +107,13 @@ test("OpenRouter settings rejects body-supplied credential owner authority", asy
   });
 
   assert.equal(response.statusCode, 400);
-  assert.doesNotMatch(response.body, /sk-or-v1-secret-user-openrouter-key/);
+  assert.equal(response.body.includes(SECRET_KEY), false);
 });
 
 test("OpenRouter test route validates a provided key and model without persisting", async (t) => {
   let calls = 0;
   const env = createTestEnv({
-    USER_CREDENTIALS_ENCRYPTION_KEY: "user-credentials-test-key",
+    USER_CREDENTIALS_ENCRYPTION_KEY: USER_CREDENTIALS_TEST_KEY,
     USER_CREDENTIALS_STORE_MODE: "memory"
   });
   const app = createApp({
@@ -159,7 +162,7 @@ test("OpenRouter test route validates a provided key and model without persistin
     }
   });
   assert.equal(calls, 1);
-  assert.doesNotMatch(response.body, /sk-or-v1-secret-user-openrouter-key/);
+  assert.equal(response.body.includes(SECRET_KEY), false);
 
   const statusResponse = await app.inject({
     method: "GET",
@@ -186,8 +189,8 @@ test("OpenRouter test route validates a provided key and model without persistin
 test("chat fails closed for user OpenRouter alias until profile credentials are configured", async (t) => {
   let calls = 0;
   const env = createTestEnv({
-    OPENROUTER_API_KEY: "legacy-env-key-must-not-be-used",
-    USER_CREDENTIALS_ENCRYPTION_KEY: "user-credentials-test-key",
+    OPENROUTER_API_KEY: LEGACY_ENV_KEY,
+    USER_CREDENTIALS_ENCRYPTION_KEY: USER_CREDENTIALS_TEST_KEY,
     USER_CREDENTIALS_STORE_MODE: "memory"
   });
   const app = createApp({
@@ -229,13 +232,13 @@ test("chat fails closed for user OpenRouter alias until profile credentials are 
     }
   });
   assert.equal(calls, 0);
-  assert.doesNotMatch(response.body, /legacy-env-key-must-not-be-used/);
+  assert.equal(response.body.includes(LEGACY_ENV_KEY), false);
 });
 
 test("chat resolves user OpenRouter alias through profile cookie credentials", async (t) => {
   const seen: Array<{ authorization: string | null; model: string }> = [];
   const env = createTestEnv({
-    USER_CREDENTIALS_ENCRYPTION_KEY: "user-credentials-test-key",
+    USER_CREDENTIALS_ENCRYPTION_KEY: USER_CREDENTIALS_TEST_KEY,
     USER_CREDENTIALS_STORE_MODE: "memory"
   });
   const app = createApp({
@@ -313,7 +316,7 @@ test("chat resolves user OpenRouter alias through profile cookie credentials", a
       retryCount: 0
     }
   });
-  assert.doesNotMatch(chatResponse.body, /sk-or-v1-secret-user-openrouter-key/);
+  assert.equal(chatResponse.body.includes(SECRET_KEY), false);
 });
 
 test("production fails closed when user credential encryption is not configured", async (t) => {
@@ -358,5 +361,5 @@ test("production fails closed when user credential encryption is not configured"
       message: "User credential encryption is not configured"
     }
   });
-  assert.doesNotMatch(response.body, /sk-or-v1-secret-user-openrouter-key/);
+  assert.equal(response.body.includes(SECRET_KEY), false);
 });

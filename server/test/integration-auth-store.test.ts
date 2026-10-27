@@ -8,6 +8,16 @@ import {
   createIntegrationAuthStoreSelection
 } from "../src/lib/integration-auth-store.js";
 import { createTestEnv } from "../test-support/helpers.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
+
+const AUTH_KEY_V1 = createSyntheticSecret("integration-auth-key-v1");
+const AUTH_KEY_V2 = createSyntheticSecret("integration-auth-key-v2");
+const INVALID_AUTH_KEY = createSyntheticSecret("present-but-invalid");
+const GITHUB_SESSION_A_TOKEN = createSyntheticSecret("gho-session-a");
+const GITHUB_OLD_TOKEN = createSyntheticSecret("gho-old");
+const GITHUB_NEW_TOKEN = createSyntheticSecret("gho-new");
+const MATRIX_SESSION_A_TOKEN = createSyntheticSecret("matrix-session-a");
+const SESSION_COOKIE_SECRET = createSyntheticSecret("session-cookie");
 
 function createTempStorePath() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "mosaicstacked-integration-auth-"));
@@ -19,7 +29,7 @@ test("file-backed integration auth store persists connections and encrypted cred
   const encryptionKey = {
     keyId: "integration-auth-v1",
     keyVersion: 1,
-    keyMaterial: "integration-auth-secret-v1"
+    keyMaterial: AUTH_KEY_V1
   };
   const store = createIntegrationAuthStore({
     mode: "file",
@@ -29,7 +39,7 @@ test("file-backed integration auth store persists connections and encrypted cred
 
   store.ensureSession("session-a");
   const stored = store.storeCredential("session-a", "github", {
-    accessToken: "gho_session_a_token"
+    accessToken: GITHUB_SESSION_A_TOKEN
   });
   store.markConnected({
     sessionId: "session-a",
@@ -51,7 +61,7 @@ test("file-backed integration auth store persists connections and encrypted cred
 
   assert.equal(connection?.connected, true);
   assert.equal(connection?.safeIdentityLabel, "octocat");
-  assert.equal(credential?.accessToken, "gho_session_a_token");
+  assert.equal(credential?.accessToken, GITHUB_SESSION_A_TOKEN);
 });
 
 test("integration auth store reads previous key versions and writes with the current key", () => {
@@ -59,12 +69,12 @@ test("integration auth store reads previous key versions and writes with the cur
   const v1Key = {
     keyId: "integration-auth-v1",
     keyVersion: 1,
-    keyMaterial: "integration-auth-secret-v1"
+    keyMaterial: AUTH_KEY_V1
   };
   const v2Key = {
     keyId: "integration-auth-v2",
     keyVersion: 2,
-    keyMaterial: "integration-auth-secret-v2"
+    keyMaterial: AUTH_KEY_V2
   };
 
   const initial = createIntegrationAuthStore({
@@ -74,7 +84,7 @@ test("integration auth store reads previous key versions and writes with the cur
   });
 
   assert.equal(initial.storeCredential("session-a", "github", {
-    accessToken: "gho_old_token"
+    accessToken: GITHUB_OLD_TOKEN
   }), true);
 
   const rotated = createIntegrationAuthStore({
@@ -84,10 +94,10 @@ test("integration auth store reads previous key versions and writes with the cur
     previousEncryptionKeys: [v1Key]
   });
 
-  assert.equal(rotated.readCredential("session-a", "github")?.accessToken, "gho_old_token");
+  assert.equal(rotated.readCredential("session-a", "github")?.accessToken, GITHUB_OLD_TOKEN);
 
   assert.equal(rotated.storeCredential("session-a", "github", {
-    accessToken: "gho_new_token"
+    accessToken: GITHUB_NEW_TOKEN
   }), true);
 
   const snapshot = JSON.parse(fs.readFileSync(storePath, "utf8")) as {
@@ -112,7 +122,7 @@ test("integration auth store binds encrypted credentials to session context", ()
   const encryptionKey = {
     keyId: "integration-auth-v1",
     keyVersion: 1,
-    keyMaterial: "integration-auth-secret-v1"
+    keyMaterial: AUTH_KEY_V1
   };
   const store = createIntegrationAuthStore({
     mode: "file",
@@ -121,7 +131,7 @@ test("integration auth store binds encrypted credentials to session context", ()
   });
 
   assert.equal(store.storeCredential("session-a", "github", {
-    accessToken: "gho_session_a_token"
+    accessToken: GITHUB_SESSION_A_TOKEN
   }), true);
   assert.equal(store.readCredential("session-b", "github"), null);
 
@@ -158,13 +168,13 @@ test("integration auth store fails closed in real credential mode when encryptio
   });
 
   assert.equal(store.storeCredential("session-a", "github", {
-    accessToken: "gho_session_a_token"
+    accessToken: GITHUB_SESSION_A_TOKEN
   }), false);
 });
 
 test("integration auth store selection does not use the session secret as credential encryption material", () => {
   const selection = createIntegrationAuthStoreSelection(createTestEnv({
-    MOSAIC_STACK_SESSION_SECRET: "session-cookie-secret",
+    MOSAIC_STACK_SESSION_SECRET: SESSION_COOKIE_SECRET,
     INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY_ID: "",
     INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY_VERSION: "1",
     INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY: "",
@@ -203,12 +213,12 @@ test("integration auth store fails closed when the current encryption config is 
     currentEncryptionKey: {
       keyId: "",
       keyVersion: 1,
-      keyMaterial: "present-but-invalid"
+      keyMaterial: INVALID_AUTH_KEY
     }
   });
 
   assert.equal(store.storeCredential("session-a", "github", {
-    accessToken: "gho_session_a_token"
+    accessToken: GITHUB_SESSION_A_TOKEN
   }), false);
 });
 
@@ -217,12 +227,12 @@ test("integration auth store fails closed for unknown credential key ids", () =>
   const v1Key = {
     keyId: "integration-auth-v1",
     keyVersion: 1,
-    keyMaterial: "integration-auth-secret-v1"
+    keyMaterial: AUTH_KEY_V1
   };
   const v2Key = {
     keyId: "integration-auth-v2",
     keyVersion: 2,
-    keyMaterial: "integration-auth-secret-v2"
+    keyMaterial: AUTH_KEY_V2
   };
   const initial = createIntegrationAuthStore({
     mode: "file",
@@ -231,7 +241,7 @@ test("integration auth store fails closed for unknown credential key ids", () =>
   });
 
   assert.equal(initial.storeCredential("session-a", "github", {
-    accessToken: "gho_session_a_token"
+    accessToken: GITHUB_SESSION_A_TOKEN
   }), true);
 
   const rotatedWithoutPrevious = createIntegrationAuthStore({
@@ -248,7 +258,7 @@ test("integration auth store fails closed for malformed encrypted payloads", () 
   const encryptionKey = {
     keyId: "integration-auth-v1",
     keyVersion: 1,
-    keyMaterial: "integration-auth-secret-v1"
+    keyMaterial: AUTH_KEY_V1
   };
   const store = createIntegrationAuthStore({
     mode: "file",
@@ -257,7 +267,7 @@ test("integration auth store fails closed for malformed encrypted payloads", () 
   });
 
   assert.equal(store.storeCredential("session-a", "matrix", {
-    accessToken: "matrix_session_a_token"
+    accessToken: MATRIX_SESSION_A_TOKEN
   }), true);
 
   const snapshot = JSON.parse(fs.readFileSync(storePath, "utf8")) as {
@@ -289,7 +299,7 @@ test("integration auth disconnect semantics remove persisted credentials", () =>
   const encryptionKey = {
     keyId: "integration-auth-v1",
     keyVersion: 1,
-    keyMaterial: "integration-auth-secret-v1"
+    keyMaterial: AUTH_KEY_V1
   };
   const store = createIntegrationAuthStore({
     mode: "file",
@@ -298,7 +308,7 @@ test("integration auth disconnect semantics remove persisted credentials", () =>
   });
 
   assert.equal(store.storeCredential("session-a", "matrix", {
-    accessToken: "matrix_session_a_token"
+    accessToken: MATRIX_SESSION_A_TOKEN
   }), true);
   store.markConnected({
     sessionId: "session-a",

@@ -4,6 +4,7 @@ import {
   formatMatrixSmokeResult,
   runMatrixSmoke
 } from "../../scripts/matrix-smoke.mjs";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
 
 function createJsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -38,7 +39,7 @@ test("matrix smoke skips cleanly when required env vars are missing", async () =
 });
 
 test("matrix smoke calls the backend routes in order and redacts token values", async () => {
-  const secretToken = "sk-test-secret-token";
+  const secretToken = createSyntheticSecret("matrix-smoke");
   const requests: Array<{
     method: string;
     path: string;
@@ -291,7 +292,7 @@ test("matrix smoke restores topics from agent plan currentValue", async () => {
     env: {
       MATRIX_ENABLED: "true",
       MATRIX_BASE_URL: "https://matrix.example",
-      MATRIX_ACCESS_TOKEN: "sk-agent-secret",
+      MATRIX_ACCESS_TOKEN: createSyntheticSecret("matrix-agent"),
       MATRIX_SMOKE_ROOM_ID: expectedRoomId,
       MATRIX_SMOKE_TOPIC_PREFIX: "Agent smoke",
       HOST: "127.0.0.1",
@@ -451,7 +452,7 @@ test("matrix smoke surfaces cleanup failure with room and topic details", async 
     env: {
       MATRIX_ENABLED: "true",
       MATRIX_BASE_URL: "https://matrix.example",
-      MATRIX_ACCESS_TOKEN: "sk-cleanup-secret",
+      MATRIX_ACCESS_TOKEN: createSyntheticSecret("matrix-cleanup"),
       MATRIX_SMOKE_ROOM_ID: "!cleanup:matrix.example",
       MATRIX_SMOKE_TOPIC_PREFIX: "Cleanup smoke",
       HOST: "127.0.0.1",

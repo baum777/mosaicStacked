@@ -4,6 +4,7 @@ import { createApp } from "../src/app.js";
 import { createInMemoryGitHubActionStore } from "../src/lib/github-action-store.js";
 import { createGitHubClient } from "../src/lib/github-client.js";
 import { createTestEnv, createMockOpenRouterClient, createTestGitHubConfig, createTestSessionCookie, withTestSession } from "../test-support/helpers.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
 
 function makeJsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
@@ -19,7 +20,7 @@ function encodeText(text: string) {
   return Buffer.from(text, "utf8").toString("base64");
 }
 
-const TEST_ADMIN_KEY = "test-github-admin-key";
+const TEST_ADMIN_KEY = createSyntheticSecret("github-admin");
 const TEST_SESSION_COOKIE = createTestSessionCookie();
 
 function injectWithSession(
@@ -206,7 +207,7 @@ test("github execution routes create a branch, commit, pull request, and verify 
     fetchImpl: async (input, init) => {
       const url = new URL(String(input));
       fetchCalls.push(`${url.pathname}${url.search}`);
-      assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer test-github-token");
+      assert.equal(new Headers(init?.headers).get("Authorization"), `Bearer ${githubConfig.token}`);
 
       if (url.pathname === "/repos/acme/widget") {
         return makeJsonResponse({
@@ -664,7 +665,7 @@ test("github execution routes support deterministic smoke plans with added files
     fetchImpl: async (input, init) => {
       const url = new URL(String(input));
       fetchCalls.push(`${url.pathname}${url.search}`);
-      assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer test-github-token");
+      assert.equal(new Headers(init?.headers).get("Authorization"), `Bearer ${githubConfig.token}`);
 
       if (url.pathname === "/repos/acme/widget") {
         return makeJsonResponse({

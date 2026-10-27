@@ -1,4 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
+
+// Runtime-generated fixture token for route mocks; never a real credential.
+const FIXTURE_OPENROUTER_KEY = `sk-fixture-openrouter-${randomUUID()}`;
 
 const HEALTH_OK = {
   ok: true,
@@ -8,7 +12,7 @@ const HEALTH_OK = {
   defaultModel: "default",
   allowedModelCount: 1,
   streaming: "sse",
-  accessToken: "sk-smoke-openrouter-key",
+  accessToken: FIXTURE_OPENROUTER_KEY,
 };
 
 const MODELS_OK = {
@@ -195,9 +199,9 @@ test("smoke: performance workspace renders local evidence without leaking provid
   await expect(page.getByText("npm run test:browser", { exact: true })).toBeVisible();
 
   const body = page.locator("body");
-  await expect(body).not.toContainText("sk-smoke-openrouter-key");
+  await expect(body).not.toContainText(FIXTURE_OPENROUTER_KEY);
   await expect(body).not.toContainText("openrouter/auto");
-  await expect(body).not.toContainText("sk-test-matrix-token");
+  await expect(body).not.toContainText("sk-");
 });
 
 test("smoke: scoped console themes switch, persist, and survive reload", async ({ page }) => {

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createApp } from "../src/app.js";
 import { createMockOpenRouterClient, createTestEnv } from "../test-support/helpers.js";
+import { createSyntheticOpenRouterKey } from "../test-support/synthetic-secrets.js";
 import { OpenRouterError } from "../src/lib/openrouter.js";
 
 function parseSseEvents(body: string) {
@@ -187,7 +188,7 @@ test("default-free alias fails closed with missing_default_model when no model i
 
   const env = createTestEnv({
     OPENROUTER_DEFAULT_MODEL: "",
-    OPENROUTER_API_KEY: "test-openrouter-key"
+    OPENROUTER_API_KEY: createSyntheticOpenRouterKey("chat-router")
   });
   const app = createApp({
     env,

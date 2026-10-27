@@ -40,7 +40,10 @@ export function SwipeDeck({
       return;
     }
     const panelEl = track.children[index] as HTMLElement | undefined;
-    panelEl?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+    const reduceMotion = typeof window !== "undefined"
+      && typeof window.matchMedia === "function"
+      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    panelEl?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest", inline: "start" });
   }, []);
 
   const updateActiveFromScroll = useCallback(() => {

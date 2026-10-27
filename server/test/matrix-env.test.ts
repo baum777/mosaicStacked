@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createMatrixConfig } from "../src/lib/matrix-env.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
+
+const ENV_TEST_MATRIX_TOKEN = createSyntheticSecret("matrix-env");
+const ENV_TEST_REFRESH_TOKEN = createSyntheticSecret("matrix-refresh");
+const ENV_TEST_CLIENT_ID = createSyntheticSecret("matrix-client-id");
 
 test("matrix config defaults to disabled", () => {
   const config = createMatrixConfig({});
@@ -35,7 +40,7 @@ test("matrix config becomes ready when enabled with a valid origin and token", (
     MATRIX_ENABLED: "true",
     MATRIX_REQUIRED: "false",
     MATRIX_BASE_URL: "https://matrix.example",
-    MATRIX_ACCESS_TOKEN: "token",
+    MATRIX_ACCESS_TOKEN: ENV_TEST_MATRIX_TOKEN,
     MATRIX_SSO_CALLBACK_URL: "https://app.example.test/api/auth/matrix/callback",
     MATRIX_EXPECTED_USER_ID: "@user:matrix.example",
     MATRIX_REQUEST_TIMEOUT_MS: "4000"
@@ -46,7 +51,7 @@ test("matrix config becomes ready when enabled with a valid origin and token", (
   assert.equal(config.ready, true);
   assert.equal(config.baseUrl, "https://matrix.example");
   assert.equal(config.homeserverUrl, "https://matrix.example");
-  assert.equal(config.accessToken, "token");
+  assert.equal(config.accessToken, ENV_TEST_MATRIX_TOKEN);
   assert.equal(config.refreshToken, null);
   assert.equal(config.clientId, null);
   assert.equal(config.tokenExpiresAt, null);
@@ -62,8 +67,8 @@ test("matrix config becomes ready when enabled with refresh credentials", () => 
     MATRIX_ENABLED: "true",
     MATRIX_REQUIRED: "false",
     MATRIX_BASE_URL: "https://matrix.example",
-    MATRIX_REFRESH_TOKEN: "refresh-token",
-    MATRIX_CLIENT_ID: "client-id",
+    MATRIX_REFRESH_TOKEN: ENV_TEST_REFRESH_TOKEN,
+    MATRIX_CLIENT_ID: ENV_TEST_CLIENT_ID,
     MATRIX_SSO_CALLBACK_URL: "https://app.example.test/api/auth/matrix/callback",
     MATRIX_TOKEN_EXPIRES_AT: "2026-04-16T10:00:00.000Z",
     MATRIX_REQUEST_TIMEOUT_MS: "4000"
@@ -75,8 +80,8 @@ test("matrix config becomes ready when enabled with refresh credentials", () => 
   assert.equal(config.baseUrl, "https://matrix.example");
   assert.equal(config.homeserverUrl, "https://matrix.example");
   assert.equal(config.accessToken, null);
-  assert.equal(config.refreshToken, "refresh-token");
-  assert.equal(config.clientId, "client-id");
+  assert.equal(config.refreshToken, ENV_TEST_REFRESH_TOKEN);
+  assert.equal(config.clientId, ENV_TEST_CLIENT_ID);
   assert.equal(config.tokenExpiresAt, "2026-04-16T10:00:00.000Z");
   assert.equal(config.landingRoomId, null);
   assert.equal(config.callbackUrl, "https://app.example.test/api/auth/matrix/callback");
@@ -89,7 +94,7 @@ test("matrix config rejects enabled Matrix without a callback url", () => {
     MATRIX_ENABLED: "true",
     MATRIX_REQUIRED: "false",
     MATRIX_BASE_URL: "https://matrix.example",
-    MATRIX_ACCESS_TOKEN: "token",
+    MATRIX_ACCESS_TOKEN: ENV_TEST_MATRIX_TOKEN,
     MATRIX_REQUEST_TIMEOUT_MS: "4000"
   });
 
@@ -104,7 +109,7 @@ test("matrix config rejects malformed expected user ids when set", () => {
     MATRIX_ENABLED: "true",
     MATRIX_REQUIRED: "false",
     MATRIX_BASE_URL: "https://matrix.example",
-    MATRIX_ACCESS_TOKEN: "token",
+    MATRIX_ACCESS_TOKEN: ENV_TEST_MATRIX_TOKEN,
     MATRIX_SSO_CALLBACK_URL: "https://app.example.test/api/auth/matrix/callback",
     MATRIX_EXPECTED_USER_ID: "not-a-matrix-user",
     MATRIX_REQUEST_TIMEOUT_MS: "4000"
@@ -121,7 +126,7 @@ test("matrix config accepts a landing room id when set", () => {
     MATRIX_ENABLED: "true",
     MATRIX_REQUIRED: "false",
     MATRIX_BASE_URL: "https://matrix.example",
-    MATRIX_ACCESS_TOKEN: "token",
+    MATRIX_ACCESS_TOKEN: ENV_TEST_MATRIX_TOKEN,
     MATRIX_SSO_CALLBACK_URL: "https://app.example.test/api/auth/matrix/callback",
     MATRIX_LANDING_ROOM_ID: "!landing:matrix.example",
     MATRIX_REQUEST_TIMEOUT_MS: "4000"
@@ -136,7 +141,7 @@ test("matrix config rejects malformed landing room ids when set", () => {
     MATRIX_ENABLED: "true",
     MATRIX_REQUIRED: "false",
     MATRIX_BASE_URL: "https://matrix.example",
-    MATRIX_ACCESS_TOKEN: "token",
+    MATRIX_ACCESS_TOKEN: ENV_TEST_MATRIX_TOKEN,
     MATRIX_SSO_CALLBACK_URL: "https://app.example.test/api/auth/matrix/callback",
     MATRIX_LANDING_ROOM_ID: "#start-here:matrix.example",
     MATRIX_REQUEST_TIMEOUT_MS: "4000"
@@ -152,8 +157,8 @@ test("matrix config rejects malformed token expiry when set", () => {
     MATRIX_ENABLED: "true",
     MATRIX_REQUIRED: "false",
     MATRIX_BASE_URL: "https://matrix.example",
-    MATRIX_REFRESH_TOKEN: "refresh-token",
-    MATRIX_CLIENT_ID: "client-id",
+    MATRIX_REFRESH_TOKEN: ENV_TEST_REFRESH_TOKEN,
+    MATRIX_CLIENT_ID: ENV_TEST_CLIENT_ID,
     MATRIX_SSO_CALLBACK_URL: "https://app.example.test/api/auth/matrix/callback",
     MATRIX_TOKEN_EXPIRES_AT: "not-a-timestamp",
     MATRIX_REQUEST_TIMEOUT_MS: "4000"
@@ -170,7 +175,7 @@ test("matrix config accepts MATRIX_HOMESERVER_URL as a base url alias", () => {
     MATRIX_ENABLED: "true",
     MATRIX_REQUIRED: "false",
     MATRIX_HOMESERVER_URL: "https://matrix.example",
-    MATRIX_ACCESS_TOKEN: "token",
+    MATRIX_ACCESS_TOKEN: ENV_TEST_MATRIX_TOKEN,
     MATRIX_SSO_CALLBACK_URL: "https://app.example.test/api/auth/matrix/callback",
     MATRIX_REQUEST_TIMEOUT_MS: "4000"
   });
@@ -180,7 +185,7 @@ test("matrix config accepts MATRIX_HOMESERVER_URL as a base url alias", () => {
   assert.equal(config.baseUrl, "https://matrix.example");
   assert.equal(config.homeserverUrl, "https://matrix.example");
   assert.equal(config.callbackUrl, "https://app.example.test/api/auth/matrix/callback");
-  assert.equal(config.accessToken, "token");
+  assert.equal(config.accessToken, ENV_TEST_MATRIX_TOKEN);
 });
 
 test("matrix config can route all evidence writes to one dedicated evidence room", () => {
@@ -188,7 +193,7 @@ test("matrix config can route all evidence writes to one dedicated evidence room
     MATRIX_ENABLED: "true",
     MATRIX_REQUIRED: "false",
     MATRIX_BASE_URL: "https://matrix.example",
-    MATRIX_ACCESS_TOKEN: "token",
+    MATRIX_ACCESS_TOKEN: ENV_TEST_MATRIX_TOKEN,
     MATRIX_SSO_CALLBACK_URL: "https://app.example.test/api/auth/matrix/callback",
     MATRIX_REQUEST_TIMEOUT_MS: "4000",
     MATRIX_EVIDENCE_WRITES_ENABLED: "true",

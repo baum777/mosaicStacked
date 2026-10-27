@@ -44,6 +44,7 @@ type SettingsLoginAdapterCopy = {
 export type DeriveSettingsLoginAdaptersInput = {
   copy: SettingsLoginAdapterCopy;
   integrations: IntegrationsStatusResponse | null;
+  loadFailed?: boolean;
 };
 
 function summarizeCapabilities(capabilities: {
@@ -129,11 +130,46 @@ function buildCheckingAdapters(copy: SettingsLoginAdapterCopy): SettingsLoginAda
   ];
 }
 
+function buildUnavailableAdapters(copy: SettingsLoginAdapterCopy): SettingsLoginAdapter[] {
+  const shared = {
+    status: "upstream_unreachable" as const,
+    credentialSource: "not_connected" as const,
+    primaryAction: "reconnect" as const,
+    secondaryAction: null,
+    safeIdentityLabel: copy.unavailable,
+    capabilitySummary: copy.unavailable,
+    executionMode: "disabled" as const,
+    lastVerifiedAt: null,
+    lastErrorCode: null,
+    expertDetails: [
+      { label: "Status", value: copy.unavailable }
+    ],
+    requirements: []
+  };
+
+  return [
+    {
+      id: "github",
+      label: "GitHub",
+      ...shared,
+      scopeSummary: copy.unavailable,
+      authority: "/api/auth/github/* + /api/github/*"
+    },
+    {
+      id: "matrix",
+      label: "Matrix",
+      ...shared,
+      scopeSummary: copy.unavailable,
+      authority: "/api/auth/matrix/* + /api/matrix/*"
+    }
+  ];
+}
+
 export function deriveSettingsLoginAdapters(input: DeriveSettingsLoginAdaptersInput): SettingsLoginAdapter[] {
   const { copy } = input;
 
   if (!input.integrations) {
-    return buildCheckingAdapters(copy);
+    return input.loadFailed ? buildUnavailableAdapters(copy) : buildCheckingAdapters(copy);
   }
 
   const github = input.integrations.github;

@@ -4,6 +4,7 @@ import { createApp } from "../src/app.js";
 import { createGitHubClient } from "../src/lib/github-client.js";
 import { createIntegrationAuthStore } from "../src/lib/integration-auth-store.js";
 import { createTestEnv, createMockOpenRouterClient, createTestGitHubConfig, createTestSessionCookie } from "../test-support/helpers.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
 
 const TEST_GITHUB_APP_PRIVATE_KEY = [
   "-----BEGIN PRIVATE KEY-----",
@@ -143,7 +144,7 @@ test("github routes derive user-connected repository scope from GitHub App insta
     currentEncryptionKey: {
       keyId: "test-key",
       keyVersion: 1,
-      keyMaterial: "test-integration-key"
+      keyMaterial: createSyntheticSecret("test-integration-key")
     }
   });
   const session = authStore.ensureSession(null);
@@ -245,7 +246,7 @@ test("github routes return repository summaries and file context from the backen
     fetchImpl: async (input, init) => {
       const url = new URL(String(input));
       fetchCalls.push(`${url.pathname}${url.search}`);
-      assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer test-github-token");
+      assert.equal(new Headers(init?.headers).get("Authorization"), `Bearer ${githubConfig.token}`);
 
       if (url.pathname === "/repos/acme/widget") {
         return makeJsonResponse({
@@ -489,9 +490,10 @@ test("github routes sanitize upstream authorization failures", async (t) => {
     allowedRepos: ["acme/widget"],
     allowedRepoSet: new Set(["acme/widget"])
   });
+  const upstreamSecretToken = createSyntheticSecret("upstream-secret");
   const githubClient = createGitHubClient({
     config: githubConfig,
-    fetchImpl: async () => new Response("test-github-token secret-token", {
+    fetchImpl: async () => new Response(`${githubConfig.token} ${upstreamSecretToken}`, {
       status: 401,
       headers: {
         "Content-Type": "text/plain"
@@ -527,8 +529,8 @@ test("github routes sanitize upstream authorization failures", async (t) => {
       message: "GitHub credentials were rejected"
     }
   });
-  assert.doesNotMatch(response.body, /test-github-token/);
-  assert.doesNotMatch(response.body, /secret-token/);
+  assert.equal(response.body.includes(githubConfig.token), false);
+  assert.equal(response.body.includes(upstreamSecretToken), false);
 });
 
 test("github routes use session GitHub App installation credentials when available", async (t) => {

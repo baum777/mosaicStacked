@@ -45,7 +45,7 @@ export function SystemSummaryCard({
   badgeTone = "ready",
   rows,
   helperText,
-  detailsLabel = "Diagnostics",
+  detailsLabel,
   onOpenDiagnostics,
   diagnosticsDisabled = false,
   testId,

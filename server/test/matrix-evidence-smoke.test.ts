@@ -4,6 +4,7 @@ import {
   formatMatrixEvidenceSmokeResult,
   runMatrixEvidenceSmoke
 } from "../../scripts/matrix-evidence-smoke.mjs";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
 
 function createJsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -40,7 +41,7 @@ test("matrix evidence smoke skips unless a dedicated evidence room is configured
 });
 
 test("matrix evidence smoke requires evidence receipts and does not expose tokens", async () => {
-  const secretToken = "sk-evidence-secret-token";
+  const secretToken = createSyntheticSecret("evidence-smoke");
   const expectedRoomId = "!topic-smoke:matrix.example";
   const evidenceRoomId = "!evidence:matrix.example";
   const previousTopic = "Original topic";
