@@ -69,21 +69,20 @@ function modelEntry(modelId: string): UserOpenRouterModel {
   };
 }
 
-function sanitizeProfileId(profileId: string) {
-  return /^[a-f0-9-]{36}$/i.test(profileId) ? profileId : null;
-}
-
 function resolveProfileFile(basePath: string, profileId: string) {
-  const safeProfileId = sanitizeProfileId(profileId);
-
-  if (!safeProfileId) {
+  // Path-traversal barrier: profile ids are backend-generated UUIDs. The
+  // allowlist is checked inline (no helper hop) and the resolved target must
+  // stay strictly inside the store root, so no request-derived segment can
+  // influence a path outside it.
+  if (!/^[a-f0-9-]{36}$/i.test(profileId)) {
     return null;
   }
 
   const root = path.resolve(basePath);
-  const target = path.resolve(root, safeProfileId, "openrouter-credentials.json");
+  const target = path.resolve(root, profileId, "openrouter-credentials.json");
+  const relative = path.relative(root, target);
 
-  if (!target.startsWith(`${root}${path.sep}`)) {
+  if (relative === "" || path.isAbsolute(relative) || relative.startsWith(`..${path.sep}`) || relative === "..") {
     return null;
   }
 

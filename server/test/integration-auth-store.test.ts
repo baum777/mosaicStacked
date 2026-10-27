@@ -40,7 +40,7 @@ test("file-backed integration auth store persists connections and encrypted cred
   const session = store.ensureSession(null);
   const sessionId = session.sessionId;
   const stored = store.storeCredential(sessionId, "github", {
-    accessToken: "gho_session_a_token"
+    accessToken: GITHUB_SESSION_A_TOKEN
   });
   store.markConnected({
     sessionId,
@@ -90,7 +90,7 @@ test("integration auth store reads previous key versions and writes with the cur
   assert.equal(initial.ensureSession(sessionId).sessionId, sessionId);
 
   assert.equal(initial.storeCredential(sessionId, "github", {
-    accessToken: "gho_old_token"
+    accessToken: GITHUB_OLD_TOKEN
   }), true);
 
   const rotated = createIntegrationAuthStore({
@@ -100,10 +100,10 @@ test("integration auth store reads previous key versions and writes with the cur
     previousEncryptionKeys: [v1Key]
   });
 
-  assert.equal(rotated.readCredential(sessionId, "github")?.accessToken, "gho_old_token");
+  assert.equal(rotated.readCredential(sessionId, "github")?.accessToken, GITHUB_OLD_TOKEN);
 
   assert.equal(rotated.storeCredential(sessionId, "github", {
-    accessToken: "gho_new_token"
+    accessToken: GITHUB_NEW_TOKEN
   }), true);
 
   const snapshot = JSON.parse(fs.readFileSync(storePath, "utf8")) as {

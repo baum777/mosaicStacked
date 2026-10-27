@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   canSubmitCompanionInput,
   normalizeCompanionInput,
 } from "../src/components/FloatingCompanion.js";
+
+// Runtime-generated canary for the redaction fixture; must never be a literal.
+const MUST_NOT_LEAK = `must-not-leak-${randomUUID()}`;
 import {
   buildCompanionSuggestions,
   validateCompanionIntent,
@@ -61,7 +65,7 @@ test("companion context serializes only redacted app facts", () => {
         },
         lastVerifiedAt: null,
         lastErrorCode: null,
-        secret: "must-not-leak",
+        secret: MUST_NOT_LEAK,
       },
       matrix: {
         status: "connected",
@@ -80,7 +84,7 @@ test("companion context serializes only redacted app facts", () => {
         },
         lastVerifiedAt: null,
         lastErrorCode: null,
-        token: "must-not-leak",
+        token: MUST_NOT_LEAK,
       },
     },
     runtimeJournalEntries: [
@@ -102,7 +106,7 @@ test("companion context serializes only redacted app facts", () => {
           selectedAlias: "default-free",
         },
         safeMetadata: {
-          apiKey: "must-not-leak",
+          apiKey: MUST_NOT_LEAK,
         },
         redaction: {
           contentStored: false,
@@ -140,7 +144,7 @@ test("companion context serializes only redacted app facts", () => {
   });
   const serialized = JSON.stringify(context);
 
-  assert.equal(serialized.includes("must-not-leak"), false);
+  assert.equal(serialized.includes(MUST_NOT_LEAK), false);
   assert.equal(serialized.includes("do not include"), false);
   assert.equal(/apiKey|secret|token|cookie|provider|target/.test(serialized), false);
   assert.equal(context.workspace, "settings");

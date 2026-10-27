@@ -11,6 +11,7 @@ import {
   withGitHubAgent,
   withTestSession
 } from "../test-support/helpers.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
 
 function makeJsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
@@ -28,6 +29,8 @@ function encodeText(text: string) {
 
 const TEST_ADMIN_KEY = createSyntheticSecret("github-admin");
 const TEST_SESSION_COOKIE = createTestSessionCookie();
+
+const withExecutionAgent = <T,>(app: T): T => withGitHubAgent(app, TEST_ADMIN_KEY);
 
 function injectWithSession(
   app: {
@@ -485,7 +488,7 @@ test("github execution routes create a branch, commit, pull request, and verify 
     }
   });
 
-  const app = withGitHubAgent(createApp({
+  const app = withExecutionAgent(createApp({
     env: createTestEnv(),
     openRouter,
     githubConfig,
@@ -915,7 +918,7 @@ test("github execution routes support deterministic smoke plans with added files
     }
   });
 
-  const app = withGitHubAgent(createApp({
+  const app = withExecutionAgent(createApp({
     env: createTestEnv(),
     openRouter,
     githubConfig,
@@ -989,7 +992,7 @@ test("github execution routes support deterministic smoke plans with added files
   assert.equal(executeBody.result.prUrl, "https://github.com/acme/widget/pull/12");
   assert.equal(executeBody.result.targetBranch, "main");
 
-  const verificationApp = withGitHubAgent(createApp({
+  const verificationApp = withExecutionAgent(createApp({
     env: createTestEnv(),
     openRouter,
     githubConfig,
@@ -1203,7 +1206,7 @@ test("github execution routes fail closed when the repository becomes stale befo
     }
   });
 
-  const app = withGitHubAgent(createApp({
+  const app = withExecutionAgent(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient({
       createChatCompletion: async (_request, selection) => ({
@@ -1386,7 +1389,7 @@ test("github execution routes fail closed when the approved branch diverges", as
     }
   });
 
-  const app = withGitHubAgent(createApp({
+  const app = withExecutionAgent(createApp({
     env: createTestEnv(),
     openRouter: createMockOpenRouterClient({
       createChatCompletion: async (_request, selection) => ({

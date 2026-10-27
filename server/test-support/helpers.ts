@@ -107,8 +107,8 @@ export function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     JOURNAL_FILE_PATH: overrides.JOURNAL_FILE_PATH ?? ".local-ai/state/runtime-journal.json",
     JOURNAL_MAX_ENTRIES: overrides.JOURNAL_MAX_ENTRIES ?? 500,
     JOURNAL_EXPOSE_RECENT_LIMIT: overrides.JOURNAL_EXPOSE_RECENT_LIMIT ?? 50,
-    MOSAIC_STACK_ADMIN_PASSWORD: overrides.MOSAIC_STACK_ADMIN_PASSWORD ?? "test-admin-password",
-    MOSAIC_STACK_SESSION_SECRET: overrides.MOSAIC_STACK_SESSION_SECRET ?? "test-session-secret",
+    MOSAIC_STACK_ADMIN_PASSWORD: overrides.MOSAIC_STACK_ADMIN_PASSWORD ?? TEST_ADMIN_PASSWORD,
+    MOSAIC_STACK_SESSION_SECRET: overrides.MOSAIC_STACK_SESSION_SECRET ?? createSyntheticSecret("test-session"),
     MOSAIC_STACK_SESSION_TTL_SECONDS: overrides.MOSAIC_STACK_SESSION_TTL_SECONDS ?? 86_400,
     TRUST_PROXY: overrides.TRUST_PROXY ?? false
   };
