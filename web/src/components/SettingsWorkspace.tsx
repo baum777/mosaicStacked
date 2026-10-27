@@ -701,7 +701,7 @@ export function SettingsWorkspace({
       <section className="settings-mobile-panel mobile-panel-scroll" aria-label={locale === "de" ? "Mobile Einstellungen" : "Mobile settings"}>
         <header className="settings-mobile-summary" data-testid="settings-mobile-truth-snapshot">
           <span className="mobile-mono">SETTINGS</span>
-          <strong>{locale === "de" ? "Authority Control Center" : "Authority Control Center"}</strong>
+          <strong>{ui.settings.title}</strong>
           <p>{locale === "de" ? "Backend-bestätigte Wahrheit, sichere Zugänge und Expert-Diagnostik ohne Credential-Werte." : "Backend-proven truth, safe access controls, and expert diagnostics without credential values."}</p>
           <div className="settings-mobile-truth-grid" aria-label={locale === "de" ? "Systemstatus" : "System status"}>
             {mobileTruthItems.map((item) => (
@@ -745,6 +745,7 @@ export function SettingsWorkspace({
         <BottomSheet
           open={Boolean(selectedMobileSettingsRow)}
           title={selectedMobileSettingsRow?.label ?? ui.settings.title}
+          closeLabel={ui.common.close}
           onDismiss={() => setMobileSettingsSheet(null)}
           maxHeight="large"
         >
@@ -793,6 +794,7 @@ export function SettingsWorkspace({
         <SetupPath
           testId="settings-setup-path"
           steps={settingsSetupSteps}
+          secondaryLabel={ui.settings.showConnections}
           onPrimaryAction={() => {
             const openRouterCard = document.getElementById("settings-openrouter-card");
             if (openRouterCard) {
@@ -812,7 +814,7 @@ export function SettingsWorkspace({
         <article className="workspace-card settings-view-card">
           <header className="card-header">
             <div>
-              <span>{ui.settings.viewCardTitle}</span>
+              <h2>{ui.settings.viewCardTitle}</h2>
               <strong>{activeCopy.label}</strong>
             </div>
           </header>
@@ -830,7 +832,7 @@ export function SettingsWorkspace({
         <article className="workspace-card settings-access-card">
           <header className="card-header">
             <div>
-              <span>{adapterCopy.accessTitle}</span>
+              <h2>{adapterCopy.accessTitle}</h2>
               <strong>{ui.settings.accessCardTruth}</strong>
             </div>
           </header>
@@ -968,7 +970,7 @@ export function SettingsWorkspace({
         <article className="workspace-card settings-verification-card">
           <header className="card-header">
             <div>
-              <span>{verificationCopy.title}</span>
+              <h2>{verificationCopy.title}</h2>
               <strong>{ui.settings.verificationCardTruth}</strong>
             </div>
           </header>
@@ -994,6 +996,7 @@ export function SettingsWorkspace({
                     type="button"
                     className="secondary-button"
                     data-testid={`settings-verification-${target.id}-action`}
+                    aria-label={`${verificationCopy.action}: ${target.label}`}
                     onClick={() => onVerifyConnection(target.id)}
                     disabled={result.status === "checking"}
                   >
@@ -1008,7 +1011,7 @@ export function SettingsWorkspace({
         <article className="workspace-card settings-identity-card">
           <header className="card-header">
             <div>
-              <span>{ui.settings.identityCardTitle}</span>
+              <h2>{ui.settings.identityCardTitle}</h2>
               <strong>{ui.settings.identityCardTruth}</strong>
             </div>
           </header>
@@ -1065,7 +1068,7 @@ export function SettingsWorkspace({
         <article className="workspace-card settings-model-card">
           <header className="card-header">
             <div>
-              <span>{ui.settings.modelCardTitle}</span>
+              <h2>{ui.settings.modelCardTitle}</h2>
               <strong>{ui.settings.backendPolicy}</strong>
             </div>
           </header>
@@ -1093,8 +1096,8 @@ export function SettingsWorkspace({
         >
           <header className="card-header">
             <div>
-              <span>{openRouterCopy.title}</span>
-              <strong>{ui.settings.backendPolicy}</strong>
+              <h2>{openRouterCopy.title}</h2>
+              <strong>{ui.settings.openRouterCardTruth}</strong>
             </div>
           </header>
           <SystemNode
@@ -1138,7 +1141,7 @@ export function SettingsWorkspace({
         <article className="workspace-card settings-diagnostics-card">
           <header className="card-header">
             <div>
-              <span>{ui.settings.diagnosticsCardTitle}</span>
+              <h2>{ui.settings.diagnosticsCardTitle}</h2>
               <strong>{ui.settings.diagnosticsSummary}</strong>
             </div>
           </header>
@@ -1239,7 +1242,7 @@ export function SettingsWorkspace({
         <article className="workspace-card settings-journal-card">
           <header className="card-header">
             <div>
-              <span>{ui.settings.journalCardTitle}</span>
+              <h2>{ui.settings.journalCardTitle}</h2>
               <strong>{ui.settings.journalRecentEventsLabel}</strong>
             </div>
           </header>
@@ -1285,7 +1288,7 @@ export function SettingsWorkspace({
         <article className="workspace-card settings-feed-card">
           <header className="card-header">
             <div>
-              <span>{ui.settings.diagnosticsCardTitle}</span>
+              <h2>{ui.settings.diagnosticsCardTitle}</h2>
               <strong>{ui.settings.diagnosticsHidden}</strong>
             </div>
           </header>

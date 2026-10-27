@@ -8,6 +8,7 @@ import {
 } from "../src/lib/matrix-evidence-writer.js";
 import { createRuntimeJournal } from "../src/lib/runtime-journal.js";
 import { createMockMatrixClient, createTestMatrixConfig } from "../test-support/helpers.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
 
 const baseEvent = {
   eventType: "matrix_approval_record" as const,
@@ -60,24 +61,26 @@ test("matrix evidence writer rejects warning events as writable evidence records
 });
 
 test("matrix evidence message redacts sensitive-looking fields and bounds topic previews", () => {
+  const evidenceAccessToken = createSyntheticSecret("evidence-access");
+  const evidenceRefreshToken = createSyntheticSecret("evidence-refresh");
   const message = buildMatrixEvidenceMessage({
     ...baseEvent,
     before: {
       text: `old ${"a".repeat(400)}`,
-      accessToken: "secret-token"
+      accessToken: evidenceAccessToken
     },
     after: {
       text: `new ${"b".repeat(400)}`,
-      refreshToken: "refresh-secret"
+      refreshToken: evidenceRefreshToken
     },
     result: {
       ok: true,
-      authorization: "Bearer secret-token"
+      authorization: `Bearer ${evidenceAccessToken}`
     },
     source: {
       surface: "modelgate",
       route: "POST /api/matrix/actions/:planId/execute",
-      envValue: "MATRIX_ACCESS_TOKEN=secret-token"
+      envValue: `MATRIX_ACCESS_TOKEN=${evidenceAccessToken}`
     }
   });
 
@@ -85,8 +88,8 @@ test("matrix evidence message redacts sensitive-looking fields and bounds topic 
 
   assert.equal(message.msgtype, "m.notice");
   assert.match(message.body, /matrix_approval_record/);
-  assert.doesNotMatch(serialized, /secret-token/);
-  assert.doesNotMatch(serialized, /refresh-secret/);
+  assert.equal(serialized.includes(evidenceAccessToken), false);
+  assert.equal(serialized.includes(evidenceRefreshToken), false);
   assert.doesNotMatch(serialized, /MATRIX_ACCESS_TOKEN/);
   assert.ok(message["mosaicstacked.evidence"].before.preview.length <= 180);
   assert.ok(message["mosaicstacked.evidence"].after.preview.length <= 180);

@@ -126,6 +126,7 @@ export function useRuntimeStatus(options: {
   const [openRouterCredentialStatus, setOpenRouterCredentialStatus] = useState<OpenRouterCredentialStatusResponse>(OPENROUTER_CREDENTIAL_STATUS_EMPTY);
   const [runtimeDiagnostics, setRuntimeDiagnostics] = useState<DiagnosticsResponse | null>(null);
   const [integrationsStatus, setIntegrationsStatus] = useState<IntegrationsStatusResponse | null>(null);
+  const [integrationsStatusUnavailable, setIntegrationsStatusUnavailable] = useState(false);
   const [githubCapabilities, setGitHubCapabilities] = useState<GitHubCapabilitiesResponse | null>(null);
   const [runtimeJournalEntries, setRuntimeJournalEntries] = useState<JournalEntry[]>([]);
 
@@ -167,6 +168,7 @@ export function useRuntimeStatus(options: {
         fetcher: (requestSignal) => fetchIntegrationsStatus({ signal: requestSignal }),
       });
       setIntegrationsStatus(nextStatus);
+      setIntegrationsStatusUnavailable(false);
       return nextStatus;
     } catch (error) {
       if (isAbortError(error)) {
@@ -174,6 +176,7 @@ export function useRuntimeStatus(options: {
       }
 
       setIntegrationsStatus(null);
+      setIntegrationsStatusUnavailable(true);
       return null;
     }
   }, [fetchCachedStatus]);
@@ -266,11 +269,13 @@ export function useRuntimeStatus(options: {
       .then((nextStatus) => {
         if (!signal.aborted) {
           setIntegrationsStatus(nextStatus);
+          setIntegrationsStatusUnavailable(false);
         }
       })
       .catch((error) => {
         if (!signal.aborted && !isAbortError(error)) {
           setIntegrationsStatus(null);
+          setIntegrationsStatusUnavailable(true);
         }
       });
 
@@ -368,8 +373,10 @@ export function useRuntimeStatus(options: {
 
     if (integrationsResult.status === "fulfilled") {
       setIntegrationsStatus(integrationsResult.value);
-    } else {
+      setIntegrationsStatusUnavailable(false);
+    } else if (!isAbortError(integrationsResult.reason)) {
       setIntegrationsStatus(null);
+      setIntegrationsStatusUnavailable(true);
     }
 
     if (githubCapabilitiesResult.status === "fulfilled") {
@@ -427,6 +434,7 @@ export function useRuntimeStatus(options: {
     modelRegistry,
     runtimeDiagnostics,
     integrationsStatus,
+    integrationsStatusUnavailable,
     githubCapabilities,
     runtimeJournalEntries,
     openRouterCredentialStatus,

@@ -15,15 +15,16 @@ function makeJsonResponse(body: unknown, status = 200, headers: Record<string, s
 
 test("github client normalizes repository summaries, trees, and file content", async () => {
   const calls: string[] = [];
+  const githubConfig = createTestGitHubConfig({
+    allowedRepos: ["acme/widget"],
+    allowedRepoSet: new Set(["acme/widget"])
+  });
   const client = createGitHubClient({
-    config: createTestGitHubConfig({
-      allowedRepos: ["acme/widget"],
-      allowedRepoSet: new Set(["acme/widget"])
-    }),
+    config: githubConfig,
     fetchImpl: async (input, init) => {
       const url = new URL(String(input));
       calls.push(`${url.pathname}${url.search}`);
-      assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer test-github-token");
+      assert.equal(new Headers(init?.headers).get("Authorization"), `Bearer ${githubConfig.token}`);
 
       if (url.pathname === "/repos/acme/widget") {
         return makeJsonResponse({
@@ -184,15 +185,16 @@ test("github client normalizes repository summaries, trees, and file content", a
 
 test("github client normalizes branch, commit, tree, and pull request write primitives", async () => {
   const calls: string[] = [];
+  const githubConfig = createTestGitHubConfig({
+    allowedRepos: ["acme/widget"],
+    allowedRepoSet: new Set(["acme/widget"])
+  });
   const client = createGitHubClient({
-    config: createTestGitHubConfig({
-      allowedRepos: ["acme/widget"],
-      allowedRepoSet: new Set(["acme/widget"])
-    }),
+    config: githubConfig,
     fetchImpl: async (input, init) => {
       const url = new URL(String(input));
       calls.push(`${url.pathname}${url.search}`);
-      assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer test-github-token");
+      assert.equal(new Headers(init?.headers).get("Authorization"), `Bearer ${githubConfig.token}`);
 
       if (url.pathname === "/repos/acme/widget/git/ref/heads%2Fmosaicstacked%2Fgithub%2Fplan_1" && (init?.method ?? "GET") === "GET") {
         return makeJsonResponse({

@@ -156,7 +156,7 @@ h1,
 h2,
 h3,
 h4,
-.brand-block h1,
+.brand-block .app-title,
 .workspace-hero h1 {
   margin: 0;
   color: var(--ms-text);
@@ -373,8 +373,10 @@ select:disabled {
 .message-role,
 .runtime-label,
 .card-header span,
+.card-header h2,
 .model-card label {
   margin: 0;
+  font-family: inherit;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 1.2px;
@@ -382,7 +384,7 @@ select:disabled {
   color: var(--ms-text3);
 }
 
-.global-header-shell h1 {
+.global-header-shell .app-title {
   font-size: clamp(20px, 2.4vw, 28px);
   line-height: 1.15;
   white-space: nowrap;
@@ -1670,7 +1672,7 @@ select:disabled {
   line-height: 1.2 !important;
 }
 
-button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.shell-language-button):not(.workspace-tab):not(.session-list-item):not(.mode-toggle-button):not(.mobile-brand-button):not(.mobile-context-strip):not(.mobile-context-chip-action):not(.matrix-mobile-room):not(.matrix-mobile-ask-button):not(.floating-companion-control),
+button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.shell-language-button):not(.workspace-tab):not(.session-list-item):not(.mode-toggle-button):not(.mobile-brand-button):not(.mobile-context-strip):not(.mobile-context-chip-action):not(.matrix-mobile-room):not(.matrix-mobile-ask-button):not(.floating-companion-control):not(.guide-card-dot):not(.swipe-deck-tab):not(.mobile-bottom-sheet-close),
 .primary-link-button {
   background: var(--ms-accent) !important;
   border-color: var(--ms-accent) !important;
@@ -1678,14 +1680,14 @@ button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.
   box-shadow: none !important;
 }
 
-button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.shell-language-button):not(.workspace-tab):not(.session-list-item):not(.mode-toggle-button):not(.mobile-brand-button):not(.mobile-context-strip):not(.mobile-context-chip-action):not(.matrix-mobile-room):not(.matrix-mobile-ask-button):not(.floating-companion-control):hover:not(:disabled),
+button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.shell-language-button):not(.workspace-tab):not(.session-list-item):not(.mode-toggle-button):not(.mobile-brand-button):not(.mobile-context-strip):not(.mobile-context-chip-action):not(.matrix-mobile-room):not(.matrix-mobile-ask-button):not(.floating-companion-control):not(.guide-card-dot):not(.swipe-deck-tab):not(.mobile-bottom-sheet-close):hover:not(:disabled),
 .primary-link-button:hover:not(.is-disabled) {
   background: #7d6df0 !important;
   border-color: #7d6df0 !important;
   box-shadow: none !important;
 }
 
-button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.shell-language-button):not(.workspace-tab):not(.session-list-item):not(.mode-toggle-button):not(.mobile-brand-button):not(.mobile-context-strip):not(.mobile-context-chip-action):not(.matrix-mobile-room):not(.matrix-mobile-ask-button):not(.floating-companion-control):active:not(:disabled),
+button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.shell-language-button):not(.workspace-tab):not(.session-list-item):not(.mode-toggle-button):not(.mobile-brand-button):not(.mobile-context-strip):not(.mobile-context-chip-action):not(.matrix-mobile-room):not(.matrix-mobile-ask-button):not(.floating-companion-control):not(.guide-card-dot):not(.swipe-deck-tab):not(.mobile-bottom-sheet-close):active:not(:disabled),
 .primary-link-button:active:not(.is-disabled) {
   background: #5a4bd1 !important;
   border-color: #5a4bd1 !important;
@@ -2899,6 +2901,36 @@ button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.
   color: var(--hi);
 }
 
+.mobile-bottom-sheet-header {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 24px;
+  margin-bottom: 4px;
+}
+
+.mobile-bottom-sheet-close {
+  position: absolute;
+  top: -6px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: 1px solid rgba(158, 168, 190, 0.24);
+  border-radius: 999px;
+  background: rgba(17, 18, 26, 0.92);
+  color: var(--hi, var(--ms-text, #f8fafc));
+  font-size: 20px;
+  line-height: 1;
+}
+
+.mobile-bottom-sheet-close:active {
+  background: var(--ms-bg3);
+}
+
 .mobile-bottom-sheet-handle {
   display: block;
   width: 36px;
@@ -4026,6 +4058,9 @@ button:not(.secondary-button):not(.ghost-button):not(.theme-toggle-button):not(.
   background: rgba(108, 92, 231, 0.28);
   border-color: rgba(108, 92, 231, 0.58);
   color: #ffffff;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 .swipe-deck-track {

@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { createRuntimeJournal } from "../src/lib/runtime-journal.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
 
 test("runtime journal appends entries and enforces bounded retention", () => {
   const journal = createRuntimeJournal({
@@ -64,10 +65,10 @@ test("runtime journal sanitizes forbidden metadata keys", () => {
     summary: "Chat completed",
     safeMetadata: {
       scope: "chat",
-      apiKey: "secret",
+      apiKey: createSyntheticSecret("journal-api-key"),
       prompt: "do not persist",
       nested: {
-        token: "hidden",
+        token: createSyntheticSecret("journal-token"),
         safeValue: 1
       }
     }

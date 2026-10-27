@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createApp } from "../src/app.js";
-import { createMockOpenRouterClient, createTestEnv } from "../test-support/helpers.js";
+import { createMockOpenRouterClient, createTestEnv, TEST_ADMIN_PASSWORD } from "../test-support/helpers.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
+
+const WRONG_ADMIN_PASSWORD = createSyntheticSecret("wrong-password");
+const ANY_ADMIN_PASSWORD = createSyntheticSecret("anything");
 
 function readSetCookie(response: { headers: Record<string, unknown> }) {
   const header = response.headers["set-cookie"];
@@ -31,7 +35,7 @@ test("auth login fails closed when server config is missing", async (t) => {
     method: "POST",
     url: "/api/auth/login",
     payload: {
-      password: "anything"
+      password: ANY_ADMIN_PASSWORD
     }
   });
 
@@ -56,7 +60,7 @@ test("auth login rejects invalid credentials and accepts the configured password
     method: "POST",
     url: "/api/auth/login",
     payload: {
-      password: "wrong-password"
+      password: WRONG_ADMIN_PASSWORD
     }
   });
 
@@ -69,7 +73,7 @@ test("auth login rejects invalid credentials and accepts the configured password
     method: "POST",
     url: "/api/auth/login",
     payload: {
-      password: "test-admin-password"
+      password: TEST_ADMIN_PASSWORD
     }
   });
 
@@ -104,7 +108,7 @@ test("auth login is rate-limited with retry-after", async (t) => {
     method: "POST",
     url: "/api/auth/login",
     payload: {
-      password: "wrong-password"
+      password: WRONG_ADMIN_PASSWORD
     }
   });
 
@@ -114,7 +118,7 @@ test("auth login is rate-limited with retry-after", async (t) => {
     method: "POST",
     url: "/api/auth/login",
     payload: {
-      password: "wrong-password"
+      password: WRONG_ADMIN_PASSWORD
     }
   });
 
@@ -150,7 +154,7 @@ test("auth session checks require a valid cookie and logout clears it", async (t
     method: "POST",
     url: "/api/auth/login",
     payload: {
-      password: "test-admin-password"
+      password: TEST_ADMIN_PASSWORD
     }
   });
 

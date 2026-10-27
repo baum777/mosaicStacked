@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createMatrixClient, MatrixClientError } from "../src/lib/matrix-client.js";
 import { createTestMatrixConfig } from "../test-support/helpers.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
 
 function makeJsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -13,11 +14,12 @@ function makeJsonResponse(body: unknown, status = 200) {
 }
 
 test("matrix whoami normalizes the homeserver identity", async () => {
+  const config = createTestMatrixConfig();
   const client = createMatrixClient({
-    config: createTestMatrixConfig(),
+    config,
     fetchImpl: async (input, init) => {
       assert.match(String(input), /\/_matrix\/client\/v3\/account\/whoami$/);
-      assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer test-matrix-token");
+      assert.equal(new Headers(init?.headers).get("Authorization"), `Bearer ${config.accessToken}`);
       return makeJsonResponse({
         user_id: "@user:matrix.example",
         device_id: "DEVICE"
@@ -36,6 +38,7 @@ test("matrix whoami normalizes the homeserver identity", async () => {
 });
 
 test("matrix client sends room messages with the backend bearer token", async () => {
+  const backendToken = createSyntheticSecret("backend");
   const requests: Array<{
     path: string;
     method: string;
@@ -44,7 +47,7 @@ test("matrix client sends room messages with the backend bearer token", async ()
   }> = [];
   const client = createMatrixClient({
     config: createTestMatrixConfig({
-      accessToken: "backend-token"
+      accessToken: backendToken
     }),
     fetchImpl: async (input, init) => {
       const url = new URL(String(input));
@@ -71,7 +74,7 @@ test("matrix client sends room messages with the backend bearer token", async ()
     /^\/_matrix\/client\/v3\/rooms\/!evidence%3Amatrix\.example\/send\/m\.room\.message\//
   );
   assert.equal(requests[0]?.method, "PUT");
-  assert.equal(requests[0]?.authorization, "Bearer backend-token");
+  assert.equal(requests[0]?.authorization, `Bearer ${backendToken}`);
   assert.deepEqual(requests[0]?.body, {
     msgtype: "m.notice",
     body: "Evidence body"
@@ -283,6 +286,11 @@ test("matrix client fails closed for malformed, unauthorized, forbidden, and tim
 });
 
 test("matrix client refreshes rotated credentials on unauthorized responses and retries once", async () => {
+  const staleAccessToken = createSyntheticSecret("stale-access");
+  const initialRefreshToken = createSyntheticSecret("initial-refresh");
+  const rotatedClientId = createSyntheticSecret("client-id");
+  const freshAccessToken = createSyntheticSecret("fresh-access");
+  const rotatedRefreshToken = createSyntheticSecret("rotated-refresh");
   const requests: Array<{
     path: string;
     method: string;
@@ -290,9 +298,9 @@ test("matrix client refreshes rotated credentials on unauthorized responses and 
   }> = [];
 
   const config = createTestMatrixConfig({
-    accessToken: "stale-access-token",
-    refreshToken: "initial-refresh-token",
-    clientId: "client-id"
+    accessToken: staleAccessToken,
+    refreshToken: initialRefreshToken,
+    clientId: rotatedClientId
   });
 
   const client = createMatrixClient({
@@ -317,22 +325,22 @@ test("matrix client refreshes rotated credentials on unauthorized responses and 
 
         assert.equal(headers.get("Authorization"), null);
         assert.equal(body.get("grant_type"), "refresh_token");
-        assert.equal(body.get("refresh_token"), "initial-refresh-token");
-        assert.equal(body.get("client_id"), "client-id");
+        assert.equal(body.get("refresh_token"), initialRefreshToken);
+        assert.equal(body.get("client_id"), rotatedClientId);
 
         return makeJsonResponse({
-          access_token: "fresh-access-token",
-          refresh_token: "rotated-refresh-token",
+          access_token: freshAccessToken,
+          refresh_token: rotatedRefreshToken,
           expires_in: 3600
         });
       }
 
       if (url.pathname === "/_matrix/client/v3/account/whoami") {
-        if (headers.get("Authorization") === "Bearer stale-access-token") {
+        if (headers.get("Authorization") === `Bearer ${staleAccessToken}`) {
           return new Response("", { status: 401 });
         }
 
-        assert.equal(headers.get("Authorization"), "Bearer fresh-access-token");
+        assert.equal(headers.get("Authorization"), `Bearer ${freshAccessToken}`);
         return makeJsonResponse({
           user_id: "@user:matrix.example",
           device_id: "DEVICE"
@@ -356,12 +364,16 @@ test("matrix client refreshes rotated credentials on unauthorized responses and 
     "POST /oauth2/token",
     "GET /_matrix/client/v3/account/whoami"
   ]);
-  assert.equal(config.accessToken, "fresh-access-token");
-  assert.equal(config.refreshToken, "rotated-refresh-token");
+  assert.equal(config.accessToken, freshAccessToken);
+  assert.equal(config.refreshToken, rotatedRefreshToken);
   assert.match(config.tokenExpiresAt ?? "", /^\d{4}-\d{2}-\d{2}T/);
 });
 
 test("matrix client proactively refreshes near-expiry credentials before the request", async () => {
+  const initialRefreshToken = createSyntheticSecret("initial-refresh");
+  const rotatedClientId = createSyntheticSecret("client-id");
+  const freshAccessToken = createSyntheticSecret("fresh-access");
+  const rotatedRefreshToken = createSyntheticSecret("rotated-refresh");
   const requests: Array<{
     path: string;
     method: string;
@@ -369,9 +381,9 @@ test("matrix client proactively refreshes near-expiry credentials before the req
   }> = [];
 
   const config = createTestMatrixConfig({
-    accessToken: "soon-expiring-access-token",
-    refreshToken: "initial-refresh-token",
-    clientId: "client-id",
+    accessToken: createSyntheticSecret("soon-expiring-access"),
+    refreshToken: initialRefreshToken,
+    clientId: rotatedClientId,
     tokenExpiresAt: new Date(Date.now() + 15_000).toISOString()
   });
 
@@ -397,18 +409,18 @@ test("matrix client proactively refreshes near-expiry credentials before the req
 
         assert.equal(headers.get("Authorization"), null);
         assert.equal(body.get("grant_type"), "refresh_token");
-        assert.equal(body.get("refresh_token"), "initial-refresh-token");
-        assert.equal(body.get("client_id"), "client-id");
+        assert.equal(body.get("refresh_token"), initialRefreshToken);
+        assert.equal(body.get("client_id"), rotatedClientId);
 
         return makeJsonResponse({
-          access_token: "fresh-access-token",
-          refresh_token: "rotated-refresh-token",
+          access_token: freshAccessToken,
+          refresh_token: rotatedRefreshToken,
           expires_in: 3600
         });
       }
 
       if (url.pathname === "/_matrix/client/v3/account/whoami") {
-        assert.equal(headers.get("Authorization"), "Bearer fresh-access-token");
+        assert.equal(headers.get("Authorization"), `Bearer ${freshAccessToken}`);
         return makeJsonResponse({
           user_id: "@user:matrix.example",
           device_id: "DEVICE"
@@ -431,17 +443,17 @@ test("matrix client proactively refreshes near-expiry credentials before the req
     "POST /oauth2/token",
     "GET /_matrix/client/v3/account/whoami"
   ]);
-  assert.equal(config.accessToken, "fresh-access-token");
-  assert.equal(config.refreshToken, "rotated-refresh-token");
+  assert.equal(config.accessToken, freshAccessToken);
+  assert.equal(config.refreshToken, rotatedRefreshToken);
 });
 
 test("matrix client fails closed when the refresh backend is unavailable", async () => {
   const requests: Array<string> = [];
   const client = createMatrixClient({
     config: createTestMatrixConfig({
-      accessToken: "stale-access-token",
-      refreshToken: "refresh-token",
-      clientId: "client-id"
+      accessToken: createSyntheticSecret("stale-access"),
+      refreshToken: createSyntheticSecret("refresh"),
+      clientId: createSyntheticSecret("client-id")
     }),
     fetchImpl: async (input, init) => {
       const url = new URL(String(input));
@@ -474,7 +486,7 @@ test("matrix client fails closed when the refresh backend is unavailable", async
 test("matrix client reports expired tokens distinctly when the cached expiry has passed", async () => {
   const client = createMatrixClient({
     config: createTestMatrixConfig({
-      accessToken: "expired-access-token",
+      accessToken: createSyntheticSecret("expired-access"),
       tokenExpiresAt: new Date(Date.now() - 60_000).toISOString()
     }),
     fetchImpl: async () => new Response("", { status: 401 })

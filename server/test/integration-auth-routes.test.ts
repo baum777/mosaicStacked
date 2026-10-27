@@ -1,47 +1,49 @@
 import assert from "node:assert/strict";
+import { generateKeyPairSync } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test, { mock } from "node:test";
 import { createApp } from "../src/app.js";
 import { createMockOpenRouterClient, createTestEnv, createTestMatrixConfig } from "../test-support/helpers.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
 
 const TEST_ENCRYPTION_KEY = {
   INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY_ID: "integration-auth-test",
   INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY_VERSION: "1",
-  INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY: "integration-auth-test-secret"
+  INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY: createSyntheticSecret("integration-auth-encryption")
 };
 
-const TEST_GITHUB_APP_PRIVATE_KEY = [
-  "-----BEGIN PRIVATE KEY-----",
-  "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC8TmaFfZfrb4Cg",
-  "YCUAbybKUfoO4RTRlrhL3rUdTKyUbEaFH3DGOh0KaWUpLAbTusGAL9mrdUNy/bpt",
-  "7bp+68Dui2Cl5Y453sQ6inRJSMHzqwl0Zoh2JFGtgjjKeRe1b2GyJU5r5SLNTUuF",
-  "cXGHOhfc8KUZpW558dEX3ahVdt5nkmlOvqH8o8jhV6DHMdHFJMQ5Wteyjr+30o0e",
-  "NoZM8AmG9KRW4u6gUxXILbbeH1/3G3V62lr5rx/OqpdHlUPQo2ShpEq/OljjFjRZ",
-  "BlpXjhR7GMSIFwACogZMDl6KPUZiiL8yqynx/gc0SjXXpD2YtY/9T+dH7U5LZXew",
-  "wmiPYDFpAgMBAAECggEABwGSQC979Gkrw5vMKKPaET9DUuQmPIWTchQ1UCOjDKsq",
-  "JQgWT7PIEpP5DPL7xostaaXuHvpgEfJVikNE8/W00hNKu2Vq+SV8DtMJsFPWDok7",
-  "svJhK6ceiFp+3y6p9ojQPVr0u+A0vyd78rk1sIK1clWcSPPeJEieX1lSiup/LCKG",
-  "oUfwY9ebJzi3/XBAXmy4vZZWzpwD3N7iGAfrhjwOfm4Qt5m1yRIufhdPP3TYyrQV",
-  "e96fAOZ0PwqoH3nyqs97kVb8hmMbRHSm/hFAvP6JS1SEz0a95Z5qYGwYokjqo0bv",
-  "h4+xR02H2DpT+TJU/yQQ7/Vg6KjIMEkMUtgi+xmg4QKBgQDxwwtPZGG4ngXjhH/U",
-  "LoU+VAOddLn9szZbY8kef7yUAUaDO+bFuaJUQ2IqTB1PQO/P17xXWWlsar3mLzdi",
-  "FgjkEKC282tkyIk4MKEd2f5sBVdDabtkCqsCFbo3dI835tv7QqQE/PlWeCJPnENV",
-  "mLxhWGXKiBhq4cU6YVWZbhywoQKBgQDHZWzU3k/KivX1Jm2cdL3tClPW8QL+r9HV",
-  "bTUPfY8kXi91gu5CxwOIQjAa5/T+lTDqhvuJ+BKpRcbns4FW6GAq/mEmH4x63MK3",
-  "0FZZMR0+ThBV7KddubNTcVJZTsMF3ew5guVXiRj9dDvuUD00A5a/buDO/Rko2uVt",
-  "oQ6t9IOjyQKBgQDKHAhkgsK/GDxMDAThWVLC3HF5PJAQa7XRiQYlnRwFj1tncrhm",
-  "K95tGzgBrEgEbYEN/IjTbUgY/tNqj6Z5NXqRTuVMjQsG4i707pKC5i8wFvbwwH+M",
-  "Du8PeyKGIcdpMHJPB1MfaGz5wMzOSRBxipJRvxi5zDS9hajgOWbaMZeCgQKBgQCP",
-  "YwhYK2YFqNgmanP4Rpstknen4bjdnWGvsNCvSwNci75lKrpbmvGXUsF1F8i+Klr6",
-  "zAamuJXy1BKtHBCuhnxhbnw+BgHneEkuFcuCaCc3XruwjnXsmFW0c5FcV5824Ne2",
-  "o8J4qEYoPSW7wkfA17PYBcv0DV3CW2cQ5vi/b04awQKBgCEEDtIgVTtEgjhTmo2U",
-  "VJvx8whHRnhF2HUjIqovAAO+LuQ9GmRU9sdKos9CpeYs37HjAsA49v53yUW7jzpm",
-  "zxuwOmy/oratSgU6JtmlEzjrWCO0Ro/uYeqOucQnIpZECWFOGZFbPenP/rx5BJSM",
-  "o+DuibDhjcy65hxrVB2D5cTQ",
-  "-----END PRIVATE KEY-----"
-].join("\\n");
+const OAUTH_CLIENT_SECRET = createSyntheticSecret("github-oauth-client");
+const GITHUB_OAUTH_USER_TOKEN = createSyntheticSecret("gho-user-access");
+const GITHUB_OAUTH_APP_USER_TOKEN = createSyntheticSecret("gho-oauth-app-user");
+const SESSION_SECRET_STATUS = createSyntheticSecret("status");
+const SESSION_SECRET_DISCONNECT = createSyntheticSecret("disconnect");
+const SESSION_SECRET_LOGOUT = createSyntheticSecret("logout");
+const SESSION_SECRET_PLAIN = createSyntheticSecret("plain");
+const SESSION_SECRET_REAL_OAUTH = createSyntheticSecret("real-oauth");
+const SESSION_SECRET_INSTALL_AUTHORIZE = createSyntheticSecret("github-app-install-authorize");
+const SESSION_SECRET_OAUTH_USER_FALLBACK = createSyntheticSecret("github-app-oauth-user-fallback");
+const SESSION_SECRET_AMBIGUOUS_INSTALL = createSyntheticSecret("github-app-ambiguous-install");
+const SESSION_SECRET_GITHUB_OAUTH = createSyntheticSecret("github-oauth");
+const SESSION_SECRET_GITHUB_CALLBACK = createSyntheticSecret("github-oauth-callback");
+const SESSION_SECRET_CALLBACK_LOG = createSyntheticSecret("github-callback-log");
+const SESSION_SECRET_SERVERLESS = createSyntheticSecret("serverless-oauth");
+const SESSION_SECRET_REAL_MATRIX = createSyntheticSecret("real-matrix");
+const SESSION_SECRET_MATRIX_FAIL_CLOSED = createSyntheticSecret("matrix-fail-closed");
+const SESSION_SECRET_MATRIX_ORIGIN = createSyntheticSecret("matrix-origin-header");
+const SESSION_SECRET_GITHUB_REVERIFY = createSyntheticSecret("github-reverify");
+const SESSION_SECRET_TOKEN_DETAIL = createSyntheticSecret("github-app-install-authorize-token-detail");
+const SESSION_SECRET_URLENCODED_DETAIL = createSyntheticSecret("github-app-install-authorize-urlencoded-detail");
+const SESSION_SECRET_OAUTH_ENCRYPTION = createSyntheticSecret("oauth-encryption");
+const SESSION_SECRET_MATRIX_ENCRYPTION = createSyntheticSecret("matrix-encryption");
+
+// Real throwaway RSA key generated at test start — never a hardcoded credential.
+const TEST_GITHUB_APP_PRIVATE_KEY = generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+  privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  publicKeyEncoding: { type: "spki", format: "pem" }
+}).privateKey;
 
 const TEST_GITHUB_APP_ID = "123456";
 const TEST_GITHUB_APP_SLUG = "mosaicstacked-test-app";
@@ -55,10 +57,18 @@ const TEST_GITHUB_APP_ENV = {
 
 const TEST_GITHUB_OAUTH_ENV = {
   GITHUB_OAUTH_CLIENT_ID: "github-oauth-client-id",
-  GITHUB_OAUTH_CLIENT_SECRET: "github-oauth-client-secret",
+  GITHUB_OAUTH_CLIENT_SECRET: OAUTH_CLIENT_SECRET,
   GITHUB_OAUTH_CALLBACK_URL: "https://app.example.test/api/auth/github/callback",
   GITHUB_OAUTH_SCOPES: ["read:user", "user:email"]
 };
+
+const GITHUB_APP_USER_TOKEN = createSyntheticSecret("ghu-user-access");
+const GITHUB_INSTALLATION_TOKEN = createSyntheticSecret("ghs-installation");
+const GITHUB_INSTANCE_AGENT_KEY = createSyntheticSecret("instance-admin");
+const GITHUB_ENV_TOKEN = createSyntheticSecret("github-env");
+const ADMIN_ENV_PASSWORD = createSyntheticSecret("admin-env");
+const MATRIX_OAUTH_TOKEN = createSyntheticSecret("matrix-access");
+const MATRIX_DURABLE_DISCONNECT_TOKEN = createSyntheticSecret("matrix-durable-disconnect");
 
 function createGitHubAppIntegrationFetch(options: {
   installationId?: string;
@@ -78,7 +88,7 @@ function createGitHubAppIntegrationFetch(options: {
   const installationId = options.installationId ?? TEST_GITHUB_INSTALLATION_ID;
   const accountLogin = options.accountLogin ?? "octocat";
   const repos = options.repos ?? ["octo/demo", "acme/widget"];
-  const userAccessToken = options.userAccessToken ?? "ghu_test_user_access_token";
+  const userAccessToken = options.userAccessToken ?? GITHUB_APP_USER_TOKEN;
 
   return async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input));
@@ -137,7 +147,7 @@ function createGitHubAppIntegrationFetch(options: {
 
     if (url.pathname === `/app/installations/${installationId}/access_tokens` && method === "POST") {
       return new Response(JSON.stringify(options.accessTokenPayload ?? {
-        token: "ghs_test_installation_token",
+        token: GITHUB_INSTALLATION_TOKEN,
         expires_at: "2030-01-01T00:00:00Z"
       }), {
         status: options.accessTokenStatus ?? 200,
@@ -170,7 +180,7 @@ function createGitHubOAuthIntegrationFetch(options: {
   tokenPayload?: Record<string, unknown> | null;
   userPayload?: Record<string, unknown> | null;
 } = {}) {
-  const accessToken = options.accessToken ?? "gho_user_access_token";
+  const accessToken = options.accessToken ?? GITHUB_OAUTH_USER_TOKEN;
   const login = options.login ?? "octocat";
 
   return async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -412,7 +422,7 @@ test("github auth status reports OAuth readiness separately from App readiness",
       GITHUB_APP_ID: "github-client-id",
       GITHUB_APP_PRIVATE_KEY: TEST_GITHUB_APP_PRIVATE_KEY,
       GITHUB_APP_SLUG: TEST_GITHUB_APP_SLUG,
-      MOSAIC_STACK_SESSION_SECRET: "status-session-secret",
+      MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_STATUS,
       ...TEST_ENCRYPTION_KEY
     }),
     openRouter: createMockOpenRouterClient(),
@@ -458,7 +468,7 @@ test("github auth status endpoint only exposes safe metadata", async (t) => {
       GITHUB_APP_PRIVATE_KEY: TEST_GITHUB_APP_PRIVATE_KEY,
       GITHUB_APP_SLUG: TEST_GITHUB_APP_SLUG,
       GITHUB_ALLOWED_REPOS: ["acme/widget"],
-      MOSAIC_STACK_SESSION_SECRET: "status-session-secret",
+      MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_STATUS,
       ...TEST_ENCRYPTION_KEY
     }),
     openRouter: createMockOpenRouterClient(),
@@ -525,8 +535,8 @@ test("github auth status endpoint only exposes safe metadata", async (t) => {
   assert.equal(payload.credentialSource, "user_connected");
   assert.ok(payload.lastVerifiedAt);
   assert.equal(payload.lastErrorCode, null);
-  assert.doesNotMatch(status.body, /gho_status_redaction_token/);
-  assert.doesNotMatch(status.body, /github-client-secret/);
+  assert.equal(status.body.includes(GITHUB_OAUTH_USER_TOKEN), false);
+  assert.equal(status.body.includes(OAUTH_CLIENT_SECRET), false);
 });
 
 test("disconnect removes user app connection but keeps instance-level status when instance config exists", async (t) => {
@@ -534,11 +544,11 @@ test("disconnect removes user app connection but keeps instance-level status whe
     env: createTestEnv({
       GITHUB_APP_INSTALLATION_ID: TEST_GITHUB_INSTALLATION_ID,
       GITHUB_ALLOWED_REPOS: ["octo/demo"],
-      GITHUB_AGENT_API_KEY: "instance-admin-key",
+      GITHUB_AGENT_API_KEY: GITHUB_INSTANCE_AGENT_KEY,
       GITHUB_APP_ID: "github-client-id",
       GITHUB_APP_PRIVATE_KEY: TEST_GITHUB_APP_PRIVATE_KEY,
       GITHUB_APP_SLUG: TEST_GITHUB_APP_SLUG,
-      MOSAIC_STACK_SESSION_SECRET: "disconnect-session-secret",
+      MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_DISCONNECT,
       ...TEST_ENCRYPTION_KEY
     }),
     openRouter: createMockOpenRouterClient(),
@@ -619,7 +629,7 @@ test("github logout alias clears connection the same as disconnect", async (t) =
       GITHUB_APP_ID: "github-client-id",
       GITHUB_APP_PRIVATE_KEY: TEST_GITHUB_APP_PRIVATE_KEY,
       GITHUB_APP_SLUG: TEST_GITHUB_APP_SLUG,
-      MOSAIC_STACK_SESSION_SECRET: "logout-session-secret",
+      MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_LOGOUT,
       ...TEST_ENCRYPTION_KEY
     }),
     openRouter: createMockOpenRouterClient(),
@@ -716,10 +726,10 @@ test("matrix start fails closed when Matrix login is not configured instead of u
 test("integrations status never exposes backend secrets", async (t) => {
   const app = createApp({
     env: createTestEnv({
-      GITHUB_TOKEN: "secret-github-token",
+      GITHUB_TOKEN: GITHUB_ENV_TOKEN,
       GITHUB_ALLOWED_REPOS: ["octo/demo"],
-      MOSAIC_STACK_ADMIN_PASSWORD: "secret-admin-password",
-      MOSAIC_STACK_SESSION_SECRET: "secret-session-secret"
+      MOSAIC_STACK_ADMIN_PASSWORD: ADMIN_ENV_PASSWORD,
+      MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_PLAIN
     }),
     openRouter: createMockOpenRouterClient(),
     logger: false
@@ -736,8 +746,8 @@ test("integrations status never exposes backend secrets", async (t) => {
 
   assert.equal(response.statusCode, 200);
   const serialized = response.body;
-  assert.doesNotMatch(serialized, /secret-github-token/);
-  assert.doesNotMatch(serialized, /secret-admin-password/);
+  assert.equal(serialized.includes(GITHUB_ENV_TOKEN), false);
+  assert.equal(serialized.includes(ADMIN_ENV_PASSWORD), false);
   assert.doesNotMatch(serialized, /secret-session-secret/);
 });
 
@@ -745,7 +755,7 @@ test("real GitHub App callback stores a user-connected credential source", async
   const env = createTestEnv({
     ...TEST_GITHUB_APP_ENV,
     GITHUB_ALLOWED_REPOS: ["acme/widget"],
-    MOSAIC_STACK_SESSION_SECRET: "real-oauth-session-secret",
+    MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_REAL_OAUTH,
     ...TEST_ENCRYPTION_KEY
   });
 
@@ -810,7 +820,7 @@ test("GitHub App OAuth connect starts with authorize flow for existing installat
   const env = createTestEnv({
     ...TEST_GITHUB_APP_ENV,
     ...TEST_GITHUB_OAUTH_ENV,
-    MOSAIC_STACK_SESSION_SECRET: "github-app-install-authorize-session-secret",
+    MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_INSTALL_AUTHORIZE,
     ...TEST_ENCRYPTION_KEY
   });
 
@@ -882,10 +892,10 @@ test("GitHub App OAuth callback accepts OAuth App tokens when installation listi
   const env = createTestEnv({
     ...TEST_GITHUB_APP_ENV,
     ...TEST_GITHUB_OAUTH_ENV,
-    MOSAIC_STACK_SESSION_SECRET: "github-app-oauth-user-fallback-session-secret",
+    MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_OAUTH_USER_FALLBACK,
     ...TEST_ENCRYPTION_KEY
   });
-  const accessToken = "gho_oauth_app_user_token";
+  const accessToken = GITHUB_OAUTH_APP_USER_TOKEN;
 
   const app = createApp({
     env,
@@ -999,7 +1009,7 @@ test("GitHub App install and authorize callback fails closed for ambiguous user 
   const env = createTestEnv({
     ...TEST_GITHUB_APP_ENV,
     ...TEST_GITHUB_OAUTH_ENV,
-    MOSAIC_STACK_SESSION_SECRET: "github-app-ambiguous-install-session-secret",
+    MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_AMBIGUOUS_INSTALL,
     ...TEST_ENCRYPTION_KEY
   });
 
@@ -1066,7 +1076,7 @@ test("GitHub App install and authorize callback fails closed for ambiguous user 
 test("GitHub OAuth app start uses configured OAuth authorize flow when GitHub App config is absent", async (t) => {
   const env = createTestEnv({
     ...TEST_GITHUB_OAUTH_ENV,
-    MOSAIC_STACK_SESSION_SECRET: "github-oauth-session-secret",
+    MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_GITHUB_OAUTH,
     ...TEST_ENCRYPTION_KEY
   });
 
@@ -1098,7 +1108,7 @@ test("GitHub OAuth app start uses configured OAuth authorize flow when GitHub Ap
 test("GitHub OAuth app callback exchanges code and stores a user-connected credential", async (t) => {
   const env = createTestEnv({
     ...TEST_GITHUB_OAUTH_ENV,
-    MOSAIC_STACK_SESSION_SECRET: "github-oauth-callback-secret",
+    MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_GITHUB_CALLBACK,
     ...TEST_ENCRYPTION_KEY
   });
   const fetchImpl = createGitHubOAuthIntegrationFetch({ login: "mona" });
@@ -1163,7 +1173,7 @@ test("GitHub callback logs request shape and config flags", async (t) => {
     ...TEST_GITHUB_OAUTH_ENV,
     GITHUB_OAUTH_CLIENT_ID: "github-oauth-client-123456",
     GITHUB_OAUTH_CALLBACK_URL: "https://app.example.test/api/auth/github/callback",
-    MOSAIC_STACK_SESSION_SECRET: "github-callback-log-secret",
+    MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_CALLBACK_LOG,
     ...TEST_ENCRYPTION_KEY
   });
 
@@ -1220,7 +1230,7 @@ test("real GitHub App callback survives a fresh serverless auth store", async (t
   const env = createTestEnv({
     ...TEST_GITHUB_APP_ENV,
     GITHUB_ALLOWED_REPOS: ["acme/widget"],
-    MOSAIC_STACK_SESSION_SECRET: "serverless-oauth-session-secret",
+    MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_SERVERLESS,
     ...TEST_ENCRYPTION_KEY
   });
   const fetchImpl = createGitHubAppIntegrationFetch();
@@ -1288,7 +1298,7 @@ test("real GitHub App callback survives a fresh serverless auth store", async (t
 test("real Matrix login-token callback stores a user-connected credential source", async (t) => {
   const env = createTestEnv({
     MATRIX_LOGIN_TOKEN_TYPE: "m.login.token",
-    MOSAIC_STACK_SESSION_SECRET: "real-matrix-session-secret",
+    MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_REAL_MATRIX,
     ...TEST_ENCRYPTION_KEY
   });
 
@@ -1316,7 +1326,7 @@ test("real Matrix login-token callback stores a user-connected credential source
 
       if (url === "https://matrix.example/_matrix/client/v3/login" && init?.method === "POST") {
         return new Response(JSON.stringify({
-          access_token: "matrix_access_token",
+          access_token: MATRIX_OAUTH_TOKEN,
           user_id: "@user:matrix.example",
           device_id: "DEVICE"
         }), {
@@ -1394,7 +1404,7 @@ test("real Matrix login-token callback stores a user-connected credential source
 test("matrix callback fails closed when homeserver is configured but login token is missing", async (t) => {
   const env = createTestEnv({
     MATRIX_LOGIN_TOKEN_TYPE: "m.login.token",
-    MOSAIC_STACK_SESSION_SECRET: "matrix-fail-closed-session-secret"
+    MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_MATRIX_FAIL_CLOSED
   });
 
   const app = createApp({
@@ -1481,7 +1491,7 @@ test("matrix callback fails closed when homeserver is configured but login token
 test("matrix start uses configured callback url instead of forwarded host headers", async (t) => {
   const env = createTestEnv({
     MATRIX_LOGIN_TOKEN_TYPE: "m.login.token",
-    MOSAIC_STACK_SESSION_SECRET: "matrix-origin-header-secret"
+    MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_MATRIX_ORIGIN
   });
 
   const app = createApp({
@@ -1538,7 +1548,7 @@ test("real github reverify maps upstream 401 to auth_expired status", async (t) 
     GITHUB_APP_PRIVATE_KEY: TEST_GITHUB_APP_PRIVATE_KEY,
     GITHUB_APP_SLUG: TEST_GITHUB_APP_SLUG,
     GITHUB_ALLOWED_REPOS: ["acme/widget"],
-    MOSAIC_STACK_SESSION_SECRET: "github-reverify-session-secret",
+    MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_GITHUB_REVERIFY,
     ...TEST_ENCRYPTION_KEY
   });
 
@@ -1577,7 +1587,7 @@ test("real github reverify maps upstream 401 to auth_expired status", async (t) 
 
       if (url.pathname === `/app/installations/${TEST_GITHUB_INSTALLATION_ID}/access_tokens` && method === "POST") {
         return new Response(JSON.stringify({
-          token: "ghs_test_installation_token",
+          token: GITHUB_INSTALLATION_TOKEN,
           expires_at: "2030-01-01T00:00:00Z"
         }), {
           status: 200,
@@ -1905,7 +1915,7 @@ test("github callback exposes sanitized oauth token exchange detail when availab
   const env = createTestEnv({
     ...TEST_GITHUB_APP_ENV,
     ...TEST_GITHUB_OAUTH_ENV,
-    MOSAIC_STACK_SESSION_SECRET: "github-app-install-authorize-token-detail-secret",
+    MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_TOKEN_DETAIL,
     ...TEST_ENCRYPTION_KEY
   });
 
@@ -1959,7 +1969,7 @@ test("github callback exposes sanitized oauth token exchange detail from urlenco
   const env = createTestEnv({
     ...TEST_GITHUB_APP_ENV,
     ...TEST_GITHUB_OAUTH_ENV,
-    MOSAIC_STACK_SESSION_SECRET: "github-app-install-authorize-urlencoded-detail-secret",
+    MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_URLENCODED_DETAIL,
     ...TEST_ENCRYPTION_KEY
   });
 
@@ -2267,7 +2277,7 @@ test("matrix callback fails closed when login-token exchange is partial", async 
 
       if (url === "https://matrix.example/_matrix/client/v3/login" && init?.method === "POST") {
         return new Response(JSON.stringify({
-          access_token: "matrix_access_token"
+          access_token: MATRIX_OAUTH_TOKEN
         }), {
           status: 200,
           headers: { "Content-Type": "application/json" }
@@ -2452,7 +2462,7 @@ test("configured providers fail closed when credential encryption is unavailable
     env: createTestEnv({
       ...TEST_GITHUB_APP_ENV,
       GITHUB_ALLOWED_REPOS: ["acme/widget"],
-      MOSAIC_STACK_SESSION_SECRET: "oauth-encryption-test-session-secret",
+      MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_OAUTH_ENCRYPTION,
       INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY: "",
       INTEGRATION_AUTH_ENCRYPTION_PREVIOUS_KEYS: ""
     }),
@@ -2513,7 +2523,7 @@ test("matrix real credential callback fails closed when credential encryption is
   const app = createApp({
     env: createTestEnv({
       MATRIX_LOGIN_TOKEN_TYPE: "m.login.token",
-      MOSAIC_STACK_SESSION_SECRET: "matrix-encryption-test-session-secret",
+      MOSAIC_STACK_SESSION_SECRET: SESSION_SECRET_MATRIX_ENCRYPTION,
       INTEGRATION_AUTH_ENCRYPTION_CURRENT_KEY: "",
       INTEGRATION_AUTH_ENCRYPTION_PREVIOUS_KEYS: ""
     }),
@@ -2538,7 +2548,7 @@ test("matrix real credential callback fails closed when credential encryption is
 
       if (url === "https://matrix.example/_matrix/client/v3/login" && init?.method === "POST") {
         return new Response(JSON.stringify({
-          access_token: "matrix_access_token",
+          access_token: MATRIX_OAUTH_TOKEN,
           user_id: "@user:matrix.example",
           device_id: "DEVICE"
         }), {
@@ -2620,7 +2630,7 @@ test("github disconnect clears durable user credential without exposing tokens",
     }
   });
   assert.equal(callback.statusCode, 302);
-  assert.doesNotMatch(fs.readFileSync(storePath, "utf8"), /gho_durable_disconnect_token/);
+  assert.equal(fs.readFileSync(storePath, "utf8").includes(GITHUB_APP_USER_TOKEN), false);
 
   const disconnect = await app.inject({
     method: "POST",
@@ -2669,7 +2679,7 @@ test("matrix disconnect clears durable user credential without exposing tokens",
 
       if (url === "https://matrix.example/_matrix/client/v3/login" && init?.method === "POST") {
         return new Response(JSON.stringify({
-          access_token: "matrix_durable_disconnect_token",
+          access_token: MATRIX_DURABLE_DISCONNECT_TOKEN,
           user_id: "@user:matrix.example",
           device_id: "DEVICE"
         }), {
@@ -2705,7 +2715,7 @@ test("matrix disconnect clears durable user credential without exposing tokens",
     }
   });
   assert.equal(callback.statusCode, 302);
-  assert.doesNotMatch(fs.readFileSync(storePath, "utf8"), /matrix_durable_disconnect_token/);
+  assert.equal(fs.readFileSync(storePath, "utf8").includes(MATRIX_DURABLE_DISCONNECT_TOKEN), false);
 
   const disconnect = await app.inject({
     method: "POST",

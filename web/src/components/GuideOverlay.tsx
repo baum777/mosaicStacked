@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { PointerEvent, WheelEvent } from "react";
 import type { Locale } from "../lib/localization.js";
 
@@ -262,7 +263,7 @@ const GUIDE_COPY: Record<Locale, Record<GuideKey, GuideContent>> = {
   },
   de: {
     chat: {
-      ctaLabel: "Guide",
+      ctaLabel: "Anleitung",
       closeLabel: "Schließen",
       previousLabel: "Zurück",
       nextLabel: "Weiter",
@@ -313,7 +314,7 @@ const GUIDE_COPY: Record<Locale, Record<GuideKey, GuideContent>> = {
       ],
     },
     github: {
-      ctaLabel: "Guide",
+      ctaLabel: "Anleitung",
       closeLabel: "Schließen",
       previousLabel: "Zurück",
       nextLabel: "Weiter",
@@ -358,7 +359,7 @@ const GUIDE_COPY: Record<Locale, Record<GuideKey, GuideContent>> = {
       ],
     },
     matrix: {
-      ctaLabel: "Guide",
+      ctaLabel: "Anleitung",
       closeLabel: "Schließen",
       previousLabel: "Zurück",
       nextLabel: "Weiter",
@@ -403,7 +404,7 @@ const GUIDE_COPY: Record<Locale, Record<GuideKey, GuideContent>> = {
       ],
     },
     review: {
-      ctaLabel: "Guide",
+      ctaLabel: "Anleitung",
       closeLabel: "Schließen",
       previousLabel: "Zurück",
       nextLabel: "Weiter",
@@ -448,7 +449,7 @@ const GUIDE_COPY: Record<Locale, Record<GuideKey, GuideContent>> = {
       ],
     },
     settings: {
-      ctaLabel: "Guide",
+      ctaLabel: "Anleitung",
       closeLabel: "Schließen",
       previousLabel: "Zurück",
       nextLabel: "Weiter",
@@ -509,6 +510,7 @@ export function GuideOverlay({ content, testId, ctaClassName }: GuideOverlayProp
   const [pointerStartX, setPointerStartX] = useState<number | null>(null);
   const wheelLockRef = useRef(false);
   const wheelLockTimerRef = useRef<number | null>(null);
+  const dialogRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
   const activeCard = content.cards[activeCardIndex] ?? content.cards[0];
   const hasPrevious = activeCardIndex > 0;
@@ -518,6 +520,17 @@ export function GuideOverlay({ content, testId, ctaClassName }: GuideOverlayProp
     if (!open) {
       return undefined;
     }
+
+    const getFocusableElements = () => {
+      const dialog = dialogRef.current;
+      if (!dialog) {
+        return [];
+      }
+
+      return Array.from(
+        dialog.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+      ).filter((element) => !element.hasAttribute("disabled"));
+    };
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -529,10 +542,35 @@ export function GuideOverlay({ content, testId, ctaClassName }: GuideOverlayProp
       if (event.key === "ArrowRight") {
         setActiveCardIndex((current) => clampCardIndex(current + 1, content.cards.length));
       }
+      if (event.key === "Tab") {
+        const focusable = getFocusableElements();
+        if (focusable.length === 0) {
+          event.preventDefault();
+          return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const activeElement = document.activeElement;
+        if (event.shiftKey) {
+          if (activeElement === first || !dialogRef.current?.contains(activeElement)) {
+            event.preventDefault();
+            last.focus();
+          }
+        } else if (activeElement === last || !dialogRef.current?.contains(activeElement)) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
 
+    const previousFocused = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      previousFocused?.focus?.();
+    };
   }, [content.cards.length, open]);
 
   useEffect(() => {
@@ -603,12 +641,14 @@ export function GuideOverlay({ content, testId, ctaClassName }: GuideOverlayProp
       >
         {content.ctaLabel}
       </button>
-      {open ? (
+      {open && typeof document !== "undefined" ? createPortal(
         <div className="guide-overlay-backdrop" onPointerDown={() => setOpen(false)}>
           <section
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
+            tabIndex={-1}
             className="guide-overlay"
             onPointerDown={(event) => event.stopPropagation()}
             onWheel={handleWheelNavigation}
@@ -673,7 +713,8 @@ export function GuideOverlay({ content, testId, ctaClassName }: GuideOverlayProp
               </button>
             </footer>
           </section>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );

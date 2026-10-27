@@ -717,6 +717,7 @@ function ConsoleShell() {
     modelRegistry,
     runtimeDiagnostics,
     integrationsStatus,
+    integrationsStatusUnavailable,
     githubCapabilities,
     runtimeJournalEntries,
     openRouterCredentialStatus,
@@ -1083,14 +1084,22 @@ function ConsoleShell() {
   ], [activeModelAlias, backendHealthy, chatGovernanceState, ui.github.modelLabel, ui.review.rowClassification, ui.shell.healthChecking, ui.shell.healthReady, ui.shell.healthTitle, ui.shell.healthUnavailable]);
   const githubConfigured = runtimeDiagnostics?.github.configured ?? null;
   const githubReady = runtimeDiagnostics?.github.ready ?? null;
-  const githubAccountLabel = githubConfigured === false || githubReady === false
-    ? ui.settings.notConfigured
-    : githubConfigured === null || githubReady === null
-      ? ui.shell.healthChecking
-      : ui.settings.configured;
-  const githubAccessLabel = githubConfigured === false || githubReady === false
-    ? ui.settings.notConfigured
-    : githubContext.accessLabel;
+  // Integrations status drives the truth snapshot: while loading it says checking,
+  // after a failed load it must show the terminal unavailable state instead of
+  // staying on "checking" forever (UI/UX report F05).
+  const integrationsPendingLabel = integrationsStatusUnavailable ? ui.shell.healthUnavailable : ui.shell.healthChecking;
+  const githubAccountLabel = integrationsStatusUnavailable
+    ? ui.shell.healthUnavailable
+    : githubConfigured === false || githubReady === false
+      ? ui.settings.notConfigured
+      : githubConfigured === null || githubReady === null
+        ? integrationsPendingLabel
+        : ui.settings.configured;
+  const githubAccessLabel = integrationsStatusUnavailable
+    ? ui.shell.healthUnavailable
+    : githubConfigured === false || githubReady === false
+      ? ui.settings.notConfigured
+      : githubContext.accessLabel;
 
   const githubRows = useMemo<StatusPanelRow[]>(() => [
     { label: ui.github.connectedRepo, value: githubContext.repositoryLabel },
@@ -1194,13 +1203,13 @@ function ConsoleShell() {
     },
     github: {
       sessionLabel: githubAccountLabel,
-      connectionLabel: githubContext.connectionLabel,
+      connectionLabel: integrationsStatus ? githubContext.connectionLabel : integrationsPendingLabel,
       repositoryLabel: githubContext.repositoryLabel,
       accessLabel: githubAccessLabel,
     },
     matrix: {
-      identityLabel: matrixContext.identityLabel,
-      connectionLabel: matrixContext.connectionLabel,
+      identityLabel: integrationsStatus ? matrixContext.identityLabel : integrationsPendingLabel,
+      connectionLabel: integrationsStatus ? matrixContext.connectionLabel : integrationsPendingLabel,
       homeserverLabel: matrixContext.homeserverLabel,
       scopeLabel: matrixContext.scopeLabel,
     },
@@ -1263,9 +1272,11 @@ function ConsoleShell() {
       unavailable: ui.shell.healthUnavailable,
       none: ui.common.none,
     },
-    integrations: integrationsStatus
+    integrations: integrationsStatus,
+    loadFailed: integrationsStatusUnavailable
   }), [
     integrationsStatus,
+    integrationsStatusUnavailable,
     ui.common.none,
     ui.shell.healthChecking,
     ui.shell.healthUnavailable
@@ -2255,7 +2266,7 @@ function ConsoleShell() {
             onClick={() => handleWorkspaceTabSelect("workbench")}
             aria-label={locale === "de" ? "Ausstehende Freigaben anzeigen" : "Show pending approvals"}
           >
-            {`${approvalSummary.pending} pending`}
+            {ui.shell.pendingCount(approvalSummary.pending)}
           </button>
         </section>
 
@@ -2383,7 +2394,7 @@ function ConsoleShell() {
           onClick={() => handleWorkspaceTabSelect("workbench")}
           aria-label={locale === "de" ? "Ausstehende Freigaben anzeigen" : "Show pending approvals"}
         >
-          {`${approvalSummary.pending} pending`}
+          {ui.shell.pendingCount(approvalSummary.pending)}
         </button>
         <div className="shell-truth-top-right">
           <span className={`shell-health-dot shell-health-dot-${healthState.tone}`} aria-hidden="true" />
@@ -2403,7 +2414,7 @@ function ConsoleShell() {
             <MosaicStackedIcon />
           </span>
           <p className="app-kicker">{ui.shell.appKicker}</p>
-          <h1>{ui.shell.appTitle}</h1>
+          <p className="app-title">{ui.shell.appTitle}</p>
           {ui.shell.appDeck.trim().length > 0 ? (
             <p className="app-deck">{ui.shell.appDeck}</p>
           ) : null}

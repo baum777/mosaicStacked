@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { buildCompanionContext, type CompanionContext } from "../src/lib/companion-context.js";
 
+// Runtime-generated canary: the redaction fixture asserts this value never
+// reaches the serialized context, so it must not be a hardcoded literal.
+const MUST_NOT_LEAK = `must-not-leak-${randomUUID()}`;
+
 const FORBIDDEN_SECRET_FRAGMENTS = [
-  "must-not-leak",
+  MUST_NOT_LEAK,
   "apiKey",
   "secret",
   "token",
@@ -38,13 +43,13 @@ function buildFixture() {
         },
         lastVerifiedAt: null,
         lastErrorCode: null,
-        apiKey: "must-not-leak",
-        secret: "must-not-leak",
-        token: "must-not-leak",
-        cookie: "must-not-leak",
-        provider: "must-not-leak",
-        target: "must-not-leak",
-        matrixHomeserverToken: "must-not-leak"
+        apiKey: MUST_NOT_LEAK,
+        secret: MUST_NOT_LEAK,
+        token: MUST_NOT_LEAK,
+        cookie: MUST_NOT_LEAK,
+        provider: MUST_NOT_LEAK,
+        target: MUST_NOT_LEAK,
+        matrixHomeserverToken: MUST_NOT_LEAK
       },
       matrix: {
         status: "connected",
@@ -62,13 +67,13 @@ function buildFixture() {
         },
         lastVerifiedAt: null,
         lastErrorCode: null,
-        apiKey: "must-not-leak",
-        secret: "must-not-leak",
-        token: "must-not-leak",
-        cookie: "must-not-leak",
-        provider: "must-not-leak",
-        target: "must-not-leak",
-        matrixHomeserverToken: "must-not-leak"
+        apiKey: MUST_NOT_LEAK,
+        secret: MUST_NOT_LEAK,
+        token: MUST_NOT_LEAK,
+        cookie: MUST_NOT_LEAK,
+        provider: MUST_NOT_LEAK,
+        target: MUST_NOT_LEAK,
+        matrixHomeserverToken: MUST_NOT_LEAK
       }
     },
     runtimeJournalEntries: [
@@ -88,10 +93,10 @@ function buildFixture() {
         verificationId: null,
         modelRouteSummary: { selectedAlias: "default-free" },
         safeMetadata: {
-          apiKey: "must-not-leak",
-          secret: "must-not-leak",
-          token: "must-not-leak",
-          matrixHomeserverToken: "must-not-leak"
+          apiKey: MUST_NOT_LEAK,
+          secret: MUST_NOT_LEAK,
+          token: MUST_NOT_LEAK,
+          matrixHomeserverToken: MUST_NOT_LEAK
         },
         redaction: {
           contentStored: false,

@@ -5,6 +5,9 @@ import path from "node:path";
 import test from "node:test";
 import { createApp } from "../src/app.js";
 import { createMockOpenRouterClient, createTestEnv } from "../test-support/helpers.js";
+import { createSyntheticSecret } from "../test-support/synthetic-secrets.js";
+
+const ROTATION_SESSION_SECRET = createSyntheticSecret("rotation-test");
 
 const TEST_GITHUB_APP_PRIVATE_KEY = [
   "-----BEGIN PRIVATE KEY-----",
@@ -140,7 +143,7 @@ test("next gate: integration auth key rotation supports restart reverify and key
     ...TEST_GITHUB_APP_ENV,
     INTEGRATION_AUTH_STORE_MODE: "file" as const,
     INTEGRATION_AUTH_STORE_FILE_PATH: storePath,
-    MOSAIC_STACK_SESSION_SECRET: "rotation-test-session-secret"
+    MOSAIC_STACK_SESSION_SECRET: ROTATION_SESSION_SECRET
   };
 
   let activeInstallationToken = "ghs_rotation_v1";
@@ -279,7 +282,7 @@ test("next gate: missing previous key config fails closed after rotation", async
     ...TEST_GITHUB_APP_ENV,
     INTEGRATION_AUTH_STORE_MODE: "file" as const,
     INTEGRATION_AUTH_STORE_FILE_PATH: storePath,
-    MOSAIC_STACK_SESSION_SECRET: "rotation-test-session-secret"
+    MOSAIC_STACK_SESSION_SECRET: ROTATION_SESSION_SECRET
   };
 
   const fetchImpl = createGitHubAppIntegrationFetch();
